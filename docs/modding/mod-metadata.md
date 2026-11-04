@@ -49,10 +49,10 @@ For example, >=1.2.0 <2.0.0 accepts versions in that interval. OR expressions, c
 
 ## Entrypoint lifecycle
 
-The main class must be present in the mod JAR or shared mod class path, implement dev.itsdropper.vantaloader.api.VantaMod, and have a public no-argument constructor.
+The main class must be present in the mod's own JAR or in one of its declared dependencies, implement dev.itsdropper.vantaloader.api.VantaMod, and have a public no-argument constructor.
 
 VantaLoader invokes onInitialize(ModContext) after required dependencies have initialized. During shutdown it invokes onShutdown() in reverse initialization order.
 
 ## Runtime limitations
 
-Schema 1 is for the first standalone native runtime. It does not yet describe Minecraft versions, client/server environments, Mixin configurations, access wideners, nested dependencies, or reload capabilities. Those fields will be introduced only with corresponding runtime implementations. All discovered mod JARs currently share one URLClassLoader: declared dependencies are validated and ordered, but class visibility is not isolated to declared dependencies. Do not treat dependency declarations as a security boundary.
+Schema 1 is for the first standalone native runtime. It does not yet describe Minecraft versions, client/server environments, Mixin configurations, access wideners, nested dependencies, or reload capabilities. Those fields will be introduced only with corresponding runtime implementations. Each mod receives its own class loader. It can load its own classes and classes/resources from explicitly declared dependencies; unrelated mods are not searched. Java platform classes and the VantaLoader API are parent-first so all entrypoints share the same API type identity. Dependency lookup order is deterministic. This is namespace isolation, not a security boundary: Java code in a mod still runs with the operating-system user's permissions.
