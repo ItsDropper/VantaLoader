@@ -13,13 +13,14 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - Mod JAR discovery from a configured directory.
 - Semantic version values and basic version constraints.
 - Required dependency validation and deterministic topological ordering.
-- A shared mod class loader.
+- Dependency-aware per-mod class loaders with child-first mod classes and parent-first Java/VantaLoader API classes.
+- Explicit visibility of a mod's declared dependencies; unrelated mods cannot see its implementation classes.
 - Native VantaMod entrypoints and a small ModContext API.
 - Dependency-order initialization and reverse-order shutdown.
 - Initialization rollback, failure-tolerant reverse shutdown, and startup diagnostics.
 - A buildable [Hello World example mod](examples/hello-mod/README.md).
 - Unit tests for metadata, discovery, dependency resolution, and lifecycle ordering.
-- An end-to-end integration test that compiles a separate Java mod, packages a real fixture JAR, discovers it, loads its entrypoint from that JAR, and verifies initialization and shutdown.
+- End-to-end integration tests that compile independent Java mod JARs, verify JAR-origin loading and lifecycle callbacks, and prove declared-dependency visibility and unrelated-mod isolation.
 
 ## Status
 
