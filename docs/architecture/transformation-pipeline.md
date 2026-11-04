@@ -2,39 +2,47 @@
 
 ## Status
 
-This document records design constraints and a proposed direction. No VantaTransform engine is implemented yet.
+<badge>Implemented: initial JVM backend</badge>
 
-## Intended responsibility
+VantaLoader now exposes a native, exact-target class transformation API backed by Java Instrumentation. This is an initial execution layer, not yet a complete bytecode toolkit or Minecraft compatibility layer.
 
-VantaTransform is the working name for VantaLoader's native transformation coordination layer. It should provide a consistent API and diagnostics for transformations contributed by native VantaLoader mods and compatibility adapters.
+## Current API
 
-The initial goal is not to invent a replacement for every bytecode tool. It is to own transformation planning, ordering, validation, conflict reporting, and lifecycle policy.
+A mod receives a mod-scoped `TransformationRegistry` through `ModContext.transformations()`. It can register a `ClassTransformer` using:
 
-## Proposed stages
+- A unique transformation ID within that mod.
+- An exact binary target class name, such as `net.minecraft.client.Minecraft`.
+- An integer priority; lower values run first.
+- A callback receiving immutable contribution metadata and a defensive copy of the current class bytes.
 
-1. Collect contributions from discovered mods and enabled adapters.
-2. Validate targets, required capabilities, compatibility constraints, and duplicate identifiers.
-3. Construct a deterministic plan from explicit dependencies and ordering constraints.
-4. Apply transformations at the JVM/Minecraft lifecycle point where target classes can still be transformed.
-5. Report outcomes, contributors, targets, timing, and failures.
+Contributions are ordered deterministically by priority, mod ID, and transformation ID. Each transform receives the previous transform's output, allowing an explicit bytecode pipeline for the same target. Classes without an exact target match are not modified.
 
-The exact stages and backend interfaces must be validated against the launch technology selected for each supported Minecraft version.
+The JVM agent installs the service before native mod initialization. Mods register contributions during `onInitialize`, before Minecraft's main class starts. The backend does not request retransformation of classes that have already loaded.
 
-## Mixin interoperability
+## Important limitations
 
-SpongePowered Mixin should initially be integrated through an adapter where practical. The adapter must preserve Mixin's own configuration and semantics rather than pretending arbitrary Mixin configurations can be translated losslessly into a new native format.
-
-The native API and adapter should have clear ownership boundaries. Mixin-specific annotations and configuration should not become mandatory dependencies for native VantaLoader mods.
+- VantaLoader does not currently bundle ASM or another bytecode manipulation library. A mod must provide its own implementation or dependency for producing valid class-file bytes.
+- The current API does not validate bytecode structure or verify stack-map frames. Invalid output can cause class loading or verification failures.
+- Java Instrumentation treats transformer failures as failed transformations according to JVM behavior; the service logs the failing mod, contribution, and target. It cannot promise a process-wide rollback of classes already defined.
+- Exact target matching is supported; target discovery, method-level selectors, conflict analysis, remapping, and transformation timing reports are not implemented.
+- No Minecraft-version-specific targets or lifecycle hooks are implemented yet.
+- SpongePowered Mixin interoperability is not implemented.
 
 ## Ordering and conflicts
 
-- Produce stable ordering for equivalent inputs.
-- Require explicit ordering only where it affects correctness.
-- Detect duplicate or incompatible contributions when possible.
-- Report conflicts with contributing mod IDs and target classes.
-- Avoid silently choosing a winner for ambiguous transformations.
+- Stable ordering is priority, then mod ID, then transformation ID.
+- Duplicate transformation IDs are rejected within a mod.
+- Different mods may use the same transformation ID.
+- Transformations targeting the same class are composed in the deterministic order above.
+- Semantic conflicts between two valid bytecode transformations cannot yet be detected automatically.
 
-Some conflicts can only be discovered while applying or verifying a transformation. Diagnostics must distinguish detected conflicts from conflicts that cannot be determined statically.
+## Intended next stages
+
+1. Add bytecode validation and a supported ASM-based authoring API.
+2. Add real JVM integration tests that transform and load fixture classes, not merely test byte-array callbacks.
+3. Introduce Minecraft-version adapters and stable lifecycle events.
+4. Add a Mixin compatibility adapter while preserving Mixin's native semantics.
+5. Add structured transformation reports and compatibility diagnostics.
 
 ## Reload constraints
 
@@ -45,11 +53,8 @@ Therefore:
 - Implement resource/data reload independently of class transformation.
 - Give reloadable components explicit lifecycle and cleanup contracts.
 - Mark structural bytecode changes restart-required unless a specific, tested runtime path proves otherwise.
-- Validate a reload request before applying partial changes.
 - Preserve a known runtime state on failure wherever the underlying operation allows it.
 
-## Required diagnostics
+## Diagnostics
 
-A useful transformation report should eventually include the mod ID, transformation identifier, target class/method, backend, lifecycle stage, ordering constraints, outcome, and concise failure details.
-
-Do not expose sensitive local paths or environment values by default.
+Failures include the contributing mod ID, transformation ID, target class, and original exception. Local paths and environment values are not included by default.
