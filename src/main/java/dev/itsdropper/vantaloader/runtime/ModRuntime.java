@@ -84,8 +84,10 @@ public final class ModRuntime implements AutoCloseable {
         ClassLoader previous = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(mod.classLoader());
         try {
+            Path modConfigDirectory = configDirectory.resolve(artifact.descriptor().id());
+            Files.createDirectories(modConfigDirectory);
             mod.instance().onInitialize(new DefaultModContext(artifact.descriptor(), gameDirectory,
-                    configDirectory.resolve(artifact.descriptor().id()), transformationService));
+                    modConfigDirectory, transformationService));
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
         }
