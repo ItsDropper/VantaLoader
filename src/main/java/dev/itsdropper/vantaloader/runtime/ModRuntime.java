@@ -104,6 +104,8 @@ public final class ModRuntime implements AutoCloseable {
         } catch (ReflectiveOperationException exception) {
             throw new IllegalStateException("Cannot construct entrypoint '" + name + "' for mod '" + id
                     + "'. A public class and public no-argument constructor are required.", exception);
+        } finally {
+            Thread.currentThread().setContextClassLoader(previous);
         }
     }
 
