@@ -5,7 +5,7 @@
 VantaLoader has moved from repository scaffolding into its first executable native-mod runtime. It discovers mod JARs, validates metadata, resolves dependencies, loads entrypoints, and manages initialization and shutdown.
 
 > [!WARNING]
-> **Pre-alpha runtime.** This implementation does not yet launch Minecraft. It runs native VantaLoader mods in a standalone Java runtime. The experimental Java agent can initialize native VantaLoader entrypoints before Minecraft's main class. It does not yet provide Minecraft event hooks, bytecode transformation, or Mixin interoperability, so this is not yet a general-purpose gameplay mod platform.
+> **Pre-alpha runtime.** The standalone native runtime is implemented, and an experimental Java agent can initialize native VantaLoader entrypoints before Minecraft's main class. The agent is packaged for Vanta Launcher integration, but a real Minecraft launch has not yet been validated. There are no Minecraft event hooks, bytecode transformations, or Mixin interoperability yet, so this is not a general-purpose gameplay mod platform.
 
 ## Implemented
 
@@ -32,7 +32,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 | Metadata validation | Implemented |
 | Dependency resolution | Implemented |
 | Native entrypoint lifecycle | Implemented |
-| Minecraft launch integration | Not implemented |
+| Minecraft Java-agent bootstrap | Experimental; real launch not verified |
 | Minecraft-version adapters | Not implemented |
 | VantaTransform | Not implemented |
 | SpongePowered Mixin adapter | Planned |
@@ -69,7 +69,15 @@ gradle build
 
 See [the example instructions](examples/hello-mod/README.md) for running it with the standalone runtime.
 
-Build the self-contained Minecraft agent artifact:\n\n~~~bash\ngradle agentJar\n~~~\n\nThe artifact is written to `build/agent/VantaLoader-agent.jar`. The agent expects the Minecraft instance directory to be the process working directory and discovers native mod JARs in its `mods/` folder.\n\nCreate an installable application distribution:
+Build the self-contained Minecraft agent artifact:
+
+~~~bash
+gradle agentJar
+~~~
+
+The artifact is written to `build/agent/VantaLoader-agent.jar`. The agent expects the Minecraft instance directory to be the process working directory and discovers native mod JARs in its `mods/` folder.
+
+Create an installable application distribution:
 
 ~~~bash
 gradle installDist
@@ -123,7 +131,7 @@ The entrypoint needs a public no-argument constructor. Mods initialize after the
 
 ## Architecture
 
-VantaLoader owns its native runtime; it is not a renamed Fabric Loader distribution. Minecraft integration will be implemented as a separate milestone after the core lifecycle and metadata behavior are testable.
+VantaLoader owns its native runtime; it is not a renamed Fabric Loader distribution. The first integration milestone is a Java agent that initializes native entrypoints before Minecraft's main class. It does not currently transform game classes or expose Minecraft lifecycle events.
 
 SpongePowered Mixin is intended to be supported through an interoperability adapter where practical. Native VantaLoader transformation APIs will not require mod developers to depend on Mixin-specific types.
 
