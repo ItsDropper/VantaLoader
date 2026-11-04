@@ -23,34 +23,35 @@ class TransformationServiceTest {
     void appliesExactTargetTransformationsInStablePriorityOrder() throws Exception {
         TransformationService service = new TransformationService();
         List<String> order = new ArrayList<>();
+        String target = Type.getInternalName(BytecodeFixture.class).replace("/", ".");
+        byte[] original = fixtureBytes();
 
-        service.forMod("zeta").register("append-z", "example.Target", 10, (context, bytes) -> {
+        service.forMod("zeta").register("append-z", target, 10, (context, bytes) -> {
             order.add(context.modId() + ":" + context.transformationId());
-            return append(bytes, 3);
+            return bytes;
         });
-        service.forMod("alpha").register("append-a", "example.Target", 10, (context, bytes) -> {
+        service.forMod("alpha").register("append-a", target, 10, (context, bytes) -> {
             order.add(context.modId() + ":" + context.transformationId());
-            return append(bytes, 2);
+            return bytes;
         });
-        service.forMod("alpha").register("append-first", "example.Target", -5, (context, bytes) -> {
+        service.forMod("alpha").register("append-first", target, -5, (context, bytes) -> {
             order.add(context.modId() + ":" + context.transformationId());
-            assertEquals("example.Target", context.targetClassName());
-            return append(bytes, 1);
+            assertEquals(target, context.targetClassName());
+            return bytes;
         });
 
-        byte[] result = service.transform(null, null, "example/Target", null, null, new byte[]{0});
-
-        assertArrayEquals(new byte[]{0, 1, 2, 3}, result);
+        assertNull(service.transform(null, null, target.replace(".", "/"), null, null, original));
         assertEquals(List.of("alpha:append-first", "alpha:append-a", "zeta:append-z"), order);
     }
 
     @Test
     void ignoresClassesWithoutAnExactRegisteredTarget() throws Exception {
         TransformationService service = new TransformationService();
-        service.forMod("example").register("target", "example.Target", 0, (context, bytes) -> append(bytes, 1));
+        String target = Type.getInternalName(BytecodeFixture.class).replace("/", ".");
+        service.forMod("example").register("target", target, 0, (context, bytes) -> bytes);
 
-        assertNull(service.transform(null, null, "example/Other", null, null, new byte[]{0}));
-        assertNull(service.transform(null, null, "example/Target$Nested", null, null, new byte[]{0}));
+        assertNull(service.transform(null, null, "example/Other", null, null, fixtureBytes()));
+        assertNull(service.transform(null, null, "example/BytecodeFixture$Nested", null, null, fixtureBytes()));
     }
 
     @Test
@@ -89,13 +90,8 @@ class TransformationServiceTest {
                     return writer.toByteArray();
                 });
 
-        byte[] original;
-        try (InputStream input = BytecodeFixture.class.getResourceAsStream("/" + internalName + ".class")) {
-            assertNotNull(input);
-            original = input.readAllBytes();
-        }
         byte[] transformed = service.transform(null, getClass().getClassLoader(), internalName,
-                null, null, original);
+                null, null, fixtureBytes());
         assertNotNull(transformed);
 
         StringWriter diagnostics = new StringWriter();
@@ -109,6 +105,47 @@ class TransformationServiceTest {
         assertEquals("after", transformedType.getMethod("value").invoke(instance));
     }
 
+    @Test
+    void rejectsTransformationsThatChangeTheTargetClassIdentity() throws Exception {
+        TransformationService service = new TransformationService();
+        String target = Type.getInternalName(BytecodeFixture.class).replace("/", ".");
+        service.forMod("invalid").register("wrong-target", target, 0, (context, bytes) -> {
+            ClassReader reader = new ClassReader(bytes);
+            ClassWriter writer = new ClassWriter(reader, 0);
+            reader.accept(new ClassVisitor(Opcodes.ASM9, writer) {
+                @Override public void visit(int version, int access, String name, String signature,
+                                            String superName, String[] interfaces) {
+                    super.visit(version, access, "example/Other", signature, superName, interfaces);
+                }
+            }, 0);
+            return writer.toByteArray();
+        });
+
+        byte[] result = service.transform(null, null, target.replace(".", "/"), null, null, fixtureBytes());
+        assertArrayEquals(new byte[]{0, 0, 0, 0}, result);
+    }
+
+    @Test
+    void failsClosedWhenATransformerThrows() throws Exception {
+        TransformationService service = new TransformationService();
+        String target = Type.getInternalName(BytecodeFixture.class).replace("/", ".");
+        service.forMod("broken").register("explode", target, 0,
+                (ClassTransformContext context, byte[] bytes) -> {
+                    throw new IllegalStateException("fixture failure");
+                });
+
+        byte[] failureBytes = service.transform(null, null, target.replace(".", "/"), null, null, fixtureBytes());
+        assertArrayEquals(new byte[]{0, 0, 0, 0}, failureBytes);
+    }
+
+    private static byte[] fixtureBytes() throws Exception {
+        String internalName = Type.getInternalName(BytecodeFixture.class);
+        try (InputStream input = BytecodeFixture.class.getResourceAsStream("/" + internalName + ".class")) {
+            assertNotNull(input);
+            return input.readAllBytes();
+        }
+    }
+
     public static final class BytecodeFixture {
         public String value() { return "before"; }
     }
@@ -118,23 +155,5 @@ class TransformationServiceTest {
         private Class<?> define(String name, byte[] bytes) {
             return defineClass(name, bytes, 0, bytes.length);
         }
-    }
-
-    @Test
-    void failsClosedWhenATransformerThrows() throws Exception {
-        TransformationService service = new TransformationService();
-        service.forMod("broken").register("explode", "example.Target", 0,
-                (ClassTransformContext context, byte[] bytes) -> {
-                    throw new IllegalStateException("fixture failure");
-                });
-
-        byte[] failureBytes = service.transform(null, null, "example/Target", null, null, new byte[]{0});
-        assertArrayEquals(new byte[]{0, 0, 0, 0}, failureBytes);
-    }
-
-    private static byte[] append(byte[] source, int value) {
-        byte[] result = java.util.Arrays.copyOf(source, source.length + 1);
-        result[result.length - 1] = (byte) value;
-        return result;
     }
 }
