@@ -148,7 +148,7 @@ class TransformationServiceTest {
     @Test
     void resolvesNamedMinecraftTargetsToObfuscatedRuntimeClasses() throws Exception {
         Path mappingFile = temporaryDirectory.resolve("client_mappings.txt");
-        Files.writeString(mappingFile, "net.minecraft.client.Minecraft -> a:\\n");
+        Files.writeString(mappingFile, "net.minecraft.client.Minecraft -> a:\n");
         MinecraftMappings mappings = MinecraftMappings.read(mappingFile);
         TransformationService service = new TransformationService(mappings);
         List<String> seenTargets = new ArrayList<>();
