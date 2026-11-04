@@ -112,8 +112,8 @@ context.transformations().register(
 );
 ```
 
-The example target is illustrative, not a verified Minecraft class. Use exact binary class names (dots, not slashes) and register before the target class loads. For edits that change control flow or stack shape, valid stack-map frames must be computed with a hierarchy resolver that can see the target game's classes; the default system class loader is not sufficient for many Minecraft types.
+The example target is illustrative, not a verified Minecraft class. Use Mojang-mapped binary class names (dots, not slashes) for Minecraft targets and register before the target class loads. Vanta Launcher downloads the selected version's official client mappings and supplies them to the agent. The current mapping layer resolves class names only; method/field names and descriptors are not remapped yet. For edits that change control flow or stack shape, valid stack-map frames must be computed with a hierarchy resolver that can see the target game's classes; the default system class loader is not sufficient for many Minecraft types.
 
 ## Current compatibility boundary
 
-The loader currently provides native entrypoints, dependency ordering, isolated mod class loaders, and an ASM-backed exact-target transformation pipeline tested against fixture classes. It does not yet provide Minecraft lifecycle events, official mapping resolution, Mixin interoperability, Fabric/Forge APIs, or a verified in-game hook. It is not yet a general-purpose replacement for established Minecraft loaders.
+The loader currently provides native entrypoints, dependency ordering, isolated mod class loaders, and an ASM-backed exact-target transformation pipeline tested against fixture classes. It does not yet provide Minecraft lifecycle events, member/descriptor mapping, Mixin interoperability, Fabric/Forge APIs, or a verified in-game hook. It is not yet a general-purpose replacement for established Minecraft loaders.
