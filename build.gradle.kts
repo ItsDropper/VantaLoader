@@ -36,3 +36,51 @@ tasks.withType<Jar>().configureEach {
         )
     }
 }
+
+
+// A self-contained javaagent artifact for launcher-managed Minecraft instances.
+val agentJar by tasks.registering(Jar::class) {
+    dependsOn(tasks.classes)
+    archiveFileName.set("VantaLoader-agent.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("agent"))
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(sourceSets.main.get().output)
+    from({
+        configurations.runtimeClasspath.get().filter { it.exists() }.map { zipTree(it) }
+    })
+    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "META-INF/INDEX.LIST")
+    manifest {
+        attributes(
+            "Premain-Class" to "dev.itsdropper.vantaloader.bootstrap.VantaLoaderAgent",
+            "Can-Redefine-Classes" to "false",
+            "Can-Retransform-Classes" to "false",
+            "Implementation-Title" to "VantaLoader Java Agent",
+            "Implementation-Version" to project.version,
+            "Implementation-Vendor" to "ItsDropper"
+        )
+    }
+}
+
+val verifyAgentJar by tasks.registering {
+    dependsOn(agentJar)
+    doLast {
+        val archive = agentJar.get().archiveFile.get().asFile
+        java.util.jar.JarFile(archive).use { jar ->
+            val attributes = jar.manifest.mainAttributes
+            check(attributes.getValue("Premain-Class")
+                == "dev.itsdropper.vantaloader.bootstrap.VantaLoaderAgent") {
+                "VantaLoader agent JAR is missing its Premain-Class manifest entry"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/bootstrap/VantaLoaderAgent.class") != null) {
+                "VantaLoader agent class is missing from the packaged artifact"
+            }
+            check(jar.getEntry("com/google/gson/JsonParser.class") != null) {
+                "Gson runtime dependency is missing from the self-contained agent JAR"
+            }
+        }
+    }
+}
+
+tasks.named("build") {
+    dependsOn(verifyAgentJar)
+}
