@@ -20,7 +20,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - Initialization rollback, failure-tolerant reverse shutdown, and startup diagnostics.
 - A buildable [Hello World example mod](examples/hello-mod/README.md).
 - Unit tests for metadata, discovery, dependency resolution, and lifecycle ordering.
-- End-to-end integration tests that compile independent Java mod JARs, verify JAR-origin loading and lifecycle callbacks, and prove declared-dependency visibility and unrelated-mod isolation.
+- End-to-end integration tests that compile independent Java mod JARs, verify JAR-origin loading and lifecycle callbacks, and prove declared-dependency visibility, unrelated-mod isolation, and same-name class separation.
 
 ## Status
 
