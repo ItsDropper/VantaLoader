@@ -46,7 +46,13 @@ class NativeModJarIntegrationTest {
                     public void onInitialize(ModContext context) throws Exception {
                         Files.createDirectories(context.configDirectory());
                         marker = context.configDirectory().resolve("initialized.txt");
-                        Files.writeString(marker, context.modId() + ":" + context.modVersion());
+                        String source = ExampleFixtureMod.class.getProtectionDomain()
+                                .getCodeSource().getLocation().toExternalForm();
+                        boolean contextLoaderMatches = Thread.currentThread().getContextClassLoader()
+                                == ExampleFixtureMod.class.getClassLoader();
+                        Files.writeString(marker, context.modId() + ":" + context.modVersion()
+                                + System.lineSeparator() + source
+                                + System.lineSeparator() + contextLoaderMatches);
                     }
                     @Override
                     public void onShutdown() throws Exception {
@@ -98,8 +104,15 @@ class NativeModJarIntegrationTest {
         try (ModRuntime runtime = new ModRuntime(gameDirectory)) {
             runtime.start(ordered);
             Path modConfig = gameDirectory.resolve("config/vantaloader/example_fixture");
-            assertEquals("example_fixture:1.2.3",
-                    Files.readString(modConfig.resolve("initialized.txt")));
+            String[] initialization = Files.readString(modConfig.resolve("initialized.txt"))
+                    .split(System.lineSeparator());
+            assertEquals("example_fixture:1.2.3", initialization[0]);
+            assertTrue(initialization[1].startsWith("jar:"),
+                    "Entrypoint must be defined from a JAR URL, not the test classpath");
+            assertTrue(initialization[1].contains("example-fixture.jar"),
+                    "Entrypoint must originate from the independently packaged fixture JAR");
+            assertEquals("true", initialization[2],
+                    "Mod callbacks must run with the mod class loader as context class loader");
             assertFalse(Files.exists(modConfig.resolve("shutdown.txt")),
                     "Shutdown must not run before the runtime is closed");
         }
