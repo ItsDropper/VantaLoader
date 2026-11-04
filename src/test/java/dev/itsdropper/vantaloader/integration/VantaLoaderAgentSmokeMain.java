@@ -13,6 +13,9 @@ public final class VantaLoaderAgentSmokeMain {
         if (!Files.isRegularFile(initialized)) {
             throw new IllegalStateException("VantaLoader did not initialize the fixture before main");
         }
+        if (!"true".equals(System.getProperty("vantaloader.agent.transformed"))) {
+            throw new IllegalStateException("The ASM transformation did not execute before main");
+        }
         Files.writeString(gameDirectory.resolve("main-started.txt"), "main-started");
     }
 }
