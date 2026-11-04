@@ -69,6 +69,22 @@ val agentJar by tasks.registering(Jar::class) {
     }
 }
 
+val apiJar by tasks.registering(Jar::class) {
+    dependsOn(tasks.classes)
+    archiveFileName.set("VantaLoader-api.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("agent"))
+    from(sourceSets.main.get().output) {
+        include("dev/itsdropper/vantaloader/api/**")
+    }
+    manifest {
+        attributes(
+            "Implementation-Title" to "VantaLoader Mod API",
+            "Implementation-Version" to project.version,
+            "Implementation-Vendor" to "ItsDropper"
+        )
+    }
+}
+
 val verifyAgentJar by tasks.registering {
     dependsOn(agentJar)
     doLast {
