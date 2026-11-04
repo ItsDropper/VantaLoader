@@ -3,6 +3,7 @@ package dev.itsdropper.vantaloader.transformation;
 import dev.itsdropper.vantaloader.api.ClassTransformContext;
 import dev.itsdropper.vantaloader.api.ClassTransformer;
 import dev.itsdropper.vantaloader.api.TransformationRegistry;
+import dev.itsdropper.vantaloader.mapping.MinecraftMappings;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
@@ -29,6 +30,15 @@ public final class TransformationService implements ClassFileTransformer {
             .thenComparing(Registration::id);
 
     private final CopyOnWriteArrayList<Registration> registrations = new CopyOnWriteArrayList<>();
+    private final MinecraftMappings mappings;
+
+    public TransformationService() {
+        this(null);
+    }
+
+    public TransformationService(MinecraftMappings mappings) {
+        this.mappings = mappings;
+    }
 
     public TransformationRegistry forMod(String modId) {
         requireIdentifier(modId, "mod ID");
@@ -69,7 +79,7 @@ public final class TransformationService implements ClassFileTransformer {
         if (className == null || classfileBuffer == null) return null;
         String binaryName = className.replace('/', '.');
         List<Registration> matching = registrations.stream()
-                .filter(registration -> registration.targetClassName().equals(binaryName))
+                .filter(registration -> runtimeTargetName(registration).equals(binaryName))
                 .toList();
         if (matching.isEmpty()) return null;
 
@@ -78,7 +88,7 @@ public final class TransformationService implements ClassFileTransformer {
         for (Registration registration : matching) {
             try {
                 byte[] transformed = registration.transformer().transform(
-                        new ClassTransformContext(registration.modId(), registration.id(), binaryName),
+                        new ClassTransformContext(registration.modId(), registration.id(), registration.targetClassName()),
                         current.clone());
                 if (transformed == null || transformed.length == 0) {
                     throw new IllegalStateException("Transformer returned an empty or null class file");
@@ -97,6 +107,11 @@ public final class TransformationService implements ClassFileTransformer {
             }
         }
         return changed ? current : null;
+    }
+
+    private String runtimeTargetName(Registration registration) {
+        return mappings == null ? registration.targetClassName()
+                : mappings.toRuntimeClassName(registration.targetClassName());
     }
 
     private static void validateClassFile(byte[] bytes, String expectedBinaryName) {
