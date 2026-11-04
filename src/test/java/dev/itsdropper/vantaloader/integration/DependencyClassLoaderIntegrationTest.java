@@ -56,6 +56,7 @@ class DependencyClassLoaderIntegrationTest {
                         public final class DependentMod implements VantaMod {
                             public DependentMod() { }
                             public void onInitialize(ModContext context) throws Exception {
+                                Files.createDirectories(context.configDirectory());
                                 Files.writeString(context.configDirectory().resolve("visibility.txt"),
                                         Library.message());
                             }
@@ -71,6 +72,7 @@ class DependencyClassLoaderIntegrationTest {
                         public final class IsolatedMod implements VantaMod {
                             public IsolatedMod() { }
                             public void onInitialize(ModContext context) throws Exception {
+                                Files.createDirectories(context.configDirectory());
                                 String result;
                                 try {
                                     Class.forName("fixture.shared.Library");
