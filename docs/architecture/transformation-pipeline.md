@@ -4,7 +4,7 @@
 
 **Status: Initial JVM backend implemented**
 
-VantaLoader now exposes a native, exact-target class transformation API backed by Java Instrumentation. This is an initial execution layer, not yet a complete bytecode toolkit or Minecraft compatibility layer.
+VantaLoader exposes a native, exact-target class transformation API backed by Java Instrumentation. The agent bundles ASM 9.11.1 core, tree, commons, util, and analysis modules. A fixture integration test transforms a compiled class, runs ASM verification, defines the transformed bytes in an isolated class loader, and asserts changed behavior. This is a tested JVM transformation layer, not yet a Minecraft compatibility layer.
 
 ## Current API
 
@@ -17,7 +17,7 @@ A mod receives a mod-scoped `TransformationRegistry` through `ModContext.transfo
 
 Contributions are ordered deterministically by priority, mod ID, and transformation ID. Each transform receives the previous transform's output, allowing an explicit bytecode pipeline for the same target. Classes without an exact target match are not modified.
 
-The JVM agent installs the service before native mod initialization. Mods register contributions during `onInitialize`, before Minecraft's main class starts. The backend does not request retransformation of classes that have already loaded.
+The JVM agent installs the service before native mod initialization. Mods register contributions during `onInitialize`, before Minecraft's main class starts. The backend does not request retransformation of classes that have already loaded. ASM packages are parent-first in native mod class loaders so mods use the same ASM classes bundled by the agent.
 
 ## Important limitations
 
