@@ -7,7 +7,6 @@ import dev.itsdropper.vantaloader.api.TransformationRegistry;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -54,10 +53,7 @@ public final class TransformationService implements ClassFileTransformer {
                 throw new IllegalArgumentException("Duplicate transformation ID '" + modId + ":" + id + "'");
             }
             registrations.add(registration);
-            List<Registration> sorted = new ArrayList<>(registrations);
-            sorted.sort(ORDER);
-            registrations.clear();
-            registrations.addAll(sorted);
+            registrations.sort(ORDER);
         }
         LOGGER.info(() -> "Registered transformation " + modId + ":" + id
                 + " -> " + targetClassName + " (priority " + priority + ")");
