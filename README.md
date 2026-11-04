@@ -17,7 +17,8 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - Native VantaMod entrypoints and a small ModContext API.
 - Dependency-order initialization and reverse-order shutdown.
 - Initialization rollback and startup diagnostics.
-- Unit and integration tests for metadata, discovery, dependency resolution, and lifecycle ordering.
+- Unit tests for metadata, discovery, dependency resolution, and lifecycle ordering.
+- An end-to-end integration test that compiles a separate Java mod, packages a real fixture JAR, discovers it, loads its entrypoint from that JAR, and verifies initialization and shutdown.
 
 ## Status
 
