@@ -19,6 +19,7 @@ Milestones describe intended work, not promises or release dates. A milestone is
 - [x] Implement reverse-order shutdown and initialization rollback.
 - [ ] Verify implementation with a successful GitHub Actions build.
 - [x] Add end-to-end fixture JAR test that compiles and packages a separate mod, then verifies JAR-origin loading and lifecycle callbacks.
+- [x] Add a buildable Hello World mod project and standalone runtime instructions.
 
 **Exit criteria:** a fixture mod JAR is discovered, validated, dependency-ordered, loaded, initialized, and shut down in automated tests.
 
@@ -55,7 +56,6 @@ Milestones describe intended work, not promises or release dates. A milestone is
 
 ## Stage 5 — Vanta ecosystem integration
 
-- [ ] Build a native VantaLoader example mod.
 - [ ] Port a small, isolated Vanta Client feature as the first-party reference integration.
 - [ ] Expand the port after the public API is stable enough.
 - [ ] Provide developer documentation, templates, and Gradle tooling.
