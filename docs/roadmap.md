@@ -38,8 +38,10 @@ Milestones describe intended work, not promises or release dates. A milestone is
 
 - [ ] Define Minecraft-version adapter boundaries.
 - [ ] Implement the first in-game lifecycle and event hooks.
-- [ ] Specify native transformation contracts.
-- [ ] Implement transformation planning, ordering, and conflict diagnostics.
+- [x] Specify native transformation contracts.
+- [x] Implement deterministic exact-target dispatch and transformation ordering.
+- [x] Bundle ASM and test transformed fixture class loading.
+- [ ] Add hierarchy-aware frame computation, conflict reports, and Minecraft target mappings.
 - [ ] Evaluate and implement a SpongePowered Mixin compatibility adapter.
 - [ ] Verify behavior against real Minecraft targets.
 
@@ -66,7 +68,9 @@ Milestones describe intended work, not promises or release dates. A milestone is
 
 ## Stage 6 — Distribution and ecosystem
 
-- [x] Add Vanta Launcher instance-creation, install, launch-agent, and repair integration for the experimental nightly bootstrap.\n- [ ] Verify clean install, real Minecraft launch, relaunch, and repair end to end.
+- [x] Add Vanta Launcher instance-creation, install, launch-agent, and repair integration for the experimental bootstrap.
+- [x] Pin launcher instances to immutable commit-specific loader releases and update them through repair.
+- [ ] Verify clean install, real Minecraft launch, relaunch, and repair end to end.
 - [ ] Publish version manifests and mod-development resources.
 - [ ] Evaluate Modrinth launcher and loader-recognition requirements with Modrinth.
 - [ ] Publish only compatibility claims backed by tests.
