@@ -11,4 +11,5 @@ public interface ModContext {
     Path gameDirectory();
     Path configDirectory();
     Logger logger();
+    TransformationRegistry transformations();
 }
