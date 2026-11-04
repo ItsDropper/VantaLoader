@@ -39,6 +39,7 @@ jobs:
         run: |
           cd build/agent
           sha256sum VantaLoader-agent.jar > VantaLoader-agent.jar.sha256
+          sha256sum VantaLoader-api.jar > VantaLoader-api.jar.sha256
       - name: Publish release assets
         uses: softprops/action-gh-release@v2
         with:
@@ -50,3 +51,5 @@ jobs:
           files: |
             build/agent/VantaLoader-agent.jar
             build/agent/VantaLoader-agent.jar.sha256
+            build/agent/VantaLoader-api.jar
+            build/agent/VantaLoader-api.jar.sha256
