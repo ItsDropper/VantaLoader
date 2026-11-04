@@ -14,5 +14,9 @@ public final class RuntimeTestEntrypoint implements VantaMod {
     @Override
     public void onShutdown() {
         RuntimeEvents.EVENTS.add("stop");
+        if (RuntimeEvents.failShutdown) {
+            RuntimeEvents.failShutdown = false;
+            throw new AssertionError("simulated shutdown failure");
+        }
     }
 }
