@@ -2,11 +2,16 @@ name: Release
 
 on:
   push:
+    branches: [main]
     tags:
       - "v*"
 
 permissions:
   contents: write
+
+concurrency:
+  group: vantaloader-release
+  cancel-in-progress: false
 
 jobs:
   package:
@@ -14,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
@@ -21,6 +28,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "8.14"
+      - name: Move nightly tag to this commit
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git tag -f nightly "$GITHUB_SHA"
+          git push --force origin refs/tags/nightly
       - name: Build and test
         run: gradle --no-daemon clean build
       - name: Generate SHA-256 checksum
@@ -30,9 +42,11 @@ jobs:
       - name: Publish release assets
         uses: softprops/action-gh-release@v2
         with:
-          name: VantaLoader ${{ github.ref_name }}
+          tag_name: ${{ github.ref == 'refs/heads/main' && 'nightly' || github.ref_name }}
+          name: ${{ github.ref == 'refs/heads/main' && 'VantaLoader Nightly' || format('VantaLoader {0}', github.ref_name) }}
           generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          prerelease: ${{ github.ref == 'refs/heads/main' || contains(github.ref_name, '-') }}
+          make_latest: false
           files: |
             build/agent/VantaLoader-agent.jar
             build/agent/VantaLoader-agent.jar.sha256
