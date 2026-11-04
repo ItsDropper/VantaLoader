@@ -4,6 +4,7 @@ import dev.itsdropper.vantaloader.dependency.ModResolver;
 import dev.itsdropper.vantaloader.discovery.ModArtifact;
 import dev.itsdropper.vantaloader.discovery.ModDiscovery;
 import dev.itsdropper.vantaloader.metadata.LoaderVersion;
+import dev.itsdropper.vantaloader.mapping.MinecraftMappings;
 import dev.itsdropper.vantaloader.runtime.ModRuntime;
 import dev.itsdropper.vantaloader.transformation.TransformationService;
 
@@ -31,6 +32,17 @@ public final class VantaLoader {
         this.instrumentation = instrumentation;
     }
 
+    private static MinecraftMappings loadMinecraftMappings() throws Exception {
+        String configuredPath = System.getProperty("vanta.minecraft.mappings");
+        if (configuredPath == null || configuredPath.isBlank()) {
+            LOGGER.warning("No official Minecraft mappings path supplied; named Minecraft class targets cannot be resolved");
+            return null;
+        }
+        MinecraftMappings mappings = MinecraftMappings.read(Path.of(configuredPath));
+        LOGGER.info("Loaded " + mappings.classCount() + " official Minecraft class mappings");
+        return mappings;
+    }
+
     public void load() throws Exception {
         Files.createDirectories(gameDirectory);
         LOGGER.info("VantaLoader " + LoaderVersion.VERSION + " starting");
@@ -43,7 +55,8 @@ public final class VantaLoader {
             var descriptor = ordered.get(i).descriptor();
             LOGGER.info("Load order " + (i + 1) + ": " + descriptor.id() + " " + descriptor.version());
         }
-        TransformationService transformations = new TransformationService();
+        MinecraftMappings mappings = loadMinecraftMappings();
+        TransformationService transformations = new TransformationService(mappings);
         if (instrumentation != null) {
             instrumentation.addTransformer(transformations, false);
             LOGGER.info("Native class transformation service installed");
