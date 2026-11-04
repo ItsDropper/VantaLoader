@@ -131,7 +131,7 @@ public final class ExampleMod implements VantaMod {
 }
 ~~~
 
-The entrypoint needs a public no-argument constructor. Mods initialize after their declared dependencies and shut down in reverse order. See the [native mod quickstart](docs/modding/getting-started.md) for a complete Gradle setup and an ASM transformation example.
+The entrypoint needs a public no-argument constructor. Mods initialize after their declared dependencies and shut down in reverse order. `ModContext` exposes the game directory, per-mod config directory, loader version, Minecraft version, client environment, logger, and transformation registry. The launcher supplies the Minecraft version and client environment before agent startup. See the [native mod quickstart](docs/modding/getting-started.md) for a complete Gradle setup and an ASM transformation example.
 
 ### Native class transformations
 
