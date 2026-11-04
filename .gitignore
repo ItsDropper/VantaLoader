@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+
+# Java
+*.class
+hs_err_pid*
+replay_pid*
+
+# IDEs
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.vscode/
+
+# Local Minecraft development
+/run/
+logs/
+crash-reports/
+
+# Operating systems and logs
+.DS_Store
+Thumbs.db
+*.log
