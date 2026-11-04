@@ -63,6 +63,31 @@ class DependencyClassLoaderIntegrationTest {
                             public void onShutdown() { }
                         }
                         """)), coreClasses);
+        Path collisionClasses = compile("collision-classes", List.of(
+                source("fixture/shared/Library.java", """
+                        package fixture.shared;
+                        public final class Library {
+                            private Library() { }
+                            public static String message() { return "collision-own"; }
+                        }
+                        """),
+                source("fixture/collision/CollisionMod.java", """
+                        package fixture.collision;
+                        import dev.itsdropper.vantaloader.api.ModContext;
+                        import dev.itsdropper.vantaloader.api.VantaMod;
+                        import fixture.shared.Library;
+                        import java.nio.file.Files;
+                        public final class CollisionMod implements VantaMod {
+                            public CollisionMod() { }
+                            public void onInitialize(ModContext context) throws Exception {
+                                Files.createDirectories(context.configDirectory());
+                                Files.writeString(context.configDirectory().resolve("visibility.txt"),
+                                        Library.message());
+                            }
+                            public void onShutdown() { }
+                        }
+                        """)), null);
+
         Path isolatedClasses = compile("isolated-classes", List.of(
                 source("fixture/isolated/IsolatedMod.java", """
                         package fixture.isolated;
@@ -95,15 +120,19 @@ class DependencyClassLoaderIntegrationTest {
                  "entrypoints":{"main":"fixture.dependent.DependentMod"},
                  "depends":{"core":">=1.0.0 <2.0.0"}}
                 """);
+        Path collisionJar = packageMod(mods.resolve("collision.jar"), collisionClasses, """
+                {"schemaVersion":1,"id":"collision","name":"Collision","version":"1.0.0",
+                 "entrypoints":{"main":"fixture.collision.CollisionMod"}}
+                """);
         Path isolatedJar = packageMod(mods.resolve("isolated.jar"), isolatedClasses, """
                 {"schemaVersion":1,"id":"isolated","name":"Isolated","version":"1.0.0",
                  "entrypoints":{"main":"fixture.isolated.IsolatedMod"}}
                 """);
 
         List<ModArtifact> artifacts = List.of(
-                artifact(coreJar), artifact(dependentJar), artifact(isolatedJar));
+                artifact(coreJar), artifact(dependentJar), artifact(isolatedJar), artifact(collisionJar));
         List<ModArtifact> ordered = new ModResolver().resolve(artifacts);
-        assertEquals(List.of("core", "dependent", "isolated"),
+        assertEquals(List.of("collision", "core", "dependent", "isolated"),
                 ordered.stream().map(item -> item.descriptor().id()).toList());
 
         try (ModRuntime runtime = new ModRuntime(game)) {
@@ -112,6 +141,9 @@ class DependencyClassLoaderIntegrationTest {
                     game.resolve("config/vantaloader/dependent/visibility.txt")));
             assertEquals("isolated", Files.readString(
                     game.resolve("config/vantaloader/isolated/visibility.txt")));
+            assertEquals("collision-own", Files.readString(
+                    game.resolve("config/vantaloader/collision/visibility.txt")),
+                    "A mod must prefer its own class over a same-named dependency or host class.");
         }
     }
 
