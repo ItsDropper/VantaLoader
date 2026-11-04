@@ -86,6 +86,16 @@ public final class MinecraftMappings {
     }
 
     private static boolean isBinaryName(String name) {
-        return name.matches("[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*");
+        if (name.isBlank() || name.startsWith(".") || name.endsWith(".") || name.contains("..")) {
+            return false;
+        }
+        for (int i = 0; i < name.length(); i++) {
+            char character = name.charAt(i);
+            if (Character.isWhitespace(character) || character == '/' || character == ';'
+                    || character == '[' || character == ':' || character == '\\') {
+                return false;
+            }
+        }
+        return true;
     }
 }
