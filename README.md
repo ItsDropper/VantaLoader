@@ -22,7 +22,8 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - A self-contained Minecraft Java-agent artifact with Gson and ASM 9.11.1 bundled and manifest/content verification.
 - A standalone `VantaLoader-api.jar` for compiling native mods without depending on implementation classes.
 - An ASM integration test that transforms, verifies, defines, and invokes a compiled fixture class.
-- An initial Java Instrumentation transformation backend with mod-scoped registration, exact class targets, deterministic priority ordering, defensive byte-array handling, and failure diagnostics.
+- An initial Java Instrumentation transformation backend with mod-scoped registration, deterministic priority ordering, defensive byte-array handling, and failure diagnostics.
+- Official Mojang client class-mapping parsing and named-class-to-obfuscated-runtime target dispatch, with launcher-managed SHA-1-verified mapping downloads.
 - Unit tests for metadata, discovery, dependency resolution, and lifecycle ordering.
 - End-to-end integration tests that compile independent Java mod JARs, verify JAR-origin loading and lifecycle callbacks, and prove declared-dependency visibility, unrelated-mod isolation, and same-name class separation.
 
@@ -36,7 +37,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 | Dependency resolution | Implemented |
 | Native entrypoint lifecycle | Implemented |
 | Minecraft Java-agent bootstrap | Experimental; real launch not verified |
-| Minecraft-version adapters | Not implemented |
+| Minecraft class-name mappings | Implemented; member/descriptor mapping and version adapters remain incomplete |
 | Native class transformation API | ASM-backed JVM pipeline tested on fixture classes; Minecraft use unverified |
 | VantaTransform planning, validation and reports | In progress |
 | SpongePowered Mixin adapter | Planned |
@@ -150,7 +151,7 @@ context.transformations().register(
 );
 ~~~
 
-Lower priorities run first. Contributions targeting the same class are composed in priority, mod ID, and transformation ID order. The agent bundles ASM 9.11.1 (`asm`, `asm-tree`, `asm-commons`, `asm-util`, and `asm-analysis`) and makes those classes parent-first so mods share one runtime ASM copy. A transformer can use ASM to edit bytecode. VantaLoader parses every output and rejects a changed target class identity; full JVM verification still depends on the game and target class hierarchy. No Minecraft method selectors or mapped-name layer exists yet. An identity callback demonstrates registration only—it does not change gameplay. See the [transformation pipeline](docs/architecture/transformation-pipeline.md) for limitations and the next implementation stages.
+Lower priorities run first. Contributions targeting the same class are composed in priority, mod ID, and transformation ID order. The agent bundles ASM 9.11.1 (`asm`, `asm-tree`, `asm-commons`, `asm-util`, and `asm-analysis`) and makes those classes parent-first so mods share one runtime ASM copy. A transformer can use ASM to edit bytecode. VantaLoader parses every output and rejects a changed target class identity; full JVM verification still depends on the game and target class hierarchy. Official Mojang class mappings are loaded from the instance's `minecraft/client_mappings.txt`; mods may register named class targets and the agent resolves them to runtime class names. This first layer maps class names only: member names/descriptors, version-specific target adapters, and hierarchy-aware frame computation remain unimplemented. An identity callback demonstrates registration only—it does not change gameplay. See the [transformation pipeline](docs/architecture/transformation-pipeline.md) for limitations and the next implementation stages.
 
 ## Architecture
 
