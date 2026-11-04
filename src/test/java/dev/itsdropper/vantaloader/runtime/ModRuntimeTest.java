@@ -31,6 +31,25 @@ class ModRuntimeTest {
         assertEquals(List.of("init:alpha", "init:beta", "stop", "stop"), RuntimeEvents.EVENTS);
     }
 
+    @Test void continuesShutdownAndClosesRuntimeWhenAModThrowsAnError() throws Exception {
+        RuntimeEvents.EVENTS.clear();
+        RuntimeEvents.failShutdown = true;
+        Path jar = temporaryDirectory.resolve("failure-fixture.jar");
+        try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
+        var alpha = artifact(jar, "alpha", RuntimeTestEntrypoint.class.getName());
+        var beta = artifact(jar, "beta", RuntimeTestEntrypoint.class.getName());
+        ModRuntime runtime = new ModRuntime(temporaryDirectory.resolve("failure-game"));
+        runtime.start(List.of(alpha, beta));
+
+        Exception failure = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, runtime::stop);
+        assertEquals("One or more mods failed to shut down", failure.getMessage());
+        assertEquals(2, failure.getSuppressed().length == 0 ? 0 : 1);
+        assertEquals(List.of("init:alpha", "init:beta", "stop", "stop"), RuntimeEvents.EVENTS);
+
+        runtime.close();
+        assertEquals(4, RuntimeEvents.EVENTS.size(), "A closed runtime must not shut mods down twice");
+    }
+
     private static ModArtifact artifact(Path jar, String id, String entrypoint) throws Exception {
         String json = """
                 {"schemaVersion":1,"id":"%s","name":"%s","version":"1.0.0",
