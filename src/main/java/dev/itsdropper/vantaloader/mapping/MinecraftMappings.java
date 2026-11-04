@@ -86,6 +86,6 @@ public final class MinecraftMappings {
     }
 
     private static boolean isBinaryName(String name) {
-        return name.matches("[A-Za-z_$][A-Za-z0-9_$]*(\\\\.[A-Za-z_$][A-Za-z0-9_$]*)*");
+        return name.matches("[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*");
     }
 }
