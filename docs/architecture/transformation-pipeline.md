@@ -2,7 +2,7 @@
 
 ## Status
 
-<badge>Implemented: initial JVM backend</badge>
+**Status: Initial JVM backend implemented**
 
 VantaLoader now exposes a native, exact-target class transformation API backed by Java Instrumentation. This is an initial execution layer, not yet a complete bytecode toolkit or Minecraft compatibility layer.
 
