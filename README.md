@@ -5,7 +5,7 @@
 VantaLoader has moved from repository scaffolding into its first executable native-mod runtime. It discovers mod JARs, validates metadata, resolves dependencies, loads entrypoints, and manages initialization and shutdown.
 
 > [!WARNING]
-> **Pre-alpha runtime.** The standalone native runtime is implemented, and an experimental Java agent can initialize native VantaLoader entrypoints before Minecraft's main class. The agent is packaged for Vanta Launcher integration, but a real Minecraft launch has not yet been validated. There are no Minecraft event hooks, bytecode transformations, or Mixin interoperability yet, so this is not a general-purpose gameplay mod platform.
+> **Pre-alpha runtime.** The standalone native runtime is implemented, and an experimental Java agent can initialize native VantaLoader entrypoints before Minecraft's main class. The agent is packaged for Vanta Launcher integration, but a real Minecraft launch has not yet been validated. There are no Minecraft event hooks or Mixin interoperability yet, so this is not a general-purpose gameplay mod platform. The initial native class transformation API exists, but has not yet been validated against real Minecraft classes.
 
 ## Implemented
 
@@ -19,7 +19,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - Dependency-order initialization and reverse-order shutdown.
 - Initialization rollback, failure-tolerant reverse shutdown, and startup diagnostics.
 - A buildable [Hello World example mod](examples/hello-mod/README.md).
-- A self-contained Minecraft Java-agent artifact (`gradle agentJar`) with a `Premain-Class` entrypoint, bundled runtime dependencies, and manifest verification.
+- A self-contained Minecraft Java-agent artifact (`gradle agentJar`) with a `Premain-Class` entrypoint, bundled runtime dependencies, and manifest verification.\n- An initial Java Instrumentation transformation backend with mod-scoped registration, exact class targets, deterministic priority ordering, defensive byte-array handling, and failure diagnostics.
 - Unit tests for metadata, discovery, dependency resolution, and lifecycle ordering.
 - End-to-end integration tests that compile independent Java mod JARs, verify JAR-origin loading and lifecycle callbacks, and prove declared-dependency visibility, unrelated-mod isolation, and same-name class separation.
 
@@ -34,7 +34,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 | Native entrypoint lifecycle | Implemented |
 | Minecraft Java-agent bootstrap | Experimental; real launch not verified |
 | Minecraft-version adapters | Not implemented |
-| VantaTransform | Not implemented |
+| Native class transformation API | Initial JVM backend implemented; Minecraft use unverified |\n| VantaTransform planning, validation and reports | In progress |
 | SpongePowered Mixin adapter | Planned |
 | Resource reload | Not implemented |
 | Vanta Client integration | Planned |
@@ -131,7 +131,7 @@ The entrypoint needs a public no-argument constructor. Mods initialize after the
 
 ## Architecture
 
-VantaLoader owns its native runtime; it is not a renamed Fabric Loader distribution. The first integration milestone is a Java agent that initializes native entrypoints before Minecraft's main class. It does not currently transform game classes or expose Minecraft lifecycle events.
+VantaLoader owns its native runtime; it is not a renamed Fabric Loader distribution. The first integration milestone is a Java agent that initializes native entrypoints before Minecraft's main class. It now installs an exact-target JVM transformation service before native mod initialization. Real Minecraft class transformations and lifecycle events are not yet implemented or validated.
 
 SpongePowered Mixin is intended to be supported through an interoperability adapter where practical. Native VantaLoader transformation APIs will not require mod developers to depend on Mixin-specific types.
 
