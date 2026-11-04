@@ -1,3 +1,5 @@
+import java.util.jar.JarFile
+
 plugins {
     java
     application
@@ -65,7 +67,7 @@ val verifyAgentJar by tasks.registering {
     dependsOn(agentJar)
     doLast {
         val archive = agentJar.get().archiveFile.get().asFile
-        java.util.jar.JarFile(archive).use { jar ->
+        JarFile(archive).use { jar ->
             val attributes = jar.manifest.mainAttributes
             check(attributes.getValue("Premain-Class")
                 == "dev.itsdropper.vantaloader.bootstrap.VantaLoaderAgent") {
