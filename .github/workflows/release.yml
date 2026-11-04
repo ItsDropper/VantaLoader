@@ -43,8 +43,8 @@ jobs:
       - name: Publish release assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref == 'refs/heads/main' && 'nightly' || github.ref_name }}
-          name: ${{ github.ref == 'refs/heads/main' && 'VantaLoader Nightly' || format('VantaLoader {0}', github.ref_name) }}
+          tag_name: ${{ github.ref == 'refs/heads/main' && format('nightly-{0}', github.sha) || github.ref_name }}
+          name: ${{ github.ref == 'refs/heads/main' && format('VantaLoader Nightly {0}', github.sha) || format('VantaLoader {0}', github.ref_name) }}
           generate_release_notes: true
           prerelease: ${{ github.ref == 'refs/heads/main' || contains(github.ref_name, '-') }}
           make_latest: false
