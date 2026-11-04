@@ -17,7 +17,7 @@ Milestones describe intended work, not promises or release dates. A milestone is
 - [x] Implement deterministic dependency ordering and cycle detection.
 - [x] Implement native entrypoint loading and lifecycle callbacks.
 - [x] Implement reverse-order shutdown and initialization rollback.
-- [ ] Replace the initial shared classloader with dependency-aware per-mod classloaders and test declared-dependency visibility.
+- [x] Replace the initial shared classloader with dependency-aware per-mod classloaders and test declared-dependency visibility.
 - [ ] Verify implementation with a successful GitHub Actions build.
 - [x] Add end-to-end fixture JAR test that compiles and packages a separate mod, then verifies JAR-origin loading and lifecycle callbacks.
 - [x] Add a buildable Hello World mod project and standalone runtime instructions.
