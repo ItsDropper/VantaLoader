@@ -41,7 +41,12 @@ class NativeModJarIntegrationTest {
 
                 public final class ExampleFixtureMod implements VantaMod {
                     private Path marker;
-                    public ExampleFixtureMod() { }
+                    public ExampleFixtureMod() {
+                        if (Thread.currentThread().getContextClassLoader()
+                                != ExampleFixtureMod.class.getClassLoader()) {
+                            throw new IllegalStateException("Constructor context class loader mismatch");
+                        }
+                    }
                     @Override
                     public void onInitialize(ModContext context) throws Exception {
                         Files.createDirectories(context.configDirectory());
@@ -102,7 +107,10 @@ class NativeModJarIntegrationTest {
 
         var ordered = new ModResolver().resolve(discovered);
         try (ModRuntime runtime = new ModRuntime(gameDirectory)) {
+            ClassLoader originalContextLoader = Thread.currentThread().getContextClassLoader();
             runtime.start(ordered);
+            assertSame(originalContextLoader, Thread.currentThread().getContextClassLoader(),
+                    "Runtime startup must restore the caller's context class loader");
             Path modConfig = gameDirectory.resolve("config/vantaloader/example_fixture");
             String[] initialization = Files.readString(modConfig.resolve("initialized.txt"))
                     .split(System.lineSeparator());
