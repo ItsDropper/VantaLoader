@@ -194,7 +194,7 @@ public final class ModRuntime implements AutoCloseable {
     private static final class ModClassLoader extends URLClassLoader {
         private static final String[] PARENT_FIRST = {
                 "java.", "javax.", "jdk.", "sun.", "com.sun.",
-                "dev.itsdropper.vantaloader.api."
+                "dev.itsdropper.vantaloader.api.", "org.objectweb.asm."
         };
         private final List<ClassLoader> dependencies;
 
