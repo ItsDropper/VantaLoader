@@ -5,6 +5,9 @@ import dev.itsdropper.vantaloader.discovery.ModArtifact;
 import dev.itsdropper.vantaloader.discovery.ModDiscovery;
 import dev.itsdropper.vantaloader.metadata.LoaderVersion;
 import dev.itsdropper.vantaloader.runtime.ModRuntime;
+import dev.itsdropper.vantaloader.transformation.TransformationService;
+
+import java.lang.instrument.Instrumentation;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,10 +19,16 @@ public final class VantaLoader {
     private static final Logger LOGGER = Logger.getLogger("VantaLoader");
     private final Path gameDirectory;
     private final Path modsDirectory;
+    private final Instrumentation instrumentation;
 
     public VantaLoader(Path gameDirectory, Path modsDirectory) {
+        this(gameDirectory, modsDirectory, null);
+    }
+
+    public VantaLoader(Path gameDirectory, Path modsDirectory, Instrumentation instrumentation) {
         this.gameDirectory = gameDirectory.toAbsolutePath().normalize();
         this.modsDirectory = modsDirectory.toAbsolutePath().normalize();
+        this.instrumentation = instrumentation;
     }
 
     public void load() throws Exception {
@@ -34,7 +43,14 @@ public final class VantaLoader {
             var descriptor = ordered.get(i).descriptor();
             LOGGER.info("Load order " + (i + 1) + ": " + descriptor.id() + " " + descriptor.version());
         }
-        ModRuntime runtime = new ModRuntime(gameDirectory);
+        TransformationService transformations = new TransformationService();
+        if (instrumentation != null) {
+            instrumentation.addTransformer(transformations, false);
+            LOGGER.info("Native class transformation service installed");
+        } else {
+            LOGGER.warning("No JVM instrumentation supplied; registered class transformations will not run");
+        }
+        ModRuntime runtime = new ModRuntime(gameDirectory, transformations);
         try {
             runtime.start(ordered);
             LOGGER.info("All VantaLoader mods initialized successfully");
