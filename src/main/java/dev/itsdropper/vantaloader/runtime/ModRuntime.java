@@ -107,7 +107,7 @@ public final class ModRuntime implements AutoCloseable {
                 try {
                     mod.instance().onShutdown();
                     LOGGER.info("Stopped " + mod.id());
-                } catch (Exception failure) {
+                } catch (Throwable failure) {
                     if (aggregate == null) aggregate = new Exception("One or more mods failed to shut down");
                     aggregate.addSuppressed(new IllegalStateException(
                             "Shutdown failed for mod '" + mod.id() + "'", failure));
@@ -115,10 +115,10 @@ public final class ModRuntime implements AutoCloseable {
             }
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
+            initialized.clear();
+            closeLoader(aggregate);
+            closed = true;
         }
-        initialized.clear();
-        closeLoader(aggregate);
-        closed = true;
         if (aggregate != null) throw aggregate;
     }
 
