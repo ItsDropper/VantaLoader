@@ -3,6 +3,9 @@ package dev.itsdropper.vantaloader.transformation;
 import dev.itsdropper.vantaloader.api.ClassTransformContext;
 import dev.itsdropper.vantaloader.api.ClassTransformer;
 import dev.itsdropper.vantaloader.api.TransformationRegistry;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
@@ -80,6 +83,7 @@ public final class TransformationService implements ClassFileTransformer {
                 if (transformed == null || transformed.length == 0) {
                     throw new IllegalStateException("Transformer returned an empty or null class file");
                 }
+                validateClassFile(transformed, binaryName);
                 if (!java.util.Arrays.equals(current, transformed)) changed = true;
                 current = transformed.clone();
             } catch (Exception failure) {
@@ -93,6 +97,19 @@ public final class TransformationService implements ClassFileTransformer {
             }
         }
         return changed ? current : null;
+    }
+
+    private static void validateClassFile(byte[] bytes, String expectedBinaryName) {
+        ClassReader reader = new ClassReader(bytes);
+        String actualBinaryName = reader.getClassName().replace('/', '.');
+        if (!expectedBinaryName.equals(actualBinaryName)) {
+            throw new IllegalArgumentException("Transformer changed target class identity from "
+                    + expectedBinaryName + " to " + actualBinaryName);
+        }
+        // Traverse the complete class structure and code attributes. This catches
+        // malformed/truncated class files, but is not a substitute for JVM type
+        // verification or hierarchy-aware stack-map-frame analysis.
+        reader.accept(new ClassVisitor(Opcodes.ASM9) { }, 0);
     }
 
     public int registrationCount() {
