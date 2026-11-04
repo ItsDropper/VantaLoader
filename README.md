@@ -5,7 +5,7 @@
 VantaLoader has moved from repository scaffolding into its first executable native-mod runtime. It discovers mod JARs, validates metadata, resolves dependencies, loads entrypoints, and manages initialization and shutdown.
 
 > [!WARNING]
-> **Pre-alpha runtime.** This implementation does not yet launch Minecraft. It runs native VantaLoader mods in a standalone Java runtime. Minecraft launch integration, in-game APIs, bytecode transformation, and Mixin interoperability are not implemented.
+> **Pre-alpha runtime.** This implementation does not yet launch Minecraft. It runs native VantaLoader mods in a standalone Java runtime. The experimental Java agent can initialize native VantaLoader entrypoints before Minecraft's main class. It does not yet provide Minecraft event hooks, bytecode transformation, or Mixin interoperability, so this is not yet a general-purpose gameplay mod platform.
 
 ## Implemented
 
@@ -19,6 +19,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - Dependency-order initialization and reverse-order shutdown.
 - Initialization rollback, failure-tolerant reverse shutdown, and startup diagnostics.
 - A buildable [Hello World example mod](examples/hello-mod/README.md).
+- A self-contained Minecraft Java-agent artifact (`gradle agentJar`) with a `Premain-Class` entrypoint, bundled runtime dependencies, and manifest verification.
 - Unit tests for metadata, discovery, dependency resolution, and lifecycle ordering.
 - End-to-end integration tests that compile independent Java mod JARs, verify JAR-origin loading and lifecycle callbacks, and prove declared-dependency visibility, unrelated-mod isolation, and same-name class separation.
 
@@ -68,7 +69,7 @@ gradle build
 
 See [the example instructions](examples/hello-mod/README.md) for running it with the standalone runtime.
 
-Create an installable application distribution:
+Build the self-contained Minecraft agent artifact:\n\n~~~bash\ngradle agentJar\n~~~\n\nThe artifact is written to `build/agent/VantaLoader-agent.jar`. The agent expects the Minecraft instance directory to be the process working directory and discovers native mod JARs in its `mods/` folder.\n\nCreate an installable application distribution:
 
 ~~~bash
 gradle installDist
