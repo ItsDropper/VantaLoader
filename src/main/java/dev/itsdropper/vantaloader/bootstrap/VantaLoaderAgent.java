@@ -25,7 +25,7 @@ public final class VantaLoaderAgent {
         LOGGER.info("Native mod directory: " + modsDirectory);
 
         try {
-            new VantaLoader(gameDirectory, modsDirectory).load();
+            new VantaLoader(gameDirectory, modsDirectory, instrumentation).load();
             LOGGER.info("VantaLoader agent initialized");
         } catch (Exception failure) {
             LOGGER.log(Level.SEVERE, "VantaLoader could not initialize; aborting Minecraft startup", failure);
