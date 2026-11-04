@@ -42,6 +42,8 @@ class VantaLoaderAgentIntegrationTest {
 
         Process process = new ProcessBuilder(
                 java.toString(),
+                "-Dvanta.minecraft.version=1.21.11",
+                "-Dvanta.environment=client",
                 "-javaagent:" + agentJar,
                 "-cp", classpath,
                 VantaLoaderAgentSmokeMain.class.getName()
@@ -65,6 +67,8 @@ class VantaLoaderAgentIntegrationTest {
                 "A registered transformation must run when the target class is defined");
         assertEquals("dev.itsdropper.vantaloader.integration.VantaLoaderAgentSmokeMain",
                 Files.readString(gameDirectory.resolve("transform-observed.txt")));
+        assertEquals("1.21.11", Files.readString(gameDirectory.resolve("config/vantaloader/agentfixture/minecraft-version.txt")));
+        assertEquals("client", Files.readString(gameDirectory.resolve("config/vantaloader/agentfixture/environment.txt")));
     }
 
     private Path compileFixture() throws Exception {
@@ -82,6 +86,8 @@ class VantaLoaderAgentIntegrationTest {
                     public void onInitialize(ModContext context) throws Exception {
                         Files.createDirectories(context.configDirectory());
                         Files.writeString(context.configDirectory().resolve("initialized.txt"), "ready");
+                        Files.writeString(context.configDirectory().resolve("minecraft-version.txt"), context.minecraftVersion());
+                        Files.writeString(context.configDirectory().resolve("environment.txt"), context.environment());
                         context.transformations().register("agent-smoke",
                                 "dev.itsdropper.vantaloader.integration.VantaLoaderAgentSmokeMain",
                                 0, (transformContext, originalClass) -> {
