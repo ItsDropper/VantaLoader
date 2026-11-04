@@ -61,6 +61,10 @@ class VantaLoaderAgentIntegrationTest {
                 "The agent shutdown hook must stop initialized mods");
         assertTrue(Files.isRegularFile(gameDirectory.resolve("main-started.txt")),
                 "The application main method must run after successful agent initialization");
+        assertTrue(Files.isRegularFile(gameDirectory.resolve("transform-observed.txt")),
+                "A registered transformation must run when the target class is defined");
+        assertEquals("dev.itsdropper.vantaloader.integration.VantaLoaderAgentSmokeMain",
+                Files.readString(gameDirectory.resolve("transform-observed.txt")));
     }
 
     private Path compileFixture() throws Exception {
@@ -78,6 +82,13 @@ class VantaLoaderAgentIntegrationTest {
                     public void onInitialize(ModContext context) throws Exception {
                         Files.createDirectories(context.configDirectory());
                         Files.writeString(context.configDirectory().resolve("initialized.txt"), "ready");
+                        context.transformations().register("agent-smoke",
+                                "dev.itsdropper.vantaloader.integration.VantaLoaderAgentSmokeMain",
+                                0, (transformContext, originalClass) -> {
+                                    Files.writeString(context.gameDirectory().resolve("transform-observed.txt"),
+                                            transformContext.targetClassName());
+                                    return originalClass;
+                                });
                     }
                     public void onShutdown() throws Exception {
                         Files.writeString(
