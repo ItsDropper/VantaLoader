@@ -8,8 +8,8 @@ version = "1.0.0"
 repositories { }
 
 dependencies {
-    // Build VantaLoader first: gradle jar
-    compileOnly(files("../../build/libs/VantaLoader-0.1.0-SNAPSHOT.jar"))
+    // Build VantaLoader first: gradle build
+    compileOnly(files("../../build/agent/VantaLoader-api.jar"))
 }
 
 java {
