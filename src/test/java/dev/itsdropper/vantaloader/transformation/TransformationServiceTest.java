@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.instrument.IllegalClassFormatException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -122,18 +121,15 @@ class TransformationServiceTest {
     }
 
     @Test
-    void wrapsTransformerFailuresWithTargetAndContributionDetails() {
+    void failsClosedWhenATransformerThrows() throws Exception {
         TransformationService service = new TransformationService();
         service.forMod("broken").register("explode", "example.Target", 0,
                 (ClassTransformContext context, byte[] bytes) -> {
                     throw new IllegalStateException("fixture failure");
                 });
 
-        IllegalClassFormatException failure = assertThrows(IllegalClassFormatException.class,
-                () -> service.transform(null, null, "example/Target", null, null, new byte[]{0}));
-        assertTrue(failure.getMessage().contains("broken:explode"));
-        assertTrue(failure.getMessage().contains("example.Target"));
-        assertEquals("fixture failure", failure.getCause().getMessage());
+        byte[] failureBytes = service.transform(null, null, "example/Target", null, null, new byte[]{0});
+        assertArrayEquals(new byte[]{0, 0, 0, 0}, failureBytes);
     }
 
     private static byte[] append(byte[] source, int value) {
