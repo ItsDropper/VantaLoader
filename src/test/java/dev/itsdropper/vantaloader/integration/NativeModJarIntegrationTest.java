@@ -107,8 +107,8 @@ class NativeModJarIntegrationTest {
             String[] initialization = Files.readString(modConfig.resolve("initialized.txt"))
                     .split(System.lineSeparator());
             assertEquals("example_fixture:1.2.3", initialization[0]);
-            assertTrue(initialization[1].startsWith("jar:"),
-                    "Entrypoint must be defined from a JAR URL, not the test classpath");
+            assertTrue(initialization[1].startsWith("file:"),
+                    "URLClassLoader should report the JAR file URL, not the test classpath");
             assertTrue(initialization[1].contains("example-fixture.jar"),
                     "Entrypoint must originate from the independently packaged fixture JAR");
             assertEquals("true", initialization[2],
