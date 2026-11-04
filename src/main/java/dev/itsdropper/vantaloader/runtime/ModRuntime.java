@@ -43,7 +43,7 @@ public final class ModRuntime implements AutoCloseable {
             for (ModArtifact artifact : orderedMods) {
                 String id = artifact.descriptor().id();
                 List<ClassLoader> dependencies = new ArrayList<>();
-                for (String dependencyId : artifact.descriptor().depends().keySet()) {
+                for (String dependencyId : artifact.descriptor().depends().keySet().stream().sorted().toList()) {
                     ModClassLoader dependencyLoader = loadersById.get(dependencyId);
                     if (dependencyLoader == null) {
                         throw new IllegalStateException("Mod '" + id + "' was not ordered after dependency '"
