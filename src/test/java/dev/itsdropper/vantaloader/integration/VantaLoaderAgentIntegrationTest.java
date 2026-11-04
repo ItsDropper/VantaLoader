@@ -93,7 +93,38 @@ class VantaLoaderAgentIntegrationTest {
                                 0, (transformContext, originalClass) -> {
                                     Files.writeString(context.gameDirectory().resolve("transform-observed.txt"),
                                             transformContext.targetClassName());
-                                    return originalClass;
+                                    org.objectweb.asm.ClassReader reader =
+                                            new org.objectweb.asm.ClassReader(originalClass);
+                                    org.objectweb.asm.ClassWriter writer =
+                                            new org.objectweb.asm.ClassWriter(reader, 0);
+                                    org.objectweb.asm.ClassVisitor visitor =
+                                            new org.objectweb.asm.ClassVisitor(org.objectweb.asm.Opcodes.ASM9, writer) {
+                                        @Override
+                                        public org.objectweb.asm.MethodVisitor visitMethod(
+                                                int access, String name, String descriptor,
+                                                String signature, String[] exceptions) {
+                                            org.objectweb.asm.MethodVisitor next = super.visitMethod(
+                                                    access, name, descriptor, signature, exceptions);
+                                            if (!"main".equals(name)
+                                                    || !"([Ljava/lang/String;)V".equals(descriptor)) return next;
+                                            return new org.objectweb.asm.MethodVisitor(
+                                                    org.objectweb.asm.Opcodes.ASM9, next) {
+                                                @Override
+                                                public void visitCode() {
+                                                    super.visitCode();
+                                                    super.visitLdcInsn("vantaloader.agent.transformed");
+                                                    super.visitLdcInsn("true");
+                                                    super.visitMethodInsn(org.objectweb.asm.Opcodes.INVOKESTATIC,
+                                                            "java/lang/System", "setProperty",
+                                                            "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",
+                                                            false);
+                                                    super.visitInsn(org.objectweb.asm.Opcodes.POP);
+                                                }
+                                            };
+                                        }
+                                    };
+                                    reader.accept(visitor, 0);
+                                    return writer.toByteArray();
                                 });
                     }
                     public void onShutdown() throws Exception {
@@ -113,9 +144,11 @@ class VantaLoaderAgentIntegrationTest {
 
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         assertTrue(compiler != null, "Agent integration test requires a full JDK");
+        String compilerClasspath = codeSource(VantaMod.class)
+                + System.getProperty("path.separator") + codeSource(org.objectweb.asm.ClassReader.class);
         int result = compiler.run(null, null, null,
                 "--release", "21",
-                "-classpath", codeSource(VantaMod.class),
+                "-classpath", compilerClasspath,
                 "-d", classes.toString(),
                 source.toString());
         assertEquals(0, result, "Could not compile the independent agent fixture mod");
