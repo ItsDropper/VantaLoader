@@ -21,3 +21,19 @@ jobs:
           gradle-version: "8.14"
       - name: Build and test
         run: gradle --no-daemon clean build
+      - name: Print test reports on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -d build/test-results/test ]; then
+            find build/test-results/test -maxdepth 1 -name '*.xml' -print -exec cat {} ;
+          else
+            echo "No JUnit XML reports were produced."
+          fi
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-reports
+          path: build/test-results/test/
+          if-no-files-found: ignore
