@@ -5,7 +5,7 @@
 VantaLoader has moved from repository scaffolding into its first executable native-mod runtime. It discovers mod JARs, validates metadata, resolves dependencies, loads entrypoints, and manages initialization and shutdown.
 
 > [!WARNING]
-> **Pre-alpha runtime.** The standalone native runtime is implemented, and an experimental Java agent can initialize native VantaLoader entrypoints before Minecraft's main class. The agent is packaged for Vanta Launcher integration, but a real Minecraft launch has not yet been validated. There are no Minecraft event hooks or Mixin interoperability yet, so this is not a general-purpose gameplay mod platform. The initial native class transformation API exists, but has not yet been validated against real Minecraft classes.
+> **Pre-alpha runtime.** The standalone native runtime is implemented, and an experimental Java agent can initialize native VantaLoader entrypoints before Minecraft's main class. The agent is packaged for Vanta Launcher integration, but a real Minecraft launch has not yet been validated. There are no Minecraft event hooks or Mixin interoperability yet, so this is not a general-purpose gameplay mod platform. The native transformation pipeline now includes a bundled ASM toolkit and a test that transforms, verifies, defines, and invokes a real fixture class. Minecraft targets and gameplay hooks remain unverified.
 
 ## Implemented
 
@@ -75,7 +75,7 @@ Build the self-contained Minecraft agent artifact:
 gradle agentJar
 ~~~
 
-The artifact is written to `build/agent/VantaLoader-agent.jar`. The agent expects the Minecraft instance directory to be the process working directory and discovers native mod JARs in its `mods/` folder.
+The artifacts are written to `build/agent/VantaLoader-agent.jar` and `build/agent/VantaLoader-api.jar`. The agent expects the Minecraft instance directory to be the process working directory and discovers native mod JARs in its `mods/` folder. The standalone API JAR is the compile-time dependency for native mods.
 
 Create an installable application distribution:
 
@@ -146,11 +146,11 @@ context.transformations().register(
 );
 ~~~
 
-Lower priorities run first. Contributions targeting the same class are composed in priority, mod ID, and transformation ID order. The current API supplies raw class bytes; it does not bundle ASM, validate bytecode, or provide Minecraft method selectors. An identity callback demonstrates registration only—it does not change gameplay. See the [transformation pipeline](docs/architecture/transformation-pipeline.md) for limitations and the next implementation stages.
+Lower priorities run first. Contributions targeting the same class are composed in priority, mod ID, and transformation ID order. The agent bundles ASM 9.11.1 (`asm`, `asm-tree`, `asm-commons`, `asm-util`, and `asm-analysis`) and makes those classes parent-first so mods share one runtime ASM copy. A transformer can use ASM to edit bytecode. VantaLoader checks that each result parses as a class file for the requested target, but full JVM verification still depends on the game and target class hierarchy. No Minecraft method selectors or mapped-name layer exists yet. An identity callback demonstrates registration only—it does not change gameplay. See the [transformation pipeline](docs/architecture/transformation-pipeline.md) for limitations and the next implementation stages.
 
 ## Architecture
 
-VantaLoader owns its native runtime; it is not a renamed Fabric Loader distribution. The first integration milestone is a Java agent that initializes native entrypoints before Minecraft's main class. It now installs an exact-target JVM transformation service before native mod initialization. Real Minecraft class transformations and lifecycle events are not yet implemented or validated.
+VantaLoader owns its native runtime; it is not a renamed Fabric Loader distribution. The first integration milestone is a Java agent that initializes native entrypoints before Minecraft's main class. It installs an exact-target JVM transformation service before native mod initialization. The bundled ASM backend is exercised against real compiled fixture classes, but Minecraft class transformations, mapped target names, lifecycle events, and Mixin interoperability are not yet implemented or validated.
 
 SpongePowered Mixin is intended to be supported through an interoperability adapter where practical. Native VantaLoader transformation APIs will not require mod developers to depend on Mixin-specific types.
 
