@@ -30,6 +30,25 @@ gradle installDist
 
 The distribution under build/install/vantaloader/ contains launch scripts and runtime dependencies. Use the generated script instead of invoking the application JAR directly because Gson is an external runtime dependency.
 
+
+## Build the Hello World example mod
+
+From the repository root, build the loader API JAR first, then build the standalone example:
+
+~~~bash
+gradle jar
+cd examples/hello-mod
+gradle build
+~~~
+
+Copy `examples/hello-mod/build/libs/vantaloader-hello-mod-1.0.0.jar` into the game directory's `mods/` folder. From the repository root, run:
+
+~~~bash
+gradle run --args="--game-dir ./example-game --mods-dir ./example-game/mods"
+~~~
+
+The example logs initialization and shutdown. It exercises the current standalone native runtime, not Minecraft integration.
+
 ## Current limitation
 
 This command runs the native VantaLoader mod runtime. It does not launch Minecraft yet. Minecraft launch integration is a separate roadmap milestone.
