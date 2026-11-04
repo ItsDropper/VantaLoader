@@ -1,5 +1,6 @@
 package dev.itsdropper.vantaloader.integration;
 
+import dev.itsdropper.vantaloader.api.VantaMod;
 import dev.itsdropper.vantaloader.dependency.ModResolver;
 import dev.itsdropper.vantaloader.discovery.ModDiscovery;
 import dev.itsdropper.vantaloader.runtime.ModRuntime;
@@ -8,11 +9,9 @@ import org.junit.jupiter.api.io.TempDir;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
@@ -59,9 +58,13 @@ class NativeModJarIntegrationTest {
 
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         assertNotNull(compiler, "Integration tests require a full JDK, not a JRE");
+        String apiLocation = Path.of(VantaMod.class.getProtectionDomain()
+                .getCodeSource().getLocation().toURI()).toString();
+        String classpath = System.getProperty("java.class.path")
+                + System.getProperty("path.separator") + apiLocation;
         int compileResult = compiler.run(null, null, null,
                 "--release", "21",
-                "-classpath", System.getProperty("java.class.path"),
+                "-classpath", classpath,
                 "-d", classesDirectory.toString(),
                 sourceFile.toString());
         assertEquals(0, compileResult, "Fixture mod compilation failed");
@@ -94,7 +97,6 @@ class NativeModJarIntegrationTest {
         var ordered = new ModResolver().resolve(discovered);
         try (ModRuntime runtime = new ModRuntime(gameDirectory)) {
             runtime.start(ordered);
-
             Path modConfig = gameDirectory.resolve("config/vantaloader/example_fixture");
             assertEquals("example_fixture:1.2.3",
                     Files.readString(modConfig.resolve("initialized.txt")));
