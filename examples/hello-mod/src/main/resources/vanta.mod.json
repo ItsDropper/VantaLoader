@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "hello_world",
+  "name": "VantaLoader Hello World",
+  "version": "1.0.0",
+  "entrypoints": {
+    "main": "dev.itsdropper.example.helloworld.HelloWorldMod"
+  }
+}
