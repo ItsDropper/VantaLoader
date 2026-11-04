@@ -109,7 +109,13 @@ public final class TransformationService implements ClassFileTransformer {
         // Traverse the complete class structure and code attributes. This catches
         // malformed/truncated class files, but is not a substitute for JVM type
         // verification or hierarchy-aware stack-map-frame analysis.
-        reader.accept(new ClassVisitor(Opcodes.ASM9) { }, 0);
+        reader.accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override
+            public org.objectweb.asm.MethodVisitor visitMethod(int access, String name,
+                    String descriptor, String signature, String[] exceptions) {
+                return new org.objectweb.asm.MethodVisitor(Opcodes.ASM9) { };
+            }
+        }, 0);
     }
 
     public int registrationCount() {
