@@ -86,9 +86,18 @@ val apiJar by tasks.registering(Jar::class) {
 }
 
 val verifyAgentJar by tasks.registering {
-    dependsOn(agentJar)
+    dependsOn(agentJar, apiJar)
     doLast {
         val archive = agentJar.get().archiveFile.get().asFile
+        val apiArchive = apiJar.get().archiveFile.get().asFile
+        JarFile(apiArchive).use { jar ->
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/VantaMod.class") != null) {
+                "Standalone mod API JAR is missing VantaMod"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ModContext.class") != null) {
+                "Standalone mod API JAR is missing ModContext"
+            }
+        }
         JarFile(archive).use { jar ->
             val attributes = jar.manifest.mainAttributes
             check(attributes.getValue("Premain-Class")
@@ -110,5 +119,5 @@ tasks.named<Test>("test") {
 }
 
 tasks.named("build") {
-    dependsOn(verifyAgentJar)
+    dependsOn(verifyAgentJar, apiJar)
 }
