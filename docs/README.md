@@ -5,11 +5,12 @@ VantaLoader is pre-alpha. These documents describe current design direction; pro
 ## Architecture
 
 - [Architecture overview](architecture/overview.md) — intended runtime boundaries and design principles.
-- [Transformation pipeline](architecture/transformation-pipeline.md) — proposed transformation planning, diagnostics, and Mixin interoperability.
+- [Transformation pipeline](architecture/transformation-pipeline.md) — current ASM-backed class transformation pipeline and its boundaries.
 
 ## Mod development
 
-- [Mod metadata proposal](modding/mod-metadata.md) — an early draft of the mod descriptor.
+- [Native mod quickstart](modding/getting-started.md) — Gradle setup, entrypoints, and an ASM transformation example.
+- [Mod metadata](modding/mod-metadata.md) — the implemented schema 1 descriptor.
 
 ## Development
 
