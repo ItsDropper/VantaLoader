@@ -8,6 +8,7 @@ public final class VantaLoaderMain {
 
     public static void main(String[] args) throws Exception {
         Arguments parsed = Arguments.parse(args);
+        if (parsed == null) return;
         new VantaLoader(parsed.gameDirectory(), parsed.modsDirectory()).load();
     }
 
@@ -26,9 +27,10 @@ public final class VantaLoaderMain {
                         mods = Path.of(args[i]);
                     }
                     case "--help", "-h" -> {
-                        System.out.println("VantaLoader " + dev.itsdropper.vantaloader.metadata.LoaderVersion.VERSION);
+                        System.out.println("VantaLoader "
+                                + dev.itsdropper.vantaloader.metadata.LoaderVersion.VERSION);
                         System.out.println("Usage: gradle run --args='[--game-dir <path>] [--mods-dir <path>]'");
-                        throw new IllegalArgumentException("Help requested");
+                        return null;
                     }
                     default -> throw new IllegalArgumentException("Unknown argument: " + args[i]);
                 }

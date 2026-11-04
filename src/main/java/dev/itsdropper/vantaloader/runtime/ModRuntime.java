@@ -64,7 +64,7 @@ public final class ModRuntime implements AutoCloseable {
                 throw new IllegalArgumentException("Entrypoint " + name + " for mod '" + id
                         + "' does not implement VantaMod");
             }
-            VantaMod instance = (VantaMod) type.getDeclaredConstructor().newInstance();
+            VantaMod instance = (VantaMod) type.getConstructor().newInstance();
             return new LoadedMod(id, instance);
         } catch (InvocationTargetException exception) {
             Throwable cause = exception.getCause() == null ? exception : exception.getCause();
@@ -72,7 +72,7 @@ public final class ModRuntime implements AutoCloseable {
                     + cause.getMessage(), cause);
         } catch (ReflectiveOperationException exception) {
             throw new IllegalStateException("Cannot construct entrypoint '" + name + "' for mod '" + id
-                    + "'. A public no-argument constructor is required.", exception);
+                    + "'. A public class and public no-argument constructor are required.", exception);
         }
     }
 
@@ -99,15 +99,22 @@ public final class ModRuntime implements AutoCloseable {
     public void stop() throws Exception {
         if (closed) return;
         Exception aggregate = null;
-        for (int i = initialized.size() - 1; i >= 0; i--) {
-            LoadedMod mod = initialized.get(i);
-            try {
-                mod.instance().onShutdown();
-                LOGGER.info("Stopped " + mod.id());
-            } catch (Exception failure) {
-                if (aggregate == null) aggregate = new Exception("One or more mods failed to shut down");
-                aggregate.addSuppressed(new IllegalStateException("Shutdown failed for mod '" + mod.id() + "'", failure));
+        ClassLoader previous = Thread.currentThread().getContextClassLoader();
+        if (classLoader != null) Thread.currentThread().setContextClassLoader(classLoader);
+        try {
+            for (int i = initialized.size() - 1; i >= 0; i--) {
+                LoadedMod mod = initialized.get(i);
+                try {
+                    mod.instance().onShutdown();
+                    LOGGER.info("Stopped " + mod.id());
+                } catch (Exception failure) {
+                    if (aggregate == null) aggregate = new Exception("One or more mods failed to shut down");
+                    aggregate.addSuppressed(new IllegalStateException(
+                            "Shutdown failed for mod '" + mod.id() + "'", failure));
+                }
             }
+        } finally {
+            Thread.currentThread().setContextClassLoader(previous);
         }
         initialized.clear();
         closeLoader(aggregate);

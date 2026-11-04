@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -26,7 +27,7 @@ public final class ModDiscovery {
         List<Path> jars;
         try (var paths = Files.list(modsDirectory)) {
             jars = paths.filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().toLowerCase().endsWith(".jar"))
+                    .filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".jar"))
                     .sorted(Comparator.comparing(path -> path.getFileName().toString()))
                     .toList();
         }
