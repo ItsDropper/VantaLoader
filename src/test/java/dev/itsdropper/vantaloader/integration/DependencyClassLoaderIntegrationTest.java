@@ -184,7 +184,7 @@ class DependencyClassLoaderIntegrationTest {
             jar.closeEntry();
             try (var files = Files.walk(classes)) {
                 for (Path file : files.filter(Files::isRegularFile).sorted().toList()) {
-                    String entryName = classes.relativize(file).toString().replace('\\\\', '/');
+                    String entryName = classes.relativize(file).toString().replace('\\', '/');
                     jar.putNextEntry(new JarEntry(entryName));
                     jar.write(Files.readAllBytes(file));
                     jar.closeEntry();
