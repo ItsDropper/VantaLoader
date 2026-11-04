@@ -55,4 +55,4 @@ VantaLoader invokes onInitialize(ModContext) after required dependencies have in
 
 ## Runtime limitations
 
-Schema 1 is for the first standalone native runtime. It does not yet describe Minecraft versions, client/server environments, Mixin configurations, access wideners, nested dependencies, or reload capabilities. Those fields will be introduced only with corresponding runtime implementations.
+Schema 1 is for the first standalone native runtime. It does not yet describe Minecraft versions, client/server environments, Mixin configurations, access wideners, nested dependencies, or reload capabilities. Those fields will be introduced only with corresponding runtime implementations. All discovered mod JARs currently share one URLClassLoader: declared dependencies are validated and ordered, but class visibility is not isolated to declared dependencies. Do not treat dependency declarations as a security boundary.
