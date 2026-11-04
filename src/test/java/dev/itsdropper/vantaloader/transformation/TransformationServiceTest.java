@@ -1,6 +1,7 @@
 package dev.itsdropper.vantaloader.transformation;
 
 import dev.itsdropper.vantaloader.api.ClassTransformContext;
+import dev.itsdropper.vantaloader.mapping.MinecraftMappings;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -9,16 +10,21 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class TransformationServiceTest {
+    @TempDir Path temporaryDirectory;
+
     @Test
     void appliesExactTargetTransformationsInStablePriorityOrder() throws Exception {
         TransformationService service = new TransformationService();
@@ -136,6 +142,30 @@ class TransformationServiceTest {
 
         byte[] failureBytes = service.transform(null, null, target.replace(".", "/"), null, null, fixtureBytes());
         assertArrayEquals(new byte[]{0, 0, 0, 0}, failureBytes);
+    }
+
+
+    @Test
+    void resolvesNamedMinecraftTargetsToObfuscatedRuntimeClasses() throws Exception {
+        Path mappingFile = temporaryDirectory.resolve("client_mappings.txt");
+        Files.writeString(mappingFile, "net.minecraft.client.Minecraft -> a:\\n");
+        MinecraftMappings mappings = MinecraftMappings.read(mappingFile);
+        TransformationService service = new TransformationService(mappings);
+        List<String> seenTargets = new ArrayList<>();
+        service.forMod("mapped").register("minecraft-client", "net.minecraft.client.Minecraft", 0,
+                (context, bytes) -> {
+                    seenTargets.add(context.targetClassName());
+                    return bytes;
+                });
+
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC, "a", null, "java/lang/Object", null);
+        writer.visitEnd();
+        byte[] runtimeClass = writer.toByteArray();
+
+        assertNull(service.transform(null, getClass().getClassLoader(), "a",
+                null, null, runtimeClass));
+        assertEquals(List.of("net.minecraft.client.Minecraft"), seenTargets);
     }
 
     private static byte[] fixtureBytes() throws Exception {
