@@ -48,7 +48,7 @@ val agentJar by tasks.registering(Jar::class) {
     from({
         configurations.runtimeClasspath.get().filter { it.exists() }.map { zipTree(it) }
     })
-    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "META-INF/INDEX.LIST")
+    exclude("META-INF/MANIFEST.MF", "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "META-INF/INDEX.LIST")
     manifest {
         attributes(
             "Premain-Class" to "dev.itsdropper.vantaloader.bootstrap.VantaLoaderAgent",
