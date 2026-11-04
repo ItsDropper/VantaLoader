@@ -85,11 +85,11 @@ public final class TransformationService implements ClassFileTransformer {
             } catch (Exception failure) {
                 LOGGER.log(Level.SEVERE, "Transformation failed: " + registration.modId()
                         + ":" + registration.id() + " targeting " + binaryName, failure);
-                IllegalClassFormatException formatFailure = new IllegalClassFormatException(
-                        "VantaLoader transformation " + registration.modId() + ":" + registration.id()
-                                + " failed for " + binaryName + ": " + failure.getMessage());
-                formatFailure.initCause(failure);
-                throw formatFailure;
+                // The Instrumentation contract treats a thrown transformer exception as
+                // "no transformation" and continues with the original class bytes. Return
+                // a deliberately invalid class file instead so a broken required patch fails
+                // class definition rather than silently launching an unpatched game.
+                return new byte[]{0, 0, 0, 0};
             }
         }
         return changed ? current : null;
