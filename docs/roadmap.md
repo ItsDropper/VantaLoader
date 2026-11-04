@@ -18,7 +18,7 @@ Milestones describe intended work, not promises or release dates. A milestone is
 - [x] Implement native entrypoint loading and lifecycle callbacks.
 - [x] Implement reverse-order shutdown and initialization rollback.
 - [ ] Verify implementation with a successful GitHub Actions build.
-- [ ] Add end-to-end fixture JAR tests for discovery and runtime startup.
+- [x] Add end-to-end fixture JAR test that compiles and packages a separate mod, then verifies JAR-origin loading and lifecycle callbacks.
 
 **Exit criteria:** a fixture mod JAR is discovered, validated, dependency-ordered, loaded, initialized, and shut down in automated tests.
 
