@@ -33,7 +33,9 @@ public final class ModRuntime implements AutoCloseable {
         if (started || closed) throw new IllegalStateException("ModRuntime can only be started once");
         Files.createDirectories(configDirectory);
         URL[] urls = orderedMods.stream().map(artifact -> toUrl(artifact.path())).toArray(URL[]::new);
-        classLoader = new URLClassLoader(urls, VantaMod.class.getClassLoader());
+        ClassLoader parent = Thread.currentThread().getContextClassLoader();
+        if (parent == null) parent = VantaMod.class.getClassLoader();
+        classLoader = new URLClassLoader(urls, parent);
         ClassLoader previous = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(classLoader);
         try {
