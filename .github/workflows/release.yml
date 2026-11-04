@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Build and publish VantaLoader agent
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.14"
+      - name: Build and test
+        run: gradle --no-daemon clean build
+      - name: Generate SHA-256 checksum
+        run: |
+          cd build/agent
+          sha256sum VantaLoader-agent.jar > VantaLoader-agent.jar.sha256
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: VantaLoader ${{ github.ref_name }}
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            build/agent/VantaLoader-agent.jar
+            build/agent/VantaLoader-agent.jar.sha256
