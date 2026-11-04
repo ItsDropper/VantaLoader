@@ -87,6 +87,8 @@ public final class ModRuntime implements AutoCloseable {
     private LoadedMod instantiate(ModArtifact artifact, ModClassLoader loader) throws Exception {
         String id = artifact.descriptor().id();
         String name = artifact.descriptor().mainEntrypoint();
+        ClassLoader previous = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(loader);
         try {
             Class<?> type = Class.forName(name, true, loader);
             if (!VantaMod.class.isAssignableFrom(type)) {
@@ -215,7 +217,7 @@ public final class ModRuntime implements AutoCloseable {
                         }
                     }
                 }
-                if (resolve) resolveClass(loaded);
+                if (resolve && loaded.getClassLoader() == this) resolveClass(loaded);
                 return loaded;
             }
         }
