@@ -43,7 +43,8 @@ class ModRuntimeTest {
 
         Exception failure = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, runtime::stop);
         assertEquals("One or more mods failed to shut down", failure.getMessage());
-        assertEquals(2, failure.getSuppressed().length == 0 ? 0 : 1);
+        assertEquals(1, failure.getSuppressed().length,
+                "The failing mod's shutdown error must be retained as one suppressed failure");
         assertEquals(List.of("init:alpha", "init:beta", "stop", "stop"), RuntimeEvents.EVENTS);
 
         runtime.close();
