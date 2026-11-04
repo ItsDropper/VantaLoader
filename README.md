@@ -16,7 +16,8 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - A shared mod class loader.
 - Native VantaMod entrypoints and a small ModContext API.
 - Dependency-order initialization and reverse-order shutdown.
-- Initialization rollback and startup diagnostics.
+- Initialization rollback, failure-tolerant reverse shutdown, and startup diagnostics.
+- A buildable [Hello World example mod](examples/hello-mod/README.md).
 - Unit tests for metadata, discovery, dependency resolution, and lifecycle ordering.
 - An end-to-end integration test that compiles a separate Java mod, packages a real fixture JAR, discovers it, loads its entrypoint from that JAR, and verifies initialization and shutdown.
 
@@ -55,6 +56,16 @@ Run the native runtime:
 ~~~bash
 gradle run --args="--game-dir ./game --mods-dir ./mods"
 ~~~
+
+Build the example mod (after building the loader JAR):
+
+~~~bash
+gradle jar
+cd examples/hello-mod
+gradle build
+~~~
+
+See [the example instructions](examples/hello-mod/README.md) for running it with the standalone runtime.
 
 Create an installable application distribution:
 
