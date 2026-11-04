@@ -83,6 +83,10 @@ val verifyAgentJar by tasks.registering {
     }
 }
 
+tasks.named<Test>("test") {
+    dependsOn(agentJar)
+}
+
 tasks.named("build") {
     dependsOn(verifyAgentJar)
 }
