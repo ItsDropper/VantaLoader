@@ -2,6 +2,7 @@ package dev.itsdropper.vantaloader.runtime;
 
 import dev.itsdropper.vantaloader.api.VantaMod;
 import dev.itsdropper.vantaloader.discovery.ModArtifact;
+import dev.itsdropper.vantaloader.transformation.TransformationService;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -25,14 +26,20 @@ public final class ModRuntime implements AutoCloseable {
     private static final Logger LOGGER = Logger.getLogger("VantaLoader.Runtime");
     private final Path gameDirectory;
     private final Path configDirectory;
+    private final TransformationService transformationService;
     private final List<LoadedMod> initialized = new ArrayList<>();
     private final List<ModClassLoader> classLoaders = new ArrayList<>();
     private boolean started;
     private boolean closed;
 
     public ModRuntime(Path gameDirectory) {
+        this(gameDirectory, new TransformationService());
+    }
+
+    public ModRuntime(Path gameDirectory, TransformationService transformationService) {
         this.gameDirectory = gameDirectory.toAbsolutePath().normalize();
         this.configDirectory = this.gameDirectory.resolve("config").resolve("vantaloader");
+        this.transformationService = java.util.Objects.requireNonNull(transformationService, "transformationService");
     }
 
     public void start(List<ModArtifact> orderedMods) throws Exception {
@@ -78,7 +85,7 @@ public final class ModRuntime implements AutoCloseable {
         Thread.currentThread().setContextClassLoader(mod.classLoader());
         try {
             mod.instance().onInitialize(new DefaultModContext(artifact.descriptor(), gameDirectory,
-                    configDirectory.resolve(artifact.descriptor().id())));
+                    configDirectory.resolve(artifact.descriptor().id()), transformationService));
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
         }
