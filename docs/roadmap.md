@@ -28,7 +28,7 @@ Milestones describe intended work, not promises or release dates. A milestone is
 
 - [ ] Select and document the first Minecraft version target.
 - [ ] Research the selected version's official launch metadata and runtime requirements.
-- [ ] Implement a reproducible launch profile and bootstrap handoff.
+- [ ] Implement a reproducible launch profile and bootstrap handoff through Vanta Launcher.
 - [ ] Launch an unmodified Minecraft client through VantaLoader.
 - [ ] Preserve structured diagnostics across bootstrap and game startup.
 
@@ -66,7 +66,7 @@ Milestones describe intended work, not promises or release dates. A milestone is
 
 ## Stage 6 — Distribution and ecosystem
 
-- [ ] Integrate VantaLoader into Vanta Launcher.
+- [x] Add Vanta Launcher instance-creation, install, launch-agent, and repair integration for the experimental nightly bootstrap.\n- [ ] Verify clean install, real Minecraft launch, relaunch, and repair end to end.
 - [ ] Publish version manifests and mod-development resources.
 - [ ] Evaluate Modrinth launcher and loader-recognition requirements with Modrinth.
 - [ ] Publish only compatibility claims backed by tests.
