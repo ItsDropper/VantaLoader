@@ -1,61 +1,58 @@
-# Mod Metadata Proposal
+# Native Mod Metadata — Schema 1
 
-> [!WARNING]
-> Draft for discussion only. No metadata schema is implemented or stable. Do not publish mods assuming this example is accepted by a released loader.
+<badge>Implemented in runtime 0.1.0</badge>
 
-## Goals
+Every native VantaLoader mod is a JAR containing a UTF-8 vanta.mod.json file at the archive root.
 
-A VantaLoader descriptor should be machine-readable, versioned, explicit about identity and compatibility, strictly validated, independent of Java implementation details, and extensible without silently changing existing field meanings.
-
-## Illustrative descriptor
-
-A future descriptor may look conceptually like this:
+## Example
 
 ~~~json
 {
   "schemaVersion": 1,
-  "id": "examplemod",
-  "version": "1.0.0",
+  "id": "example",
   "name": "Example Mod",
-  "environment": "client",
+  "version": "1.0.0",
   "entrypoints": {
-    "main": ["com.example.mod.ExampleMod"],
-    "client": ["com.example.mod.client.ExampleModClient"]
+    "main": "com.example.ExampleMod"
   },
   "depends": {
-    "vantaloader": ">=0.1.0 <0.2.0",
-    "minecraft": "1.21.1"
-  },
-  "mixins": ["examplemod.mixins.json"],
-  "reload": {
-    "resources": true,
-    "components": false
+    "corelib": ">=1.0.0 <2.0.0"
   }
 }
 ~~~
 
-This example is illustrative only. The final version-constraint grammar, environment vocabulary, entrypoint model, dependency semantics, and Mixin configuration rules have not been chosen.
+## Fields
 
-## Proposed field intent
+| Field | Required | Meaning |
+|---|---:|---|
+| schemaVersion | Yes | Must be integer 1. |
+| id | Yes | Lowercase identifier matching [a-z][a-z0-9_-]{0,63}. |
+| name | Yes | Display name, up to 128 characters. |
+| version | Yes | MAJOR.MINOR.PATCH, optional SemVer prerelease/build metadata. |
+| entrypoints.main | Yes | Fully qualified Java class implementing VantaMod. |
+| depends | No | Object mapping required mod IDs to version constraints. |
 
-| Field | Intended meaning |
-|---|---|
-| schemaVersion | Descriptor schema version. |
-| id | Stable, lowercase mod identifier. |
-| version | Mod release version. |
-| name | Human-readable display name. |
-| environment | Intended runtime environment, subject to a defined vocabulary. |
-| entrypoints | Classes or providers invoked at defined lifecycle phases. |
-| depends | Required loader, game, and mod compatibility constraints. |
-| mixins | Optional Mixin configuration resources when the adapter is available. |
-| reload | Declared reload capabilities; claims to validate, not security permissions. |
+Unknown fields are rejected in schema 1. This prevents misspelled fields from silently producing a different runtime configuration. Future schema versions can add fields through explicit changes.
 
-## Validation requirements
+## Version constraints
 
-A future implementation should reject or clearly diagnose missing/invalid identifiers, unsupported schemas, duplicate IDs, invalid constraints, missing dependencies, unresolved dependency cycles, missing entrypoints/resources, and capabilities unsupported by the current runtime.
+A constraint is a whitespace- or comma-separated conjunction:
 
-Unknown-field handling must be specified before the format becomes stable. Silent interpretation of misspelled critical fields should be avoided.
+- 1.2.3 — exact version.
+- >=1.2.0 — greater than or equal.
+- >1.2.0 — greater than.
+- <=2.0.0 — less than or equal.
+- <2.0.0 — less than.
+- * — any version.
 
-## Security note
+For example, >=1.2.0 <2.0.0 accepts versions in that interval. OR expressions, caret ranges, tilde ranges, and partial-version wildcards are not supported in schema 1.
 
-A descriptor does not make a mod trustworthy. Entrypoints are Java code and run with the permissions of the Minecraft process. The descriptor must never be presented as a sandbox or permission system.
+## Entrypoint lifecycle
+
+The main class must be present in the mod JAR or shared mod class path, implement dev.itsdropper.vantaloader.api.VantaMod, and have a public no-argument constructor.
+
+VantaLoader invokes onInitialize(ModContext) after required dependencies have initialized. During shutdown it invokes onShutdown() in reverse initialization order.
+
+## Runtime limitations
+
+Schema 1 is for the first standalone native runtime. It does not yet describe Minecraft versions, client/server environments, Mixin configurations, access wideners, nested dependencies, or reload capabilities. Those fields will be introduced only with corresponding runtime implementations.

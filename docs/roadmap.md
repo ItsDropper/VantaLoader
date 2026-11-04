@@ -1,44 +1,47 @@
 # Roadmap
 
-This roadmap describes intended milestones, not promises or release dates. A milestone is complete only when its acceptance criteria are demonstrated by code and reproducible tests.
+Milestones describe intended work, not promises or release dates. A milestone is complete only when its acceptance criteria are demonstrated by code and reproducible tests.
 
 ## Stage 0 — Repository foundations
 
 - [x] Establish repository documentation and contribution policies.
 - [x] Choose an initial license.
-- [x] Add a minimal Java/Gradle project scaffold.
-- [ ] Add and verify the Gradle Wrapper.
-- [ ] Establish automated build checks and test conventions.
+- [x] Add Java/Gradle project scaffold.
+- [x] Add automated build workflow and dependency update configuration.
 
-## Stage 1 — Executable foundation
+## Stage 1 — Native loader runtime
 
-- [ ] Choose and document the initial Minecraft version target.
-- [ ] Establish a reproducible development launch environment.
-- [ ] Implement a minimal bootstrap and runtime handoff.
-- [ ] Produce structured startup diagnostics.
-- [ ] Launch an unmodified target game through VantaLoader.
+- [x] Implement native mod JAR discovery.
+- [x] Implement versioned metadata parsing and validation.
+- [x] Implement semantic version comparison and dependency constraints.
+- [x] Implement deterministic dependency ordering and cycle detection.
+- [x] Implement native entrypoint loading and lifecycle callbacks.
+- [x] Implement reverse-order shutdown and initialization rollback.
+- [ ] Verify implementation with a successful GitHub Actions build.
+- [ ] Add end-to-end fixture JAR tests for discovery and runtime startup.
 
-**Exit criteria:** a clean, repeatable launch of the selected Minecraft version with clear diagnostics and no mod loading required.
+**Exit criteria:** a fixture mod JAR is discovered, validated, dependency-ordered, loaded, initialized, and shut down in automated tests.
 
-## Stage 2 — Mod discovery and lifecycle
+## Stage 2 — Minecraft launch integration
 
-- [ ] Finalize and implement the versioned mod descriptor.
-- [ ] Discover and validate mod artifacts.
-- [ ] Implement required and optional dependency resolution.
-- [ ] Define deterministic lifecycle phases and entrypoint contracts.
-- [ ] Load a minimal example mod.
+- [ ] Select and document the first Minecraft version target.
+- [ ] Research the selected version's official launch metadata and runtime requirements.
+- [ ] Implement a reproducible launch profile and bootstrap handoff.
+- [ ] Launch an unmodified Minecraft client through VantaLoader.
+- [ ] Preserve structured diagnostics across bootstrap and game startup.
 
-**Exit criteria:** a test mod is discovered, validated, initialized, and shut down through documented contracts.
+**Exit criteria:** a clean Minecraft instance launches through VantaLoader without mods.
 
-## Stage 3 — Transformations and interoperability
+## Stage 3 — Minecraft mod integration and transformations
 
+- [ ] Define Minecraft-version adapter boundaries.
+- [ ] Implement the first in-game lifecycle and event hooks.
 - [ ] Specify native transformation contracts.
-- [ ] Implement transformation planning and ordering.
-- [ ] Add conflict diagnostics and transformation tests.
-- [ ] Evaluate and implement a SpongePowered Mixin adapter.
+- [ ] Implement transformation planning, ordering, and conflict diagnostics.
+- [ ] Evaluate and implement a SpongePowered Mixin compatibility adapter.
 - [ ] Verify behavior against real Minecraft targets.
 
-**Exit criteria:** native and adapter-backed transformations have repeatable tests and useful failure reports.
+**Exit criteria:** a native test mod changes a verified in-game behavior, and transformation failures are diagnosable.
 
 ## Stage 4 — Reload-aware development
 
@@ -48,7 +51,7 @@ This roadmap describes intended milestones, not promises or release dates. A mil
 - [ ] Classify transformation changes as reloadable or restart-required.
 - [ ] Test failure and rollback behavior.
 
-**Exit criteria:** supported resource/component changes reload without restarting; unsupported class changes are rejected clearly instead of being advertised as hot-reloadable.
+**Exit criteria:** supported resources/components reload without restarting; unsupported class changes are rejected clearly.
 
 ## Stage 5 — Vanta ecosystem integration
 
@@ -58,18 +61,13 @@ This roadmap describes intended milestones, not promises or release dates. A mil
 - [ ] Provide developer documentation, templates, and Gradle tooling.
 - [ ] Add compatibility tests for external mods.
 
-**Exit criteria:** Vanta Client has a reproducible native integration path and third-party developers can build a basic mod from the documentation.
+**Exit criteria:** Vanta Client has a reproducible native integration path and third-party developers can build a basic mod from documented contracts.
 
 ## Stage 6 — Distribution and ecosystem
 
-- [ ] Define release and compatibility support policies.
 - [ ] Integrate VantaLoader into Vanta Launcher.
 - [ ] Publish version manifests and mod-development resources.
 - [ ] Evaluate Modrinth launcher and loader-recognition requirements with Modrinth.
 - [ ] Publish only compatibility claims backed by tests.
 
-**Exit criteria:** users can install, update, and launch a verified VantaLoader instance through Vanta Launcher. Modrinth recognition is a separate external milestone and is not guaranteed by this roadmap.
-
-## Release discipline
-
-Before a stable 1.0 release, the project should have a documented public API, repeatable builds, automated tests for core behavior, a version compatibility policy, dependency/license inventory, security reporting process, and migration guidance for breaking changes.
+**Exit criteria:** users can install, update, and launch a verified VantaLoader Minecraft instance through Vanta Launcher. Modrinth recognition remains an external milestone.
