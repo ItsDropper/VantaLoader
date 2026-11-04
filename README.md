@@ -129,6 +129,25 @@ public final class ExampleMod implements VantaMod {
 
 The entrypoint needs a public no-argument constructor. Mods initialize after their declared dependencies and shut down in reverse order.
 
+### Native class transformations
+
+A mod can register an exact-target transformation during initialization:
+
+~~~java
+context.transformations().register(
+    "client-bootstrap",
+    "net.minecraft.client.Minecraft",
+    100,
+    (transform, originalClass) -> {
+        context.logger().info("Transforming " + transform.targetClassName());
+        // Return valid class-file bytes. Use a bytecode library for real edits.
+        return originalClass;
+    }
+);
+~~~
+
+Lower priorities run first. Contributions targeting the same class are composed in priority, mod ID, and transformation ID order. The current API supplies raw class bytes; it does not bundle ASM, validate bytecode, or provide Minecraft method selectors. An identity callback demonstrates registration only—it does not change gameplay. See the [transformation pipeline](docs/architecture/transformation-pipeline.md) for limitations and the next implementation stages.
+
 ## Architecture
 
 VantaLoader owns its native runtime; it is not a renamed Fabric Loader distribution. The first integration milestone is a Java agent that initializes native entrypoints before Minecraft's main class. It now installs an exact-target JVM transformation service before native mod initialization. Real Minecraft class transformations and lifecycle events are not yet implemented or validated.
