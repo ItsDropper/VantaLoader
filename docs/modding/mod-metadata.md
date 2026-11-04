@@ -1,6 +1,6 @@
 # Native Mod Metadata — Schema 1
 
-<badge>Implemented in runtime 0.1.0</badge>
+**Status: Implemented in the native runtime**
 
 Every native VantaLoader mod is a JAR containing a UTF-8 vanta.mod.json file at the archive root.
 
