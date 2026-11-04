@@ -27,6 +27,12 @@ final class DefaultModContext implements ModContext {
     @Override public String modId() { return descriptor.id(); }
     @Override public String modVersion() { return descriptor.version().toString(); }
     @Override public String loaderVersion() { return LoaderVersion.VERSION; }
+    @Override public String minecraftVersion() {
+        return System.getProperty("vanta.minecraft.version", "unknown");
+    }
+    @Override public String environment() {
+        return System.getProperty("vanta.environment", "client");
+    }
     @Override public Path gameDirectory() { return gameDirectory; }
     @Override public Path configDirectory() { return configDirectory; }
     @Override public Logger logger() { return logger; }
