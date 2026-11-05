@@ -37,7 +37,9 @@ final class ModEventBus implements EventBus {
         for (Listener<?> listener : matching) {
             try {
                 listener.accept(event);
-            } catch (RuntimeException failure) {
+            } catch (Throwable failure) {
+                if (failure instanceof VirtualMachineError fatal) throw fatal;
+                if (failure instanceof ThreadDeath death) throw death;
                 failures.add(failure);
             }
         }
