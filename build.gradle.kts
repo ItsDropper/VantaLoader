@@ -5,7 +5,7 @@ plugins {
     application
 }
 group = "dev.itsdropper.vantaloader"
-version = "0.1.0-SNAPSHOT"
+version = providers.gradleProperty("vantaVersion").orElse("0.1.0-SNAPSHOT").get()
 repositories { mavenCentral() }
 dependencies {
     implementation("com.google.code.gson:gson:2.13.2")
