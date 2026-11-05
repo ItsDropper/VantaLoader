@@ -1,6 +1,7 @@
 package dev.itsdropper.vantaloader.integration;
 
 import dev.itsdropper.vantaloader.api.VantaMod;
+import dev.itsdropper.vantaloader.api.ModMenuApi;
 import dev.itsdropper.vantaloader.dependency.ModResolver;
 import dev.itsdropper.vantaloader.discovery.ModDiscovery;
 import dev.itsdropper.vantaloader.runtime.ModRuntime;
@@ -39,7 +40,7 @@ class NativeModJarIntegrationTest {
                 import java.nio.file.Files;
                 import java.nio.file.Path;
 
-                public final class ExampleFixtureMod implements VantaMod {
+                public final class ExampleFixtureMod implements VantaMod, ModMenuApi {
                     private Path marker;
                     public ExampleFixtureMod() {
                         if (Thread.currentThread().getContextClassLoader()
@@ -58,6 +59,10 @@ class NativeModJarIntegrationTest {
                         Files.writeString(marker, context.modId() + ":" + context.modVersion()
                                 + System.lineSeparator() + source
                                 + System.lineSeparator() + contextLoaderMatches);
+                    }
+                    @Override
+                    public Object createConfigScreen(Object parentScreen) {
+                        return "settings:" + parentScreen;
                     }
                     @Override
                     public void onShutdown() throws Exception {
@@ -86,6 +91,11 @@ class NativeModJarIntegrationTest {
                   "id": "example_fixture",
                   "name": "Example Fixture Mod",
                   "version": "1.2.3",
+                  "description": "Integration fixture mod",
+                  "icon": "assets/example/icon.png",
+                  "license": "MIT",
+                  "website": "https://example.com",
+                  "sources": "https://github.com/example/fixture",
                   "entrypoints": { "main": "fixture.ExampleFixtureMod" }
                 }
                 """;
@@ -99,6 +109,9 @@ class NativeModJarIntegrationTest {
             jar.putNextEntry(new JarEntry("fixture/ExampleFixtureMod.class"));
             jar.write(Files.readAllBytes(compiledClass));
             jar.closeEntry();
+            jar.putNextEntry(new JarEntry("assets/example/icon.png"));
+            jar.write(new byte[]{(byte) 0x89, 'P', 'N', 'G'});
+            jar.closeEntry();
         }
 
         var discovered = new ModDiscovery().discover(modsDirectory);
@@ -109,6 +122,13 @@ class NativeModJarIntegrationTest {
         try (ModRuntime runtime = new ModRuntime(gameDirectory)) {
             ClassLoader originalContextLoader = Thread.currentThread().getContextClassLoader();
             runtime.start(ordered);
+            var menuEntries = runtime.modMenuEntries();
+            assertEquals(1, menuEntries.size());
+            assertEquals("Integration fixture mod", menuEntries.getFirst().description());
+            assertEquals("MIT", menuEntries.getFirst().license());
+            assertTrue(menuEntries.getFirst().hasConfigScreen());
+            assertNotNull(menuEntries.getFirst().iconResource());
+            assertEquals("settings:parent", runtime.createModConfigScreen("example_fixture", "parent"));
             assertSame(originalContextLoader, Thread.currentThread().getContextClassLoader(),
                     "Runtime startup must restore the caller's context class loader");
             Path modConfig = gameDirectory.resolve("config/vantaloader/example_fixture");
