@@ -3,7 +3,12 @@
   "id": "hello_world",
   "name": "VantaLoader Hello World",
   "version": "1.0.0",
+  "description": "A minimal example demonstrating the native VantaLoader mod lifecycle.",
+  "license": "MIT",
+  "website": "https://github.com/ItsDropper/VantaLoader",
+  "sources": "https://github.com/ItsDropper/VantaLoader/tree/main/examples/hello-mod",
   "entrypoints": {
     "main": "dev.itsdropper.example.helloworld.HelloWorldMod"
-  }
+  },
+  "depends": {}
 }
