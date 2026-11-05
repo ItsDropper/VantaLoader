@@ -42,7 +42,8 @@ Milestones describe intended work, not promises or release dates. A milestone is
 - [x] Implement deterministic exact-target dispatch and transformation ordering.
 - [x] Bundle ASM and test transformed fixture class loading.
 - [x] Download and validate official client mappings in Vanta Launcher; parse class mappings and dispatch named class targets to obfuscated runtime classes.
-- [ ] Add member/descriptor mapping, version-specific target adapters, hierarchy-aware frame computation, and conflict reports.
+- [x] Parse official method/field mappings and resolve member names using exact named JVM descriptors.
+- [ ] Add version-specific target adapters, hierarchy-aware frame computation, and conflict reports.
 - [ ] Evaluate and implement a SpongePowered Mixin compatibility adapter.
 - [ ] Verify behavior against real Minecraft targets.
 
