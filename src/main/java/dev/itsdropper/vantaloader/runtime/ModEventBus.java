@@ -37,7 +37,7 @@ final class ModEventBus implements EventBus {
         for (Listener<?> listener : matching) {
             try {
                 listener.accept(event);
-            } catch (Throwable failure) {
+            } catch (RuntimeException failure) {
                 failures.add(failure);
             }
         }
@@ -58,7 +58,7 @@ final class ModEventBus implements EventBus {
 
     static final class Scope implements EventBus, AutoCloseable {
         private final EventBus delegate;
-        private final List<EventSubscription> owned = new CopyOnWriteArrayList<>();
+        private final List<EventSubscription> owned = new ArrayList<>();
         private volatile boolean closed;
 
         Scope(EventBus delegate) {
@@ -66,7 +66,7 @@ final class ModEventBus implements EventBus {
         }
 
         @Override
-        public <E> EventSubscription subscribe(Class<E> eventType, int priority,
+        public synchronized <E> EventSubscription subscribe(Class<E> eventType, int priority,
                                                Consumer<? super E> listener) {
             if (closed) throw new IllegalStateException("Event scope is closed");
             EventSubscription subscription = delegate.subscribe(eventType, priority, listener);
@@ -78,13 +78,13 @@ final class ModEventBus implements EventBus {
         }
 
         @Override
-        public void publish(Object event) {
+        public synchronized void publish(Object event) {
             if (closed) throw new IllegalStateException("Event scope is closed");
             delegate.publish(event);
         }
 
         @Override
-        public void close() {
+        public synchronized void close() {
             if (closed) return;
             closed = true;
             owned.forEach(EventSubscription::close);
