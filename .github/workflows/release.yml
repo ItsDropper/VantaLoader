@@ -48,24 +48,6 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Build and test
         run: gradle --no-daemon clean build -PvantaVersion="${{ steps.release_meta.outputs.version }}"
-      - name: Resolve human-readable release identity
-        id: release_meta
-        shell: bash
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            version="${GITHUB_REF_NAME#v}"
-            tag="$GITHUB_REF_NAME"
-            name="VantaLoader $version"
-          else
-            short_sha="${GITHUB_SHA:0:7}"
-            date_utc="$(date -u +'%Y.%m.%d')"
-            version="0.1.0-nightly.${date_utc//./}.$short_sha"
-            tag="nightly-0.1.0-${date_utc//./}-$short_sha"
-            name="VantaLoader 0.1.0 Nightly - $date_utc ($short_sha)"
-          fi
-          echo "tag_name=$tag" >> "$GITHUB_OUTPUT"
-          echo "release_name=$name" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Generate SHA-256 checksum
         run: |
           cd build/agent
