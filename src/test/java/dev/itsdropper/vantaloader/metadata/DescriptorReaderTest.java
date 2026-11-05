@@ -28,7 +28,7 @@ class DescriptorReaderTest {
                  "description":"A useful example.","icon":"assets/example/icon.png",
                  "license":"MIT","website":"https://example.com","sources":"https://github.com/example/mod",
                  "depends":{"corelib":">=1.0.0"},
-                 "recommends":{"maplib":"*"},"suggests":{"optional_ui":"^1.0.0"},
+                 "recommends":{"maplib":"*"},"suggests":{"optional_ui":">=1.0.0 <2.0.0"},
                  "conflicts":{"old_api":"<2.0.0"},"breaks":{"broken_addon":"*"}}
                 """;
         ModDescriptor d = reader.read(new StringReader(json));
