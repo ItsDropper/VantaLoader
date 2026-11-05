@@ -37,6 +37,7 @@ class NativeModJarIntegrationTest {
                 package fixture;
                 import dev.itsdropper.vantaloader.api.ModContext;
                 import dev.itsdropper.vantaloader.api.VantaMod;
+                import dev.itsdropper.vantaloader.api.ModMenuApi;
                 import java.nio.file.Files;
                 import java.nio.file.Path;
 
