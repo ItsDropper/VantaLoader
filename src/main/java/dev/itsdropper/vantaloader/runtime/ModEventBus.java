@@ -72,8 +72,10 @@ final class ModEventBus implements EventBus {
             EventSubscription subscription = delegate.subscribe(eventType, priority, listener);
             owned.add(subscription);
             return () -> {
-                subscription.close();
-                owned.remove(subscription);
+                synchronized (Scope.this) {
+                    subscription.close();
+                    owned.remove(subscription);
+                }
             };
         }
 
