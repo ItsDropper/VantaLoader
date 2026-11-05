@@ -9,7 +9,8 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 
 ## Implemented
 
-- Native vanta.mod.json descriptor parsing and schema validation.
+- Native vanta.mod.json descriptor parsing with descriptions, JAR icons, license/project links, and required/optional dependency declarations.
+- A public opt-in Mod Menu settings-screen contract and runtime metadata model; Minecraft screen UI is still in development.
 - Mod JAR discovery from a configured directory.
 - Semantic version values and basic version constraints.
 - Required dependency validation and deterministic topological ordering.
@@ -35,7 +36,8 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 |---|---|
 | Java runtime and build | Implemented |
 | Mod JAR discovery | Implemented |
-| Metadata validation | Implemented |
+| Metadata validation | Implemented; display metadata and dependency relations parsed |
+| Mod Menu API | Runtime metadata and opt-in settings factory implemented; in-game screen pending |
 | Dependency resolution | Implemented |
 | Native entrypoint lifecycle | Implemented |
 | Cross-mod event bus | Implemented; not Minecraft game events |
@@ -103,11 +105,28 @@ Each native VantaLoader mod is a JAR containing vanta.mod.json at its root and a
   "id": "example",
   "name": "Example Mod",
   "version": "1.0.0",
+  "description": "A short description shown in Vanta's mod list.",
+  "icon": "assets/example/icon.png",
+  "license": "MIT",
+  "website": "https://example.com",
+  "sources": "https://github.com/example/example-mod",
   "entrypoints": {
     "main": "com.example.ExampleMod"
   },
   "depends": {
     "corelib": ">=1.0.0 <2.0.0"
+  },
+  "recommends": {
+    "maplib": ">=2.0.0"
+  },
+  "suggests": {
+    "optional_ui": "*"
+  },
+  "conflicts": {
+    "legacy_api": "<2.0.0"
+  },
+  "breaks": {
+    "broken_addon": "*"
   }
 }
 ~~~
