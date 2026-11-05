@@ -8,13 +8,25 @@ import java.util.regex.Pattern;
 /** Semantic version value used by VantaLoader metadata. */
 public record Version(int major, int minor, int patch, String prerelease)
         implements Comparable<Version> {
+    private static final String NUMERIC_IDENTIFIER = "(?:0|[1-9][0-9]*)";
+    private static final String NON_NUMERIC_IDENTIFIER =
+            "(?=[0-9A-Za-z-]*[A-Za-z-])[0-9A-Za-z-]+";
+    private static final String PRERELEASE_IDENTIFIER =
+            "(?:" + NUMERIC_IDENTIFIER + "|" + NON_NUMERIC_IDENTIFIER + ")";
+    private static final Pattern PRERELEASE_PATTERN = Pattern.compile(
+            PRERELEASE_IDENTIFIER + "(?:\\." + PRERELEASE_IDENTIFIER + ")*");
     private static final Pattern PATTERN = Pattern.compile(
-            "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z.-]+))?(?:\\+[0-9A-Za-z.-]+)?$"
+            "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)"
+                    + "(?:-(" + PRERELEASE_IDENTIFIER + "(?:\\." + PRERELEASE_IDENTIFIER + ")*))?"
+                    + "(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$"
     );
 
     public Version {
         if (major < 0 || minor < 0 || patch < 0) {
             throw new IllegalArgumentException("Version components cannot be negative");
+        }
+        if (prerelease != null && !PRERELEASE_PATTERN.matcher(prerelease).matches()) {
+            throw new IllegalArgumentException("Invalid semantic-version prerelease: " + prerelease);
         }
     }
 
@@ -23,7 +35,7 @@ public record Version(int major, int minor, int patch, String prerelease)
         Matcher matcher = PATTERN.matcher(value.trim());
         if (!matcher.matches()) {
             throw new IllegalArgumentException("Invalid version '" + value
-                    + "'. Expected MAJOR.MINOR.PATCH with optional prerelease/build metadata.");
+                    + "'. Expected MAJOR.MINOR.PATCH with valid optional prerelease/build metadata.");
         }
         try {
             return new Version(Integer.parseInt(matcher.group(1)),
