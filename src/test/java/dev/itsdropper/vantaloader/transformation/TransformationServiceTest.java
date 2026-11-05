@@ -61,6 +61,23 @@ class TransformationServiceTest {
     }
 
     @Test
+    void supportsLegacyJavaEightTransformerCallback() throws Exception {
+        TransformationService service = new TransformationService();
+        String target = Type.getInternalName(BytecodeFixture.class);
+        List<String> invoked = new ArrayList<>();
+        service.forMod("legacy").register("java8-callback", target.replace("/", "."), 0,
+                (context, bytes) -> {
+                    invoked.add(context.transformationId());
+                    return bytes;
+                });
+
+        // This is the five-argument ClassFileTransformer method present on Java 8.
+        assertNull(service.transform(getClass().getClassLoader(), target,
+                null, null, fixtureBytes()));
+        assertEquals(List.of("java8-callback"), invoked);
+    }
+
+    @Test
     void rejectsDuplicateIdsWithinOneModButAllowsOtherModsToReuseIds() {
         TransformationService service = new TransformationService();
         var registry = service.forMod("first");
