@@ -42,7 +42,7 @@ Adapters should be grouped only where bytecode and lifecycle contracts are demon
 
 ## Java runtime compatibility is a separate axis
 
-Minecraft version compatibility and JVM compatibility must be tracked independently. The current project compiles for Java 21. That prevents the current agent artifact from loading in a Java 8 Minecraft process, regardless of whether the bytecode mappings are correct. In addition, the agent currently implements the Java 9+ `ClassFileTransformer` overload. A Java 8-capable agent needs the Java 8 transformer entry point and a Java 8-compatible bytecode/API baseline across every class loaded before Minecraft starts.
+Minecraft version compatibility and JVM compatibility must be tracked independently. The current project compiles for Java 21. That prevents the current agent artifact from loading in a Java 8 Minecraft process, regardless of whether the bytecode mappings are correct. The transformation backend now implements both the legacy Java 8 and Java 9+ `ClassFileTransformer` callback signatures, but the artifact still uses Java 21 bytecode, Java 9+ APIs, and Java 16+ language features. A Java 8-capable agent still needs a Java 8-compatible bytecode/API baseline across every class loaded before Minecraft starts, plus Java 8-compatible dependencies.
 
 Do not claim Minecraft 1.8 support until all of the following are verified together:
 
