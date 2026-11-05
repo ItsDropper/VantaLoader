@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "vanta_proof",
+  "name": "VantaLoader Proof Mod",
+  "version": "1.0.0",
+  "entrypoints": {
+    "main": "dev.itsdropper.example.proof.ProofMod"
+  }
+}
