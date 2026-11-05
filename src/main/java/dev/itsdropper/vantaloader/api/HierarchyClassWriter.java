@@ -30,9 +30,16 @@ public final class HierarchyClassWriter extends ClassWriter {
         this.loader = loader;
     }
 
+    public String commonSuperClass(String first, String second) {
+        return getCommonSuperClass(first, second);
+    }
+
     @Override
     protected String getCommonSuperClass(String first, String second) {
         if (first.equals(second)) return first;
+        if (first.startsWith("[") || second.startsWith("[")) {
+            return commonArraySupertype(first, second);
+        }
         if (isAssignableFrom(first, second)) return first;
         if (isAssignableFrom(second, first)) return second;
 
@@ -50,6 +57,25 @@ public final class HierarchyClassWriter extends ClassWriter {
             candidate = candidateInfo == null ? null : candidateInfo.superName();
         }
         return "java/lang/Object";
+    }
+
+    private String commonArraySupertype(String first, String second) {
+        if (!first.startsWith("[") || !second.startsWith("[")) {
+            if ("java/lang/Object".equals(first) || "java/lang/Cloneable".equals(first)
+                    || "java/io/Serializable".equals(first)) return first;
+            if ("java/lang/Object".equals(second) || "java/lang/Cloneable".equals(second)
+                    || "java/io/Serializable".equals(second)) return second;
+            return "java/lang/Object";
+        }
+        org.objectweb.asm.Type a = org.objectweb.asm.Type.getType(first);
+        org.objectweb.asm.Type b = org.objectweb.asm.Type.getType(second);
+        if (a.getDimensions() != b.getDimensions()) return "java/lang/Object";
+        org.objectweb.asm.Type ae = a.getElementType();
+        org.objectweb.asm.Type be = b.getElementType();
+        if (ae.getSort() != org.objectweb.asm.Type.OBJECT
+                || be.getSort() != org.objectweb.asm.Type.OBJECT) return "java/lang/Object";
+        String common = getCommonSuperClass(ae.getInternalName(), be.getInternalName());
+        return "[".repeat(a.getDimensions()) + "L" + common + ";";
     }
 
     private boolean isAssignableFrom(String target, String source) {
