@@ -9,6 +9,15 @@ public interface ModContext {
     String modVersion();
     String loaderVersion();
     String minecraftVersion();
+
+    /**
+     * Returns a parsed Minecraft version identity while preserving the original
+     * string accessor for source and binary compatibility with existing mods.
+     */
+    default MinecraftVersion minecraftVersionInfo() {
+        return MinecraftVersion.parse(minecraftVersion());
+    }
+
     String environment();
     Path gameDirectory();
     Path configDirectory();
