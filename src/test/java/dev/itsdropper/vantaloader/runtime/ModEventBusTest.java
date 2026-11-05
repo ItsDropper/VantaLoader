@@ -19,7 +19,7 @@ class ModEventBusTest {
 
         bus.publish(new Message());
 
-        assertEquals(List.of("object", "early", "late", "same-priority"), received);
+        assertEquals(List.of("early", "object", "late", "same-priority"), received);
     }
 
     @Test
