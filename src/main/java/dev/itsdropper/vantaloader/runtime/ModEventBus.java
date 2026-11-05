@@ -79,8 +79,13 @@ final class ModEventBus implements EventBus {
             };
         }
 
+        /**
+         * Dispatches without holding the scope monitor while invoking mod code.
+         * Closing a scope prevents subsequent publishes; a publish that already
+         * passed this check is allowed to finish.
+         */
         @Override
-        public synchronized void publish(Object event) {
+        public void publish(Object event) {
             if (closed) throw new IllegalStateException("Event scope is closed");
             delegate.publish(event);
         }
