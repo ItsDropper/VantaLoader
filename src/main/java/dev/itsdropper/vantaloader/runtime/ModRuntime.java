@@ -45,6 +45,7 @@ public final class ModRuntime implements AutoCloseable {
 
     public void start(List<ModArtifact> orderedMods) throws Exception {
         if (started || closed) throw new IllegalStateException("ModRuntime can only be started once");
+        validateOrderedMods(orderedMods);
         Files.createDirectories(configDirectory);
         try {
             Map<String, ModClassLoader> loadersById = new java.util.LinkedHashMap<>();
@@ -79,6 +80,40 @@ public final class ModRuntime implements AutoCloseable {
             if (failure instanceof Exception exception) throw exception;
             if (failure instanceof Error error) throw error;
             throw new IllegalStateException("Mod initialization failed", failure);
+        }
+    }
+
+    /**
+     * Validates the complete ordered mod set before creating class loaders or invoking
+     * third-party code. This prevents duplicate IDs from replacing loader-map entries.
+     */
+    private static void validateOrderedMods(List<ModArtifact> orderedMods) {
+        java.util.Objects.requireNonNull(orderedMods, "orderedMods");
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (int index = 0; index < orderedMods.size(); index++) {
+            ModArtifact artifact = java.util.Objects.requireNonNull(
+                    orderedMods.get(index), "orderedMods[" + index + "]");
+            var descriptor = java.util.Objects.requireNonNull(
+                    artifact.descriptor(), "descriptor for mod artifact at index " + index);
+            String id = java.util.Objects.requireNonNull(descriptor.id(), "mod ID");
+            if (!seen.add(id)) {
+                throw new IllegalArgumentException("Duplicate mod ID in runtime input: '" + id + "'");
+            }
+            Path path = java.util.Objects.requireNonNull(artifact.path(), "JAR path for mod '" + id + "'")
+                    .toAbsolutePath().normalize();
+            if (!Files.isRegularFile(path) || !Files.isReadable(path)) {
+                throw new IllegalArgumentException("Mod JAR for '" + id
+                        + "' is not a readable regular file: " + path);
+            }
+            for (String dependencyId : descriptor.depends().keySet()) {
+                if (id.equals(dependencyId)) {
+                    throw new IllegalArgumentException("Mod '" + id + "' cannot depend on itself");
+                }
+                if (!seen.contains(dependencyId)) {
+                    throw new IllegalArgumentException("Mod '" + id + "' must be ordered after dependency '"
+                            + dependencyId + "' or the dependency is missing");
+                }
+            }
         }
     }
 
