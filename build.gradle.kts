@@ -97,6 +97,12 @@ val verifyAgentJar by tasks.registering {
             check(jar.getEntry("dev/itsdropper/vantaloader/api/ModContext.class") != null) {
                 "Standalone mod API JAR is missing ModContext"
             }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ModMenuApi.class") != null) {
+                "Standalone mod API JAR is missing ModMenuApi"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ModMenuEntry.class") != null) {
+                "Standalone mod API JAR is missing ModMenuEntry"
+            }
             check(jar.manifest.mainAttributes.getValue("Implementation-Version") == project.version.toString()) {
                 "Standalone mod API JAR version does not match project version"
             }
