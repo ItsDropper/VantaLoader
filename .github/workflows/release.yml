@@ -28,11 +28,6 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "8.14"
-      - name: Move nightly tag to this commit
-        if: github.ref == 'refs/heads/main'
-        run: |
-          git tag -f nightly "$GITHUB_SHA"
-          git push --force origin refs/tags/nightly
       - name: Build and test
         run: gradle --no-daemon clean build
       - name: Generate SHA-256 checksum
