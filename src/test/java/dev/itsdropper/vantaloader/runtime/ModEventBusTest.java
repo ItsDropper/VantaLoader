@@ -67,5 +67,21 @@ class ModEventBusTest {
         assertEquals(List.of("continued"), received);
     }
 
+    @Test
+    void continuesDispatchAndAggregatesNonFatalErrorsFromListeners() {
+        ModEventBus bus = new ModEventBus();
+        List<String> received = new ArrayList<>();
+        bus.subscribe(Message.class, 0, event -> {
+            throw new AssertionError("listener assertion");
+        });
+        bus.subscribe(Message.class, 1, event -> received.add("continued"));
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class,
+                () -> bus.publish(new Message()));
+        assertEquals(1, failure.getSuppressed().length);
+        assertInstanceOf(AssertionError.class, failure.getSuppressed()[0]);
+        assertEquals(List.of("continued"), received);
+    }
+
     private record Message() { }
 }
