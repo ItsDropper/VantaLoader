@@ -72,10 +72,29 @@ public final class TransformationService implements ClassFileTransformer {
                 + " -> " + targetClassName + " (priority " + priority + ")");
     }
 
+    /**
+     * Java 8 Instrumentation entry point. Keep this overload even when compiling
+     * against a newer JDK so the backend has the legacy JVM contract available
+     * when the project is eventually rebuilt against a Java 8 API baseline.
+     */
+    @Override
+    public byte[] transform(ClassLoader loader, String className,
+                            Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
+                            byte[] classfileBuffer) throws IllegalClassFormatException {
+        return transformInternal(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+    }
+
+    /** Java 9+ entry point; both JVM contracts share exactly the same pipeline. */
     @Override
     public byte[] transform(Module module, ClassLoader loader, String className,
                             Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
                             byte[] classfileBuffer) throws IllegalClassFormatException {
+        return transformInternal(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+    }
+
+    private byte[] transformInternal(ClassLoader loader, String className,
+                                     Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
+                                     byte[] classfileBuffer) throws IllegalClassFormatException {
         if (className == null || classfileBuffer == null) return null;
         String binaryName = className.replace('/', '.');
         List<Registration> matching = registrations.stream()
