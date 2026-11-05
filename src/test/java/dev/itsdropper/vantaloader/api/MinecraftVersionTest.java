@@ -26,6 +26,16 @@ class MinecraftVersionTest {
     }
 
     @Test
+    void preservesReleaseQualifiersWhileParsingTheirNumericIdentity() {
+        MinecraftVersion prerelease = MinecraftVersion.parse("1.20.5-pre2");
+        assertEquals(MinecraftVersion.Kind.RELEASE, prerelease.kind());
+        assertEquals("1.20.5-pre2", prerelease.raw());
+        assertEquals(1, prerelease.major());
+        assertEquals(20, prerelease.minor());
+        assertEquals(5, prerelease.patch());
+    }
+
+    @Test
     void parsesWeeklySnapshotsWithoutTreatingThemAsReleaseNumbers() {
         MinecraftVersion snapshot = MinecraftVersion.parse("24w14a");
         assertEquals(MinecraftVersion.Kind.SNAPSHOT, snapshot.kind());

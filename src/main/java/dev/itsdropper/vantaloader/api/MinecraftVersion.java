@@ -60,7 +60,7 @@ public record MinecraftVersion(
                         Integer.parseInt(release.group(1)),
                         Integer.parseInt(release.group(2)),
                         release.group(3) == null ? 0 : Integer.parseInt(release.group(3)),
-                        0, 0, '\\0');
+                        0, 0, '\0');
             } catch (IllegalArgumentException ignored) {
                 return unknown(value);
             }
@@ -82,7 +82,7 @@ public record MinecraftVersion(
     }
 
     private static MinecraftVersion unknown(String value) {
-        return new MinecraftVersion(value, Kind.UNKNOWN, 0, 0, 0, 0, 0, '\\0');
+        return new MinecraftVersion(value, Kind.UNKNOWN, 0, 0, 0, 0, 0, '\0');
     }
 
     public boolean isKnown() {
