@@ -88,7 +88,9 @@ public final class TransformationService implements ClassFileTransformer {
         for (Registration registration : matching) {
             try {
                 byte[] transformed = registration.transformer().transform(
-                        new ClassTransformContext(registration.modId(), registration.id(), registration.targetClassName()),
+                        mappings == null
+                                ? new ClassTransformContext(registration.modId(), registration.id(), registration.targetClassName())
+                                : new ClassTransformContext(registration.modId(), registration.id(), registration.targetClassName(), mappings),
                         current.clone());
                 if (transformed == null || transformed.length == 0) {
                     throw new IllegalStateException("Transformer returned an empty or null class file");
