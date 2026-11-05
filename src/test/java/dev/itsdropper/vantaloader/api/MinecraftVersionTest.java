@@ -45,7 +45,9 @@ class MinecraftVersionTest {
         assertEquals(MinecraftVersion.Kind.UNKNOWN, MinecraftVersion.parse("not-a-version").kind());
         assertEquals(MinecraftVersion.Kind.UNKNOWN, MinecraftVersion.parse(null).kind());
         assertEquals(MinecraftVersion.Kind.UNKNOWN, MinecraftVersion.parse("").kind());
+        assertEquals(MinecraftVersion.Kind.UNKNOWN, MinecraftVersion.parse("   ").kind());
         assertEquals(MinecraftVersion.Kind.UNKNOWN, MinecraftVersion.parse("99w99z").kind());
+        assertEquals(MinecraftVersion.Kind.UNKNOWN, MinecraftVersion.parse("24w00a").kind());
     }
 
     @Test
