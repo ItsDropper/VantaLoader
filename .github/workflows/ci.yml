@@ -21,3 +21,6 @@ jobs:
           gradle-version: "8.14"
       - name: Build and test
         run: gradle --no-daemon clean build
+      - name: Build proof example mod
+        working-directory: examples/proof-mod
+        run: gradle --no-daemon clean build
