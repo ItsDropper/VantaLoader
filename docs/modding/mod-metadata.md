@@ -1,8 +1,8 @@
 # Native Mod Metadata — Schema 1
 
-**Status: Implemented in the native runtime**
+**Status: Implemented in the native metadata parser**
 
-Every native VantaLoader mod is a JAR containing a UTF-8 vanta.mod.json file at the archive root.
+Every native VantaLoader mod is a JAR containing a UTF-8 `vanta.mod.json` file at the archive root. Existing descriptors remain valid; all display and optional dependency fields are additive.
 
 ## Example
 
@@ -12,11 +12,28 @@ Every native VantaLoader mod is a JAR containing a UTF-8 vanta.mod.json file at 
   "id": "example",
   "name": "Example Mod",
   "version": "1.0.0",
+  "description": "A concise explanation of what this mod does.",
+  "icon": "assets/example/icon.png",
+  "license": "MIT",
+  "website": "https://example.com",
+  "sources": "https://github.com/example/example-mod",
   "entrypoints": {
     "main": "com.example.ExampleMod"
   },
   "depends": {
     "corelib": ">=1.0.0 <2.0.0"
+  },
+  "recommends": {
+    "maplib": ">=2.0.0"
+  },
+  "suggests": {
+    "optional_ui": "*"
+  },
+  "conflicts": {
+    "old_api": "<2.0.0"
+  },
+  "breaks": {
+    "broken_addon": "*"
   }
 }
 ~~~
@@ -26,33 +43,46 @@ Every native VantaLoader mod is a JAR containing a UTF-8 vanta.mod.json file at 
 | Field | Required | Meaning |
 |---|---:|---|
 | schemaVersion | Yes | Must be integer 1. |
-| id | Yes | Lowercase identifier matching [a-z][a-z0-9_-]{0,63}. |
+| id | Yes | Lowercase identifier matching `[a-z][a-z0-9_-]{0,63}`. |
 | name | Yes | Display name, up to 128 characters. |
-| version | Yes | MAJOR.MINOR.PATCH, optional SemVer prerelease/build metadata. |
+| version | Yes | Semantic version. |
+| description | No | Short mod description, up to 2,048 characters. |
+| icon | No | Relative path to an image resource inside the mod JAR. Absolute paths and `..` segments are rejected. |
+| license | No | SPDX identifier or human-readable license label, up to 128 characters. |
+| website | No | HTTP(S) project or documentation URL. |
+| sources | No | HTTP(S) source repository URL. |
 | entrypoints.main | Yes | Fully qualified Java class implementing VantaMod. |
-| depends | No | Object mapping required mod IDs to version constraints. |
+| depends | No | Required mod IDs mapped to version constraints; missing or incompatible dependencies prevent loading. |
+| recommends | No | Optional dependencies recommended for the intended experience. |
+| suggests | No | Optional integrations that may improve the experience. |
+| conflicts | No | Mods that must not be installed alongside this mod. |
+| breaks | No | Versions of other mods known to be incompatible. |
 
-Unknown fields are rejected in schema 1. This prevents misspelled fields from silently producing a different runtime configuration. Future schema versions can add fields through explicit changes.
+All dependency maps use the same version-constraint syntax. Optional dependency categories are metadata at this stage; only `depends` participates in load ordering and startup validation. A mod cannot both require and conflict with, or break, the same dependency.
+
+Unknown fields are rejected in schema 1. This prevents misspelled fields from silently producing a different runtime configuration.
 
 ## Version constraints
 
 A constraint is a whitespace- or comma-separated conjunction:
 
-- 1.2.3 — exact version.
-- >=1.2.0 — greater than or equal.
-- >1.2.0 — greater than.
-- <=2.0.0 — less than or equal.
-- <2.0.0 — less than.
-- * — any version.
+- `1.2.3` — exact version.
+- `>=1.2.0` — greater than or equal.
+- `>1.2.0` — greater than.
+- `<=2.0.0` — less than or equal.
+- `<2.0.0` — less than.
+- `*` — any version.
 
-For example, >=1.2.0 <2.0.0 accepts versions in that interval. OR expressions, caret ranges, tilde ranges, and partial-version wildcards are not supported in schema 1.
+For example, `>=1.2.0 <2.0.0` accepts versions in that interval. OR expressions, caret ranges, tilde ranges, and partial-version wildcards are not supported.
 
 ## Entrypoint lifecycle
 
-The main class must be present in the mod's own JAR or in one of its declared dependencies, implement dev.itsdropper.vantaloader.api.VantaMod, and have a public no-argument constructor.
+The main class must be present in the mod's own JAR or in one of its declared dependencies, implement `dev.itsdropper.vantaloader.api.VantaMod`, and have a public no-argument constructor.
 
-VantaLoader invokes onInitialize(ModContext) after required dependencies have initialized. During shutdown it invokes onShutdown() in reverse initialization order.
+VantaLoader invokes `onInitialize(ModContext)` after required dependencies have initialized. During shutdown it invokes `onShutdown()` in reverse initialization order.
 
 ## Runtime limitations
 
-Schema 1 is for the first standalone native runtime. It does not yet describe Minecraft versions, client/server environments, Mixin configurations, access wideners, nested dependencies, or reload capabilities. Those fields will be introduced only with corresponding runtime implementations. Each mod receives its own class loader. It can load its own classes and classes/resources from explicitly declared dependencies; unrelated mods are not searched. Java platform classes and the VantaLoader API are parent-first so all entrypoints share the same API type identity. Dependency lookup order is deterministic. This is namespace isolation, not a security boundary: Java code in a mod still runs with the operating-system user's permissions.
+The metadata parser now exposes display information and dependency intent for future launcher and in-game UI. Icon paths are validated as safe relative JAR resources, but icon extraction/rendering is not yet wired into a Minecraft screen. Optional dependency categories are parsed and preserved, but do not yet affect resolution. Mixin configurations, access wideners, and runtime settings screens are separate capabilities and are not implied by these metadata fields.
+
+Each mod receives its own class loader. It can load its own classes and classes/resources from explicitly declared dependencies; unrelated mods are not searched. Java platform classes and the VantaLoader API are parent-first so all entrypoints share the same API type identity. This is namespace isolation, not a security boundary: Java code in a mod still runs with the operating-system user's permissions.
