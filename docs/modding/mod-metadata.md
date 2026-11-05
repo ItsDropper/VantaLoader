@@ -83,9 +83,22 @@ VantaLoader invokes `onInitialize(ModContext)` after required dependencies have 
 
 ## Runtime limitations
 
-The metadata parser now exposes display information and dependency intent for future launcher and in-game UI. Icon paths are validated as safe relative JAR resources, but icon extraction/rendering is not yet wired into a Minecraft screen. Optional dependency categories are parsed and preserved, but do not yet affect resolution. Mixin configurations, access wideners, and runtime settings screens are separate capabilities and are not implied by these metadata fields.
+The metadata parser exposes display information and dependency intent. Icon paths are validated as safe relative JAR resources and resolved for the in-game menu API, but rendering still requires the version-specific Minecraft screen adapter. Optional dependency categories are parsed and preserved, but do not yet affect resolution. Sponge Mixin configuration loading and access wideners are not implemented by the current native transformation API.
 
 Each mod receives its own class loader. It can load its own classes and classes/resources from explicitly declared dependencies; unrelated mods are not searched. Java platform classes and the VantaLoader API are parent-first so all entrypoints share the same API type identity. This is namespace isolation, not a security boundary: Java code in a mod still runs with the operating-system user's permissions.
+
+## Accessor API
+
+Mods can define an interface with `@Accessor` getters/setters and `@Invoker` methods, then create a typed view over a game object with `AccessorFactory.create(AccessorType.class, target)`. Field and method names can be supplied explicitly in the annotation or inferred from `getX`, `isX`, `setX`, and `invokeX` method names. This uses `MethodHandles` and does not inject mod-owned interfaces into Minecraft classes, avoiding class-loader visibility problems. Private access remains subject to the JVM's module openness rules.
+
+~~~java
+interface PlayerAccessor {
+    @Accessor("health") float getHealth();
+    @Invoker("calculateDamage") float invokeCalculateDamage(float amount);
+}
+
+PlayerAccessor playerView = AccessorFactory.create(PlayerAccessor.class, player);
+~~~
 
 ## In-game settings screen API
 
