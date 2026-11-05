@@ -260,6 +260,12 @@ public final class ModRuntime implements AutoCloseable {
 
     @Override public void close() throws Exception { stop(); }
 
+    /** Runtime-derived title and loaded-mod count for the in-game mod screen header. */
+    public dev.itsdropper.vantaloader.api.ModMenuHeader modMenuHeader() {
+        return dev.itsdropper.vantaloader.api.ModMenuHeader.create(
+                System.getProperty("vanta.minecraft.version", "unknown"), initialized.size());
+    }
+
     /** Immutable metadata snapshot used by the in-game mod list. */
     public List<dev.itsdropper.vantaloader.api.ModMenuEntry> modMenuEntries() {
         return initialized.stream().map(mod -> {
