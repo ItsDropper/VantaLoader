@@ -74,6 +74,23 @@ public final class ExampleMod implements VantaMod {
 
 Build with `gradle build`, then copy the resulting JAR into the target instance's `mods/` directory.
 
+## Cross-mod events
+
+Mods can exchange their own typed events through `ModContext.events()`. Dispatch is synchronous; lower priority values run first, equal priorities retain registration order, and listener failures are collected while remaining listeners still run. A mod's subscriptions are automatically removed when that mod shuts down or startup rolls back.
+
+```java
+public record ProfileLoaded(String profileId) { }
+
+// Subscribe during onInitialize:
+context.events().subscribe(ProfileLoaded.class, 0, event ->
+    context.logger().info("Loaded profile " + event.profileId()));
+
+// Publish from a mod when its own profile loading completes:
+context.events().publish(new ProfileLoaded("default"));
+```
+
+This is a native mod-to-mod communication API, not a Minecraft event hook. It does not currently expose game ticks, input, rendering, resource reload, or other Minecraft lifecycle events.
+
 ## ASM transformation example
 
 The agent bundles ASM 9.11.1 and exposes it to mods at runtime. This example replaces a string constant while preserving the method's existing stack shape and frames:
