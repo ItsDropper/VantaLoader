@@ -29,6 +29,7 @@ public final class ModRuntime implements AutoCloseable {
     private final TransformationService transformationService;
     private final List<LoadedMod> initialized = new ArrayList<>();
     private final List<ModClassLoader> classLoaders = new ArrayList<>();
+    private final ModEventBus eventBus = new ModEventBus();
     private boolean started;
     private boolean closed;
 
@@ -66,9 +67,10 @@ public final class ModRuntime implements AutoCloseable {
 
             for (ModArtifact artifact : orderedMods) {
                 ModClassLoader loader = loadersById.get(artifact.descriptor().id());
-                LoadedMod mod = instantiate(artifact, loader);
+                ModEventBus.Scope eventScope = new ModEventBus.Scope(eventBus);
+                LoadedMod mod = instantiate(artifact, loader, eventScope);
                 initialized.add(mod);
-                invokeInitialize(mod, artifact);
+                invokeInitialize(mod, artifact, eventScope);
                 LOGGER.info("Initialized " + mod.id() + " " + artifact.descriptor().version());
             }
             started = true;
@@ -80,20 +82,20 @@ public final class ModRuntime implements AutoCloseable {
         }
     }
 
-    private void invokeInitialize(LoadedMod mod, ModArtifact artifact) throws Exception {
+    private void invokeInitialize(LoadedMod mod, ModArtifact artifact, ModEventBus.Scope eventScope) throws Exception {
         ClassLoader previous = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(mod.classLoader());
         try {
             Path modConfigDirectory = configDirectory.resolve(artifact.descriptor().id());
             Files.createDirectories(modConfigDirectory);
             mod.instance().onInitialize(new DefaultModContext(artifact.descriptor(), gameDirectory,
-                    modConfigDirectory, transformationService));
+                    modConfigDirectory, transformationService, eventScope));
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
         }
     }
 
-    private LoadedMod instantiate(ModArtifact artifact, ModClassLoader loader) throws Exception {
+    private LoadedMod instantiate(ModArtifact artifact, ModClassLoader loader, ModEventBus.Scope eventScope) throws Exception {
         String id = artifact.descriptor().id();
         String name = artifact.descriptor().mainEntrypoint();
         ClassLoader previous = Thread.currentThread().getContextClassLoader();
@@ -105,7 +107,7 @@ public final class ModRuntime implements AutoCloseable {
                         + "' does not implement VantaMod");
             }
             VantaMod instance = (VantaMod) type.getConstructor().newInstance();
-            return new LoadedMod(id, instance, loader);
+            return new LoadedMod(id, instance, loader, eventScope);
         } catch (InvocationTargetException exception) {
             Throwable cause = exception.getCause() == null ? exception : exception.getCause();
             throw new IllegalStateException("Constructor for mod '" + id + "' failed: "
@@ -115,6 +117,7 @@ public final class ModRuntime implements AutoCloseable {
                     + "'. A public class and public no-argument constructor are required.", exception);
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
+            eventScope.close();
         }
     }
 
@@ -164,6 +167,8 @@ public final class ModRuntime implements AutoCloseable {
                     if (aggregate == null) aggregate = new Exception("One or more mods failed to shut down");
                     aggregate.addSuppressed(new IllegalStateException(
                             "Shutdown failed for mod '" + mod.id() + "'", failure));
+                } finally {
+                    mod.eventScope().close();
                 }
             }
         } finally {
@@ -187,7 +192,8 @@ public final class ModRuntime implements AutoCloseable {
 
     @Override public void close() throws Exception { stop(); }
 
-    private record LoadedMod(String id, VantaMod instance, ModClassLoader classLoader) { }
+    private record LoadedMod(String id, VantaMod instance, ModClassLoader classLoader,
+                             ModEventBus.Scope eventScope) { }
 
     /**
      * Child-first for mod implementation classes, with explicit dependency visibility.
