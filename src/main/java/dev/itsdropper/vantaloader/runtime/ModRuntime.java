@@ -171,13 +171,26 @@ public final class ModRuntime implements AutoCloseable {
 
     private void rollback(Throwable original) {
         MinecraftHooks.unbind(eventBus);
-        for (int i = initialized.size() - 1; i >= 0; i--) {
-            LoadedMod mod = initialized.get(i);
-            invokeShutdown(mod, original);
+        Error fatalFailure = null;
+        try {
+            for (int i = initialized.size() - 1; i >= 0; i--) {
+                LoadedMod mod = initialized.get(i);
+                try {
+                    invokeShutdown(mod, original);
+                } catch (VirtualMachineError | ThreadDeath failure) {
+                    fatalFailure = failure;
+                    break;
+                }
+            }
+        } finally {
+            initialized.clear();
+            closeLoaders(fatalFailure == null ? original : fatalFailure);
+            closed = true;
         }
-        initialized.clear();
-        closeLoaders(original);
-        closed = true;
+        if (fatalFailure != null) {
+            fatalFailure.addSuppressed(original);
+            throw fatalFailure;
+        }
     }
 
     private void invokeShutdown(LoadedMod mod, Throwable aggregate) {
@@ -186,6 +199,8 @@ public final class ModRuntime implements AutoCloseable {
         try {
             mod.instance().onShutdown();
         } catch (Throwable failure) {
+            if (failure instanceof VirtualMachineError fatal) throw fatal;
+            if (failure instanceof ThreadDeath death) throw death;
             aggregate.addSuppressed(new IllegalStateException(
                     "Shutdown failed for mod '" + mod.id() + "'", failure));
         } finally {
@@ -198,6 +213,7 @@ public final class ModRuntime implements AutoCloseable {
         if (closed) return;
         MinecraftHooks.unbind(eventBus);
         Exception aggregate = null;
+        Error fatalFailure = null;
         try {
             for (int i = initialized.size() - 1; i >= 0; i--) {
                 LoadedMod mod = initialized.get(i);
@@ -208,6 +224,10 @@ public final class ModRuntime implements AutoCloseable {
                     finally { Thread.currentThread().setContextClassLoader(previous); }
                     LOGGER.info("Stopped " + mod.id());
                 } catch (Throwable failure) {
+                    if (failure instanceof VirtualMachineError || failure instanceof ThreadDeath) {
+                        fatalFailure = (Error) failure;
+                        break;
+                    }
                     if (aggregate == null) aggregate = new Exception("One or more mods failed to shut down");
                     aggregate.addSuppressed(new IllegalStateException(
                             "Shutdown failed for mod '" + mod.id() + "'", failure));
@@ -217,8 +237,12 @@ public final class ModRuntime implements AutoCloseable {
             }
         } finally {
             initialized.clear();
-            closeLoaders(aggregate);
+            closeLoaders(fatalFailure == null ? aggregate : fatalFailure);
             closed = true;
+        }
+        if (fatalFailure != null) {
+            if (aggregate != null) fatalFailure.addSuppressed(aggregate);
+            throw fatalFailure;
         }
         if (aggregate != null) throw aggregate;
     }
