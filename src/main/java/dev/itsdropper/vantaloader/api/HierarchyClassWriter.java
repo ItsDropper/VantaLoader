@@ -82,7 +82,6 @@ public final class HierarchyClassWriter extends ClassWriter {
             commonComponent = commonArraySupertype(firstComponent, secondComponent);
         } else {
             String objectComponent = firstComponent.startsWith("L") ? firstComponent : secondComponent;
-            String arrayComponent = firstComponent.startsWith("[") ? firstComponent : secondComponent;
             String objectName = objectComponent.substring(1, objectComponent.length() - 1);
             if ("java/lang/Object".equals(objectName) || "java/lang/Cloneable".equals(objectName)
                     || "java/io/Serializable".equals(objectName)) {
