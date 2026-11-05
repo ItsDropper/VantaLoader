@@ -16,6 +16,7 @@ public record ClassTransformContext(
         INSTANCE;
         @Override public String runtimeClassName(String name) { return name; }
         @Override public String namedClassName(String name) { return name; }
+        @Override public String runtimeDescriptor(String descriptor) { return descriptor; }
         @Override public String runtimeMethodName(String owner, String name, String descriptor) { return name; }
         @Override public String runtimeFieldName(String owner, String name, String descriptor) { return name; }
     }
