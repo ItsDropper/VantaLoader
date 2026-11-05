@@ -37,7 +37,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 | Dependency resolution | Implemented |
 | Native entrypoint lifecycle | Implemented |
 | Minecraft Java-agent bootstrap | Experimental; real launch not verified |
-| Minecraft class-name mappings | Implemented; member/descriptor mapping and version adapters remain incomplete |
+| Minecraft class/member mappings | Official class, method, and field mapping lookup by exact named JVM descriptor; version adapters remain incomplete |
 | Native class transformation API | ASM-backed JVM pipeline tested on fixture classes; Minecraft use unverified |
 | VantaTransform planning, validation and reports | In progress |
 | SpongePowered Mixin adapter | Planned |
@@ -151,7 +151,7 @@ context.transformations().register(
 );
 ~~~
 
-Lower priorities run first. Contributions targeting the same class are composed in priority, mod ID, and transformation ID order. The agent bundles ASM 9.11.1 (`asm`, `asm-tree`, `asm-commons`, `asm-util`, and `asm-analysis`) and makes those classes parent-first so mods share one runtime ASM copy. A transformer can use ASM to edit bytecode. VantaLoader parses every output and rejects a changed target class identity; full JVM verification still depends on the game and target class hierarchy. Official Mojang class mappings are loaded from the instance's `minecraft/client_mappings.txt`; mods may register named class targets and the agent resolves them to runtime class names. This first layer maps class names only: member names/descriptors, version-specific target adapters, and hierarchy-aware frame computation remain unimplemented. An identity callback demonstrates registration only—it does not change gameplay. See the [transformation pipeline](docs/architecture/transformation-pipeline.md) for limitations and the next implementation stages.
+Lower priorities run first. Contributions targeting the same class are composed in priority, mod ID, and transformation ID order. The agent bundles ASM 9.11.1 (`asm`, `asm-tree`, `asm-commons`, `asm-util`, and `asm-analysis`) and makes those classes parent-first so mods share one runtime ASM copy. A transformer can use ASM to edit bytecode. VantaLoader parses every output and rejects a changed target class identity; full JVM verification still depends on the game and target class hierarchy. Official Mojang mappings are loaded from the instance's `minecraft/client_mappings.txt`. Mods may register named class targets, and the transformation context exposes read-only class, method, and field name resolution. Member lookup requires the exact named JVM descriptor to disambiguate overloads. Version-specific target adapters and hierarchy-aware frame computation remain unimplemented. An identity callback demonstrates registration only—it does not change gameplay. See the [transformation pipeline](docs/architecture/transformation-pipeline.md) for limitations and the next implementation stages.
 
 ## Architecture
 
