@@ -58,7 +58,7 @@ Every native VantaLoader mod is a JAR containing a UTF-8 `vanta.mod.json` file a
 | conflicts | No | Mods that must not be installed alongside this mod. |
 | breaks | No | Versions of other mods known to be incompatible. |
 
-All dependency maps use the same version-constraint syntax. Optional dependency categories are metadata at this stage; only `depends` participates in load ordering and startup validation. A mod cannot both require and conflict with, or break, the same dependency.
+All dependency maps use the same version-constraint syntax. `depends` participates in load ordering and must be present at a compatible version. `conflicts` and `breaks` are checked against installed mods and reject matching incompatible versions. `recommends` and `suggests` are informational metadata and do not block startup. A mod cannot both require and conflict with, or break, the same dependency.
 
 Unknown fields are rejected in schema 1. This prevents misspelled fields from silently producing a different runtime configuration.
 
