@@ -50,7 +50,7 @@ public record MinecraftVersion(
      */
     public static MinecraftVersion parse(String value) {
         if (value == null || value.isBlank()) {
-            return unknown(value == null ? "unknown" : value);
+            return unknown("unknown");
         }
 
         Matcher release = RELEASE.matcher(value);
@@ -61,7 +61,7 @@ public record MinecraftVersion(
                         Integer.parseInt(release.group(2)),
                         release.group(3) == null ? 0 : Integer.parseInt(release.group(3)),
                         0, 0, '\\0');
-            } catch (NumberFormatException ignored) {
+            } catch (IllegalArgumentException ignored) {
                 return unknown(value);
             }
         }
@@ -74,7 +74,7 @@ public record MinecraftVersion(
                         2000 + Integer.parseInt(snapshot.group(1)),
                         Integer.parseInt(snapshot.group(2)),
                         snapshot.group(3).charAt(0));
-            } catch (NumberFormatException ignored) {
+            } catch (IllegalArgumentException ignored) {
                 return unknown(value);
             }
         }
