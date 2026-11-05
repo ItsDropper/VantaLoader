@@ -18,6 +18,11 @@ public interface ModContext {
         return MinecraftVersion.parse(minecraftVersion());
     }
 
+    /** Returns verified facilities exposed by the active Minecraft integration. */
+    default MinecraftCapabilities minecraftCapabilities() {
+        return MinecraftCapabilities.none();
+    }
+
     String environment();
     Path gameDirectory();
     Path configDirectory();
