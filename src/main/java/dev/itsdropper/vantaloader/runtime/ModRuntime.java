@@ -117,7 +117,6 @@ public final class ModRuntime implements AutoCloseable {
                     + "'. A public class and public no-argument constructor are required.", exception);
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
-            eventScope.close();
         }
     }
 
@@ -148,6 +147,7 @@ public final class ModRuntime implements AutoCloseable {
                     "Shutdown failed for mod '" + mod.id() + "'", failure));
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
+            mod.eventScope().close();
         }
     }
 
