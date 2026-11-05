@@ -36,7 +36,7 @@ Milestones describe intended work, not promises or release dates. A milestone is
 
 ## Stage 3 — Minecraft mod integration and transformations
 
-- [ ] Define Minecraft-version adapter boundaries.
+- [x] Define the initial version identity boundary: parse legacy/modern release strings and weekly snapshots without imposing a false global ordering; expose it through a binary-compatible default ModContext method.\n- [ ] Define Minecraft-version adapter boundaries and capability negotiation.
 - [ ] Implement the first in-game lifecycle and event hooks.
 - [x] Specify native transformation contracts.
 - [x] Implement deterministic exact-target dispatch and transformation ordering.
