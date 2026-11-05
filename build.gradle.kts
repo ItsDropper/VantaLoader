@@ -97,9 +97,15 @@ val verifyAgentJar by tasks.registering {
             check(jar.getEntry("dev/itsdropper/vantaloader/api/ModContext.class") != null) {
                 "Standalone mod API JAR is missing ModContext"
             }
+            check(jar.manifest.mainAttributes.getValue("Implementation-Version") == project.version.toString()) {
+                "Standalone mod API JAR version does not match project version"
+            }
         }
         JarFile(archive).use { jar ->
             val attributes = jar.manifest.mainAttributes
+            check(attributes.getValue("Implementation-Version") == project.version.toString()) {
+                "VantaLoader agent JAR version does not match project version"
+            }
             check(attributes.getValue("Premain-Class")
                 == "dev.itsdropper.vantaloader.bootstrap.VantaLoaderAgent") {
                 "VantaLoader agent JAR is missing its Premain-Class manifest entry"
