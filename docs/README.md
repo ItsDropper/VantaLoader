@@ -6,6 +6,7 @@ VantaLoader is pre-alpha. These documents describe current design direction; pro
 
 - [Architecture overview](architecture/overview.md) — intended runtime boundaries and design principles.
 - [Transformation pipeline](architecture/transformation-pipeline.md) — current ASM-backed class transformation pipeline and its boundaries.
+- [Minecraft compatibility](architecture/minecraft-compatibility.md) — adapter boundaries, capability negotiation, and Java runtime constraints.
 
 ## Mod development
 
