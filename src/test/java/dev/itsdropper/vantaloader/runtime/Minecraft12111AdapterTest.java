@@ -54,7 +54,7 @@ class Minecraft12111AdapterTest {
     }
 
     @Test
-    void failsClosedWhenTargetMethodIsMissing() {
+    void failsClosedWhenTargetMethodIsMissing() throws Exception {
         TransformationService transformations = new TransformationService();
         new Minecraft12111Adapter().install(transformations);
         byte[] result = transformations.transform(null, getClass().getClassLoader(),
