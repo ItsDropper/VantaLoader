@@ -8,6 +8,7 @@ import java.util.List;
 final class RuntimeEvents {
     static final List<String> EVENTS = new ArrayList<>();
     static boolean failShutdown;
+    static boolean failFatalShutdown;
     static String failInitializeMod;
     static MinecraftCapabilities lastCapabilities;
     private RuntimeEvents() { }
