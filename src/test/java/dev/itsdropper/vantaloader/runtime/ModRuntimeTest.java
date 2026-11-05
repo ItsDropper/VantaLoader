@@ -12,12 +12,15 @@ import java.util.List;
 import java.util.zip.ZipOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ModRuntimeTest {
     @TempDir Path temporaryDirectory;
 
     @Test void initializesInGivenOrderAndStopsInReverseOrder() throws Exception {
         RuntimeEvents.EVENTS.clear();
+        RuntimeEvents.failInitializeMod = null;
+        RuntimeEvents.failShutdown = false;
         Path jar = temporaryDirectory.resolve("fixture.jar");
         try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
         String entrypoint = RuntimeTestEntrypoint.class.getName();
@@ -31,8 +34,28 @@ class ModRuntimeTest {
         assertEquals(List.of("init:alpha", "init:beta", "stop", "stop"), RuntimeEvents.EVENTS);
     }
 
+    @Test void rollsBackEveryConstructedModWhenInitializationFails() throws Exception {
+        RuntimeEvents.EVENTS.clear();
+        RuntimeEvents.failInitializeMod = "beta";
+        RuntimeEvents.failShutdown = false;
+        Path jar = temporaryDirectory.resolve("initialization-failure-fixture.jar");
+        try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
+        var alpha = artifact(jar, "alpha", RuntimeTestEntrypoint.class.getName());
+        var beta = artifact(jar, "beta", RuntimeTestEntrypoint.class.getName());
+        ModRuntime runtime = new ModRuntime(temporaryDirectory.resolve("initialization-failure-game"));
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class,
+                () -> runtime.start(List.of(alpha, beta)));
+        assertEquals("simulated initialization failure", failure.getMessage());
+        assertEquals(List.of("init:alpha", "init:beta", "stop", "stop"), RuntimeEvents.EVENTS);
+        assertThrows(IllegalStateException.class, () -> runtime.start(List.of(alpha, beta)));
+        runtime.close();
+        assertEquals(4, RuntimeEvents.EVENTS.size());
+    }
+
     @Test void continuesShutdownAndClosesRuntimeWhenAModThrowsAnError() throws Exception {
         RuntimeEvents.EVENTS.clear();
+        RuntimeEvents.failInitializeMod = null;
         RuntimeEvents.failShutdown = true;
         Path jar = temporaryDirectory.resolve("failure-fixture.jar");
         try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
@@ -41,7 +64,7 @@ class ModRuntimeTest {
         ModRuntime runtime = new ModRuntime(temporaryDirectory.resolve("failure-game"));
         runtime.start(List.of(alpha, beta));
 
-        Exception failure = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, runtime::stop);
+        Exception failure = assertThrows(Exception.class, runtime::stop);
         assertEquals("One or more mods failed to shut down", failure.getMessage());
         assertEquals(1, failure.getSuppressed().length,
                 "The failing mod's shutdown error must be retained as one suppressed failure");
