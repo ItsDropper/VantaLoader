@@ -35,11 +35,29 @@ jobs:
           cd build/agent
           sha256sum VantaLoader-agent.jar > VantaLoader-agent.jar.sha256
           sha256sum VantaLoader-api.jar > VantaLoader-api.jar.sha256
+      - name: Resolve human-readable release identity
+        id: release_meta
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            tag="$GITHUB_REF_NAME"
+            name="VantaLoader $version"
+          else
+            short_sha="${GITHUB_SHA:0:7}"
+            date_utc="$(date -u +'%Y.%m.%d')"
+            version="nightly-$date_utc+$short_sha"
+            tag="nightly-$date_utc-$short_sha"
+            name="VantaLoader Nightly $date_utc ($short_sha)"
+          fi
+          echo "tag_name=$tag" >> "$GITHUB_OUTPUT"
+          echo "release_name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Publish release assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref == 'refs/heads/main' && format('nightly-{0}', github.sha) || github.ref_name }}
-          name: ${{ github.ref == 'refs/heads/main' && format('VantaLoader Nightly {0}', github.sha) || format('VantaLoader {0}', github.ref_name) }}
+          tag_name: ${{ steps.release_meta.outputs.tag_name }}
+          name: ${{ steps.release_meta.outputs.release_name }}
           generate_release_notes: true
           prerelease: ${{ github.ref == 'refs/heads/main' || contains(github.ref_name, '-') }}
           make_latest: false
