@@ -1,6 +1,7 @@
 package dev.itsdropper.vantaloader.runtime;
 
 import dev.itsdropper.vantaloader.api.VantaMod;
+import dev.itsdropper.vantaloader.api.MinecraftCapabilities;
 import dev.itsdropper.vantaloader.discovery.ModArtifact;
 import dev.itsdropper.vantaloader.transformation.TransformationService;
 
@@ -27,6 +28,7 @@ public final class ModRuntime implements AutoCloseable {
     private final Path gameDirectory;
     private final Path configDirectory;
     private final TransformationService transformationService;
+    private final MinecraftCapabilities minecraftCapabilities;
     private final List<LoadedMod> initialized = new ArrayList<>();
     private final List<ModClassLoader> classLoaders = new ArrayList<>();
     private final ModEventBus eventBus = new ModEventBus();
@@ -38,9 +40,15 @@ public final class ModRuntime implements AutoCloseable {
     }
 
     public ModRuntime(Path gameDirectory, TransformationService transformationService) {
+        this(gameDirectory, transformationService, MinecraftCapabilities.none());
+    }
+
+    public ModRuntime(Path gameDirectory, TransformationService transformationService,
+                      MinecraftCapabilities minecraftCapabilities) {
         this.gameDirectory = gameDirectory.toAbsolutePath().normalize();
         this.configDirectory = this.gameDirectory.resolve("config").resolve("vantaloader");
         this.transformationService = java.util.Objects.requireNonNull(transformationService, "transformationService");
+        this.minecraftCapabilities = java.util.Objects.requireNonNull(minecraftCapabilities, "minecraftCapabilities");
     }
 
     public void start(List<ModArtifact> orderedMods) throws Exception {
@@ -124,7 +132,7 @@ public final class ModRuntime implements AutoCloseable {
             Path modConfigDirectory = configDirectory.resolve(artifact.descriptor().id());
             Files.createDirectories(modConfigDirectory);
             mod.instance().onInitialize(new DefaultModContext(artifact.descriptor(), gameDirectory,
-                    modConfigDirectory, transformationService, eventScope));
+                    modConfigDirectory, transformationService, eventScope, minecraftCapabilities));
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
         }
