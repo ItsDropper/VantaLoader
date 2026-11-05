@@ -10,10 +10,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ModResolverTest {
     private ModArtifact mod(String id, String version, String dependencies) throws Exception {
+        return mod(id, version, dependencies, "{}", "{}");
+    }
+
+    private ModArtifact mod(String id, String version, String dependencies,
+                            String conflicts, String breaks) throws Exception {
         String json = """
                 {"schemaVersion":1,"id":"%s","name":"%s","version":"%s",
-                 "entrypoints":{"main":"%s.Main"},"depends":%s}
-                """.formatted(id, id, version, id, dependencies);
+                 "entrypoints":{"main":"%s.Main"},"depends":%s,
+                 "conflicts":%s,"breaks":%s}
+                """.formatted(id, id, version, id, dependencies, conflicts, breaks);
         return new ModArtifact(Path.of(id + ".jar"), new DescriptorReader().read(new StringReader(json)));
     }
 
@@ -35,6 +41,20 @@ class ModResolverTest {
         var core = mod("core", "1.5.0", "{}");
         assertTrue(assertThrows(java.io.IOException.class,
                 () -> new ModResolver().resolve(List.of(app, core))).getMessage().contains("but found"));
+    }
+
+    @Test void rejectsInstalledConflictingMod() throws Exception {
+        var app = mod("app", "1.0.0", "{}", "{\"legacy_api\":\"<2.0.0\"}", "{}");
+        var legacy = mod("legacy_api", "1.5.0", "{}");
+        assertTrue(assertThrows(java.io.IOException.class,
+                () -> new ModResolver().resolve(List.of(app, legacy))).getMessage().contains("conflicts"));
+    }
+
+    @Test void rejectsInstalledBrokenModVersion() throws Exception {
+        var app = mod("app", "1.0.0", "{}", "{}", "{\"addon\":\">=1.0.0 <2.0.0\"}");
+        var addon = mod("addon", "1.4.0", "{}");
+        assertTrue(assertThrows(java.io.IOException.class,
+                () -> new ModResolver().resolve(List.of(app, addon))).getMessage().contains("breaks"));
     }
 
     @Test void rejectsDependencyCycles() throws Exception {
