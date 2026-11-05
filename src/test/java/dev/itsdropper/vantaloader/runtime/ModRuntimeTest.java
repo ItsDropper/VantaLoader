@@ -19,6 +19,23 @@ import static org.junit.jupiter.api.Assertions.*;
 class ModRuntimeTest {
     @TempDir Path temporaryDirectory;
 
+    @Test void exposesModMenuHeaderFromMinecraftVersionAndLoadedRuntimeCount() throws Exception {
+        Path jar = temporaryDirectory.resolve("header-fixture.jar");
+        try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
+        var first = artifact(jar, "header_first", RuntimeTestEntrypoint.class.getName());
+        var second = artifact(jar, "header_second", RuntimeTestEntrypoint.class.getName());
+        String previousVersion = System.getProperty("vanta.minecraft.version");
+        System.setProperty("vanta.minecraft.version", "1.21.11");
+        try (ModRuntime runtime = new ModRuntime(temporaryDirectory.resolve("header-game"))) {
+            runtime.start(List.of(first, second));
+            assertEquals(new dev.itsdropper.vantaloader.api.ModMenuHeader(
+                    "VantaLoader 1.21.11", "Loaded 2 mods"), runtime.modMenuHeader());
+        } finally {
+            if (previousVersion == null) System.clearProperty("vanta.minecraft.version");
+            else System.setProperty("vanta.minecraft.version", previousVersion);
+        }
+    }
+
     @Test void passesVerifiedCapabilitiesIntoNativeModContext() throws Exception {
         RuntimeEvents.EVENTS.clear();
         RuntimeEvents.failInitializeMod = null;
