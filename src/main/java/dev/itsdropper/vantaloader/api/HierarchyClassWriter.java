@@ -61,33 +61,37 @@ public final class HierarchyClassWriter extends ClassWriter {
 
     private String commonArraySupertype(String first, String second) {
         if (!first.startsWith("[") || !second.startsWith("[")) {
-            if ("java/lang/Object".equals(first) || "java/lang/Cloneable".equals(first)
-                    || "java/io/Serializable".equals(first)) return first;
-            if ("java/lang/Object".equals(second) || "java/lang/Cloneable".equals(second)
-                    || "java/io/Serializable".equals(second)) return second;
+            String other = first.startsWith("[") ? second : first;
+            if ("java/lang/Object".equals(other) || "java/lang/Cloneable".equals(other)
+                    || "java/io/Serializable".equals(other)) return other;
             return "java/lang/Object";
         }
 
         String firstComponent = first.substring(1);
         String secondComponent = second.substring(1);
-        if (firstComponent.equals(secondComponent)) return first;
         if (isPrimitiveDescriptor(firstComponent) || isPrimitiveDescriptor(secondComponent)) {
-            return "java/lang/Object";
+            return firstComponent.equals(secondComponent) ? first : "java/lang/Object";
         }
 
         String commonComponent;
-        if (firstComponent.startsWith("[") && secondComponent.startsWith("[")) {
-            commonComponent = commonArraySupertype(firstComponent, secondComponent);
-            if (!commonComponent.startsWith("[")) return "[L" + commonComponent + ";";
-            return "[" + commonComponent;
-        } else if (firstComponent.startsWith("[") || secondComponent.startsWith("[")) {
-            commonComponent = "java/lang/Object";
-        } else {
+        if (firstComponent.startsWith("L") && secondComponent.startsWith("L")) {
             String firstName = firstComponent.substring(1, firstComponent.length() - 1);
             String secondName = secondComponent.substring(1, secondComponent.length() - 1);
-            commonComponent = getCommonSuperClass(firstName, secondName);
+            commonComponent = "L" + getCommonSuperClass(firstName, secondName) + ";";
+        } else if (firstComponent.startsWith("[") && secondComponent.startsWith("[")) {
+            commonComponent = commonArraySupertype(firstComponent, secondComponent);
+        } else {
+            String objectComponent = firstComponent.startsWith("L") ? firstComponent : secondComponent;
+            String arrayComponent = firstComponent.startsWith("[") ? firstComponent : secondComponent;
+            String objectName = objectComponent.substring(1, objectComponent.length() - 1);
+            if ("java/lang/Object".equals(objectName) || "java/lang/Cloneable".equals(objectName)
+                    || "java/io/Serializable".equals(objectName)) {
+                commonComponent = objectComponent;
+            } else {
+                commonComponent = "Ljava/lang/Object;";
+            }
         }
-        return "[L" + commonComponent + ";";
+        return "[" + commonComponent;
     }
 
     private static boolean isPrimitiveDescriptor(String descriptor) {
