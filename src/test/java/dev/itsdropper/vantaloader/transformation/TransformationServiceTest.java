@@ -168,6 +168,24 @@ class TransformationServiceTest {
         assertEquals(List.of("net.minecraft.client.Minecraft"), seenTargets);
     }
 
+    @Test
+    void hierarchyWriterFindsCommonSuperclassWithoutDefiningClasses() {
+        var writer = new dev.itsdropper.vantaloader.api.HierarchyClassWriter(
+                0, getClass().getClassLoader());
+        assertEquals(Type.getInternalName(HierarchyBase.class),
+                writer.commonSuperClass(Type.getInternalName(HierarchyLeft.class),
+                        Type.getInternalName(HierarchyRight.class)));
+        assertEquals("[L" + Type.getInternalName(HierarchyBase.class) + ";",
+                writer.commonSuperClass("[L" + Type.getInternalName(HierarchyLeft.class) + ";",
+                        "[L" + Type.getInternalName(HierarchyRight.class) + ";"));
+        assertEquals("java/lang/Object",
+                writer.commonSuperClass("[I", "[J"));
+    }
+
+    public static class HierarchyBase { }
+    public static final class HierarchyLeft extends HierarchyBase { }
+    public static final class HierarchyRight extends HierarchyBase { }
+
     private static byte[] fixtureBytes() throws Exception {
         String internalName = Type.getInternalName(BytecodeFixture.class);
         try (InputStream input = BytecodeFixture.class.getResourceAsStream("/" + internalName + ".class")) {
