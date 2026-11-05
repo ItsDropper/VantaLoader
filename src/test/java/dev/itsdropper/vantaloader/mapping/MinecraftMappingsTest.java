@@ -53,6 +53,8 @@ class MinecraftMappingsTest {
                 "net.minecraft.client.Minecraft", "unknown", "()V"));
         assertEquals(1, mappings.methodCount());
         assertEquals(1, mappings.fieldCount());
+        assertEquals("(Ld;I)V", mappings.runtimeDescriptor(
+                "(Lnet/minecraft/world/level/Level;I)V"));
     }
 
     @Test
