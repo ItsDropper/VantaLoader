@@ -59,4 +59,18 @@ public final class ModResolver {
         }
         return List.copyOf(ordered);
     }
+
+    private static void validateIncompatibilities(
+            String modId, String relationship,
+            Map<String, dev.itsdropper.vantaloader.metadata.VersionConstraint> constraints,
+            Map<String, ModArtifact> installed) throws IOException {
+        for (var declaration : constraints.entrySet()) {
+            ModArtifact target = installed.get(declaration.getKey());
+            if (target != null && declaration.getValue().test(target.descriptor().version())) {
+                throw new IOException("Mod '" + modId + "' " + relationship + " '"
+                        + declaration.getKey() + "' " + declaration.getValue()
+                        + " but version " + target.descriptor().version() + " is installed");
+            }
+        }
+    }
 }
