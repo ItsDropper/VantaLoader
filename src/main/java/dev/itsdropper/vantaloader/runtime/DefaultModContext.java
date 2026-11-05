@@ -1,6 +1,7 @@
 package dev.itsdropper.vantaloader.runtime;
 
 import dev.itsdropper.vantaloader.api.ModContext;
+import dev.itsdropper.vantaloader.api.EventBus;
 import dev.itsdropper.vantaloader.api.TransformationRegistry;
 import dev.itsdropper.vantaloader.metadata.LoaderVersion;
 import dev.itsdropper.vantaloader.metadata.ModDescriptor;
@@ -15,14 +16,16 @@ final class DefaultModContext implements ModContext {
     private final Path configDirectory;
     private final Logger logger;
     private final TransformationRegistry transformations;
+    private final EventBus events;
 
     DefaultModContext(ModDescriptor descriptor, Path gameDirectory, Path configDirectory,
-                      TransformationService transformationService) {
+                      TransformationService transformationService, EventBus events) {
         this.descriptor = descriptor;
         this.gameDirectory = gameDirectory;
         this.configDirectory = configDirectory;
         this.logger = Logger.getLogger("VantaLoader.Mod." + descriptor.id());
         this.transformations = transformationService.forMod(descriptor.id());
+        this.events = java.util.Objects.requireNonNull(events, "events");
     }
     @Override public String modId() { return descriptor.id(); }
     @Override public String modVersion() { return descriptor.version().toString(); }
@@ -37,4 +40,5 @@ final class DefaultModContext implements ModContext {
     @Override public Path configDirectory() { return configDirectory; }
     @Override public Logger logger() { return logger; }
     @Override public TransformationRegistry transformations() { return transformations; }
+    @Override public EventBus events() { return events; }
 }
