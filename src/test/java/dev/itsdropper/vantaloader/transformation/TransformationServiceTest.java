@@ -184,9 +184,13 @@ class TransformationServiceTest {
                 writer.commonSuperClass("[[Ljava/lang/String;", "[Ljava/lang/Object;"));
         assertEquals("[Ljava/lang/Object;",
                 writer.commonSuperClass("[Ljava/lang/String;", "[Ljava/lang/Integer;"));
+        assertEquals(Type.getInternalName(HierarchyMarker.class),
+                writer.commonSuperClass(Type.getInternalName(HierarchyMarker.class),
+                        Type.getInternalName(HierarchyLeft.class)));
     }
 
-    public static class HierarchyBase { }
+    public interface HierarchyMarker { }
+    public static class HierarchyBase implements HierarchyMarker { }
     public static final class HierarchyLeft extends HierarchyBase { }
     public static final class HierarchyRight extends HierarchyBase { }
 
