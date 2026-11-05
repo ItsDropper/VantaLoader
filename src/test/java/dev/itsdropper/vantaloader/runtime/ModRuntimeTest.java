@@ -17,6 +17,33 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class ModRuntimeTest {
     @TempDir Path temporaryDirectory;
 
+    @Test void rejectsDuplicateIdsBeforeConstructingAnyMods() throws Exception {
+        RuntimeEvents.EVENTS.clear();
+        RuntimeEvents.failInitializeMod = null;
+        Path jar = temporaryDirectory.resolve("duplicate-id-fixture.jar");
+        try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
+        var first = artifact(jar, "duplicate", RuntimeTestEntrypoint.class.getName());
+        var second = artifact(jar, "duplicate", RuntimeTestEntrypoint.class.getName());
+        ModRuntime runtime = new ModRuntime(temporaryDirectory.resolve("duplicate-id-game"));
+
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> runtime.start(List.of(first, second)));
+        assertEquals("Duplicate mod ID in runtime input: 'duplicate'", failure.getMessage());
+        assertEquals(List.of(), RuntimeEvents.EVENTS);
+        runtime.close();
+    }
+
+    @Test void rejectsMissingJarBeforeConstructingAnyMods() throws Exception {
+        RuntimeEvents.EVENTS.clear();
+        Path missing = temporaryDirectory.resolve("does-not-exist.jar");
+        var artifact = artifact(missing, "missingjar", RuntimeTestEntrypoint.class.getName());
+        ModRuntime runtime = new ModRuntime(temporaryDirectory.resolve("missing-jar-game"));
+
+        assertThrows(IllegalArgumentException.class, () -> runtime.start(List.of(artifact)));
+        assertEquals(List.of(), RuntimeEvents.EVENTS);
+        runtime.close();
+    }
+
     @Test void initializesInGivenOrderAndStopsInReverseOrder() throws Exception {
         RuntimeEvents.EVENTS.clear();
         RuntimeEvents.failInitializeMod = null;
