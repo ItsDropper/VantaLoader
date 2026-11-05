@@ -134,7 +134,7 @@ public final class ExampleMod implements VantaMod {
 }
 ~~~
 
-The entrypoint needs a public no-argument constructor. Mods initialize after their declared dependencies and shut down in reverse order. `ModContext` exposes the game directory, per-mod config directory, loader version, Minecraft version, client environment, logger, and transformation registry. The launcher supplies the Minecraft version and client environment before agent startup. See the [native mod quickstart](docs/modding/getting-started.md) for a complete Gradle setup and an ASM transformation example.
+The entrypoint needs a public no-argument constructor. Mods initialize after their declared dependencies and shut down in reverse order. `ModContext` exposes the game directory, per-mod config directory, loader version, Minecraft version, client environment, logger, and transformation registry. The launcher supplies the Minecraft version and client environment before agent startup. `ModContext.minecraftCapabilities()` exposes an immutable snapshot of verified facilities; mods must query it rather than guessing support from a version string. Lifecycle events, resource reload, and Mixin interoperability remain unavailable until implemented and tested. See the [native mod quickstart](docs/modding/getting-started.md) for a complete Gradle setup and an ASM transformation example.
 
 ### Native class transformations
 
@@ -154,6 +154,20 @@ context.transformations().register(
 ~~~
 
 Lower priorities run first. Contributions targeting the same class are composed in priority, mod ID, and transformation ID order. The agent bundles ASM 9.11.1 (`asm`, `asm-tree`, `asm-commons`, `asm-util`, and `asm-analysis`) and makes those classes parent-first so mods share one runtime ASM copy. A transformer can use ASM to edit bytecode. VantaLoader parses every output and rejects a changed target class identity; full JVM verification still depends on the game and target class hierarchy. Mods that need computed stack-map frames can use `HierarchyClassWriter` with the Minecraft class loader; it reads class headers as resources rather than loading or initializing game classes. Its resolution is only as complete as the resources exposed by that loader. Official Mojang mappings are loaded from the instance's `minecraft/client_mappings.txt`. Mods may register named class targets, and the transformation context exposes read-only class, method, and field name resolution. Member lookup requires the exact named JVM descriptor to disambiguate overloads. Version-specific target adapters and automatic bytecode remapping remain unimplemented. An identity callback demonstrates registration only—it does not change gameplay. See the [transformation pipeline](docs/architecture/transformation-pipeline.md) for limitations and the next implementation stages.
+
+### Capability negotiation
+
+Native mods can check optional integrations before registering against them:
+
+~~~java
+import dev.itsdropper.vantaloader.api.MinecraftCapability;
+
+if (context.minecraftCapabilities().supports(MinecraftCapability.CLIENT_LIFECYCLE_EVENTS)) {
+    // Register client lifecycle integration only when the runtime provides it.
+}
+~~~
+
+The current agent reports class transformation support only after installing Instrumentation and reports official mappings only after loading the configured mapping file. The standalone runtime and older/custom ModContext implementations default to an empty set. This prevents the loader from advertising unimplemented hooks simply because a Minecraft version parsed successfully. See [Minecraft compatibility](docs/architecture/minecraft-compatibility.md).
 
 ## Architecture
 
