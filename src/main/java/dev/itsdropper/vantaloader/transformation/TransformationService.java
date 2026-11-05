@@ -117,13 +117,17 @@ public final class TransformationService implements ClassFileTransformer {
                 validateClassFile(transformed, binaryName);
                 if (!java.util.Arrays.equals(current, transformed)) changed = true;
                 current = transformed.clone();
-            } catch (Exception failure) {
+            } catch (Throwable failure) {
+                // Do not convert VM-fatal conditions into an ordinary mod failure.
+                if (failure instanceof VirtualMachineError fatal) throw fatal;
+                if (failure instanceof ThreadDeath death) throw death;
                 LOGGER.log(Level.SEVERE, "Transformation failed: " + registration.modId()
                         + ":" + registration.id() + " targeting " + binaryName, failure);
-                // The Instrumentation contract treats a thrown transformer exception as
+                // Instrumentation normally treats a thrown transformer exception as
                 // "no transformation" and continues with the original class bytes. Return
-                // a deliberately invalid class file instead so a broken required patch fails
-                // class definition rather than silently launching an unpatched game.
+                // an invalid class file instead so a broken required patch cannot silently
+                // launch an unpatched game. This also covers AssertionError and LinkageError
+                // from third-party callbacks without swallowing VM-fatal failures.
                 return new byte[]{0, 0, 0, 0};
             }
         }
