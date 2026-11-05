@@ -127,6 +127,27 @@ class ModRuntimeTest {
         assertEquals(4, RuntimeEvents.EVENTS.size(), "A closed runtime must not shut mods down twice");
     }
 
+
+    @Test void propagatesFatalShutdownFailuresAfterClosingRuntime() throws Exception {
+        RuntimeEvents.EVENTS.clear();
+        RuntimeEvents.failInitializeMod = null;
+        RuntimeEvents.failShutdown = false;
+        RuntimeEvents.failFatalShutdown = true;
+        Path jar = temporaryDirectory.resolve("fatal-failure-fixture.jar");
+        try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
+        var alpha = artifact(jar, "alpha", RuntimeTestEntrypoint.class.getName());
+        var beta = artifact(jar, "beta", RuntimeTestEntrypoint.class.getName());
+        ModRuntime runtime = new ModRuntime(temporaryDirectory.resolve("fatal-failure-game"));
+        runtime.start(List.of(alpha, beta));
+
+        OutOfMemoryError failure = assertThrows(OutOfMemoryError.class, runtime::stop);
+        assertEquals("simulated fatal shutdown failure", failure.getMessage());
+        assertEquals(List.of("init:alpha", "init:beta", "stop"), RuntimeEvents.EVENTS);
+        runtime.close();
+        assertEquals(3, RuntimeEvents.EVENTS.size(),
+                "A runtime closed after a fatal shutdown failure must not invoke mods again");
+    }
+
     private static ModArtifact artifact(Path jar, String id, String entrypoint) throws Exception {
         String json = """
                 {"schemaVersion":1,"id":"%s","name":"%s","version":"1.0.0",
