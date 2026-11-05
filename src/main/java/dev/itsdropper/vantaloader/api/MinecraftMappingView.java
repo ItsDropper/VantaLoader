@@ -4,6 +4,7 @@ package dev.itsdropper.vantaloader.api;
 public interface MinecraftMappingView {
     String runtimeClassName(String namedBinaryName);
     String namedClassName(String runtimeBinaryName);
+    String runtimeDescriptor(String namedDescriptor);
     String runtimeMethodName(String ownerBinaryName, String namedMethodName, String namedDescriptor);
     String runtimeFieldName(String ownerBinaryName, String namedFieldName, String namedDescriptor);
 }
