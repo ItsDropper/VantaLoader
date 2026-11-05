@@ -43,6 +43,16 @@ class ModEventBusTest {
     }
 
     @Test
+    void listenerRunsWithoutHoldingItsOwningScopeMonitor() {
+        ModEventBus.Scope scope = new ModEventBus.Scope(new ModEventBus());
+        scope.subscribe(Message.class, 0, event -> assertFalse(Thread.holdsLock(scope),
+                "Mod callbacks must never execute while the scope monitor is held"));
+
+        assertDoesNotThrow(() -> scope.publish(new Message()));
+        scope.close();
+    }
+
+    @Test
     void continuesDispatchAndReportsAllListenerFailures() {
         ModEventBus bus = new ModEventBus();
         List<String> received = new ArrayList<>();
