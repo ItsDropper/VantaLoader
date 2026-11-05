@@ -1,6 +1,9 @@
 package dev.itsdropper.vantaloader.runtime;
 
+import dev.itsdropper.vantaloader.api.MinecraftCapabilities;
+import dev.itsdropper.vantaloader.api.MinecraftCapability;
 import dev.itsdropper.vantaloader.discovery.ModArtifact;
+import dev.itsdropper.vantaloader.transformation.TransformationService;
 import dev.itsdropper.vantaloader.metadata.DescriptorReader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -16,6 +19,30 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ModRuntimeTest {
     @TempDir Path temporaryDirectory;
+
+    @Test void passesVerifiedCapabilitiesIntoNativeModContext() throws Exception {
+        RuntimeEvents.EVENTS.clear();
+        RuntimeEvents.failInitializeMod = null;
+        RuntimeEvents.lastCapabilities = null;
+        Path jar = temporaryDirectory.resolve("capability-fixture.jar");
+        try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
+        var fixture = artifact(jar, "capability_fixture", RuntimeTestEntrypoint.class.getName());
+        MinecraftCapabilities capabilities = MinecraftCapabilities.of(
+                MinecraftCapability.CLASS_TRANSFORMATIONS,
+                MinecraftCapability.OFFICIAL_MOJANG_MAPPINGS);
+
+        try (ModRuntime runtime = new ModRuntime(temporaryDirectory.resolve("capability-game"),
+                new TransformationService(), capabilities)) {
+            runtime.start(List.of(fixture));
+            assertNotNull(RuntimeEvents.lastCapabilities);
+            assertTrue(RuntimeEvents.lastCapabilities.supports(
+                    MinecraftCapability.CLASS_TRANSFORMATIONS));
+            assertTrue(RuntimeEvents.lastCapabilities.supports(
+                    MinecraftCapability.OFFICIAL_MOJANG_MAPPINGS));
+            assertFalse(RuntimeEvents.lastCapabilities.supports(
+                    MinecraftCapability.CLIENT_LIFECYCLE_EVENTS));
+        }
+    }
 
     @Test void rejectsDuplicateIdsBeforeConstructingAnyMods() throws Exception {
         RuntimeEvents.EVENTS.clear();
