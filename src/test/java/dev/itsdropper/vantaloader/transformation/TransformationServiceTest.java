@@ -149,6 +149,17 @@ class TransformationServiceTest {
     }
 
     @Test
+    void failsClosedWhenATransformerThrowsAnError() throws Exception {
+        TransformationService service = new TransformationService();
+        String target = Type.getInternalName(BytecodeFixture.class).replace("/", ".");
+        service.forMod("broken").register("assertion", target, 0,
+                (context, bytes) -> { throw new AssertionError("fixture assertion"); });
+
+        byte[] failureBytes = service.transform(null, null, target.replace(".", "/"), null, null, fixtureBytes());
+        assertArrayEquals(new byte[]{0, 0, 0, 0}, failureBytes);
+    }
+
+    @Test
     void failsClosedWhenATransformerThrows() throws Exception {
         TransformationService service = new TransformationService();
         String target = Type.getInternalName(BytecodeFixture.class).replace("/", ".");
