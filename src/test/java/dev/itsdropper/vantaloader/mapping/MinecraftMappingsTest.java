@@ -31,6 +31,46 @@ class MinecraftMappingsTest {
         assertTrue(mappings.containsNamedClass("net.minecraft.world.level.Level"));
     }
 
+
+    @Test
+    void resolvesMethodsAndFieldsUsingExactDescriptors() throws Exception {
+        Path file = temporaryDirectory.resolve("members.txt");
+        Files.writeString(file, """
+                net.minecraft.client.Minecraft -> a:
+                    1:1:void tick(net.minecraft.world.level.Level,int) -> b
+                    net.minecraft.world.level.Level currentLevel -> c
+                net.minecraft.world.level.Level -> d:
+                """);
+
+        MinecraftMappings mappings = MinecraftMappings.read(file);
+        assertEquals("b", mappings.toRuntimeMethodName(
+                "net.minecraft.client.Minecraft", "tick",
+                "(Lnet/minecraft/world/level/Level;I)V"));
+        assertEquals("c", mappings.toRuntimeFieldName(
+                "net.minecraft.client.Minecraft", "currentLevel",
+                "Lnet/minecraft/world/level/Level;"));
+        assertEquals("unknown", mappings.toRuntimeMethodName(
+                "net.minecraft.client.Minecraft", "unknown", "()V"));
+        assertEquals(1, mappings.methodCount());
+        assertEquals(1, mappings.fieldCount());
+    }
+
+    @Test
+    void distinguishesOverloadedMethodsByDescriptor() throws Exception {
+        Path file = temporaryDirectory.resolve("overloads.txt");
+        Files.writeString(file, """
+                net.minecraft.client.Minecraft -> a:
+                    void tick(int) -> b
+                    void tick(long) -> c
+                """);
+
+        MinecraftMappings mappings = MinecraftMappings.read(file);
+        assertEquals("b", mappings.toRuntimeMethodName(
+                "net.minecraft.client.Minecraft", "tick", "(I)V"));
+        assertEquals("c", mappings.toRuntimeMethodName(
+                "net.minecraft.client.Minecraft", "tick", "(J)V"));
+    }
+
     @Test
     void rejectsConflictingOrMalformedClassMappings() throws Exception {
         Path file = temporaryDirectory.resolve("invalid.txt");
