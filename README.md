@@ -16,6 +16,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - Dependency-aware per-mod class loaders with child-first mod classes and parent-first Java/VantaLoader API classes.
 - Explicit visibility of a mod's declared dependencies; unrelated mods cannot see its implementation classes.
 - Native VantaMod entrypoints and a small ModContext API.
+- A typed synchronous cross-mod event bus with deterministic priority ordering, listener failure aggregation, removable subscriptions, and automatic per-mod subscription cleanup.
 - Dependency-order initialization and reverse-order shutdown.
 - Initialization rollback, failure-tolerant reverse shutdown, and startup diagnostics.
 - A buildable [Hello World example mod](examples/hello-mod/README.md).
@@ -36,7 +37,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 | Mod JAR discovery | Implemented |
 | Metadata validation | Implemented |
 | Dependency resolution | Implemented |
-| Native entrypoint lifecycle | Implemented |
+| Native entrypoint lifecycle | Implemented |\n| Cross-mod event bus | Implemented; not Minecraft game events |
 | Minecraft Java-agent bootstrap | Experimental; real launch not verified |
 | Minecraft class/member mappings | Official class, method, and field mapping lookup by exact named JVM descriptor; version adapters remain incomplete |
 | Native class transformation API | ASM-backed JVM pipeline tested on fixture classes; Minecraft use unverified |
