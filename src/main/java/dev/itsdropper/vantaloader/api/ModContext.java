@@ -14,4 +14,5 @@ public interface ModContext {
     Path configDirectory();
     Logger logger();
     TransformationRegistry transformations();
+    EventBus events();
 }
