@@ -37,7 +37,8 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 | Mod JAR discovery | Implemented |
 | Metadata validation | Implemented |
 | Dependency resolution | Implemented |
-| Native entrypoint lifecycle | Implemented |\n| Cross-mod event bus | Implemented; not Minecraft game events |
+| Native entrypoint lifecycle | Implemented |
+| Cross-mod event bus | Implemented; not Minecraft game events |
 | Minecraft Java-agent bootstrap | Experimental; real launch not verified |
 | Minecraft class/member mappings | Official class, method, and field mapping lookup by exact named JVM descriptor; version adapters remain incomplete |
 | Native class transformation API | ASM-backed JVM pipeline tested on fixture classes; Minecraft use unverified |
@@ -182,6 +183,7 @@ Arbitrary Java class hot replacement is not promised. Resource reload, component
 - [Documentation index](docs/README.md)
 - [Architecture overview](docs/architecture/overview.md)
 - [Transformation pipeline](docs/architecture/transformation-pipeline.md)
+- [Minecraft compatibility](docs/architecture/minecraft-compatibility.md)
 - [Native mod quickstart](docs/modding/getting-started.md)
 - [Native mod metadata](docs/modding/mod-metadata.md)
 - [Building from source](docs/development/building.md)
