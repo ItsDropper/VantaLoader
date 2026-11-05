@@ -26,6 +26,7 @@ Milestones describe intended work, not promises or release dates. A milestone is
 
 ## Stage 2 — Minecraft launch integration
 
+- [ ] Define the supported Minecraft/JVM compatibility matrix, including a Java 8 agent target for legacy clients.
 - [ ] Select and document the first Minecraft version target.
 - [ ] Research the selected version's official launch metadata and runtime requirements.
 - [ ] Implement a reproducible launch profile and bootstrap handoff through Vanta Launcher.
@@ -42,6 +43,7 @@ Milestones describe intended work, not promises or release dates. A milestone is
 - [ ] Implement the first in-game lifecycle and event hooks.
 - [x] Specify native transformation contracts.
 - [x] Implement deterministic exact-target dispatch and transformation ordering.
+- [x] Implement and test both legacy Java 8 and Java 9+ Instrumentation transformer callback signatures.
 - [x] Bundle ASM and test transformed fixture class loading.
 - [x] Download and validate official client mappings in Vanta Launcher; parse class mappings and dispatch named class targets to obfuscated runtime classes.
 - [x] Parse official method/field mappings and resolve member names using exact named JVM descriptors.
