@@ -29,10 +29,6 @@ public final class AccessorFactory {
         if (!accessorType.isInterface()) {
             throw new IllegalArgumentException("Accessor type must be an interface: " + accessorType.getName());
         }
-        if (!accessorType.isInstance(target) && accessorType.isAssignableFrom(target.getClass())) {
-            throw new IllegalArgumentException("Invalid accessor target");
-        }
-
         List<Binding> bindings = new ArrayList<>();
         for (Method method : accessorType.getMethods()) {
             if (method.getDeclaringClass() == Object.class || method.isDefault()) continue;
