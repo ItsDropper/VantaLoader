@@ -224,6 +224,11 @@ public final class MinecraftMappings implements MinecraftMappingView {
                 namedFieldName);
     }
 
+    @Override
+    public String runtimeDescriptor(String namedDescriptor) {
+        return remapDescriptor(namedDescriptor);
+    }
+
     private String remapDescriptor(String descriptor) {
         StringBuilder result = new StringBuilder(descriptor.length());
         for (int i = 0; i < descriptor.length();) {
