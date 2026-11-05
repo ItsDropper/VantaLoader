@@ -9,6 +9,10 @@ public final class RuntimeTestEntrypoint implements VantaMod {
     @Override
     public void onInitialize(ModContext context) {
         RuntimeEvents.EVENTS.add("init:" + context.modId());
+        if (context.modId().equals(RuntimeEvents.failInitializeMod)) {
+            RuntimeEvents.failInitializeMod = null;
+            throw new IllegalStateException("simulated initialization failure");
+        }
     }
 
     @Override
