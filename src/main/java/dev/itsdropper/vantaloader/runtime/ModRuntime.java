@@ -149,7 +149,7 @@ public final class ModRuntime implements AutoCloseable {
                         + "' does not implement VantaMod");
             }
             VantaMod instance = (VantaMod) type.getConstructor().newInstance();
-            return new LoadedMod(id, instance, loader, eventScope);
+            return new LoadedMod(id, instance, loader, eventScope, artifact.descriptor());
         } catch (InvocationTargetException exception) {
             Throwable cause = exception.getCause() == null ? exception : exception.getCause();
             throw new IllegalStateException("Constructor for mod '" + id + "' failed: "
@@ -260,8 +260,41 @@ public final class ModRuntime implements AutoCloseable {
 
     @Override public void close() throws Exception { stop(); }
 
+    /** Immutable metadata snapshot used by the in-game mod list. */
+    public List<dev.itsdropper.vantaloader.api.ModMenuEntry> modMenuEntries() {
+        return initialized.stream().map(mod -> {
+            var descriptor = mod.descriptor();
+            java.net.URL icon = descriptor.icon() == null ? null : mod.classLoader().getResource(descriptor.icon());
+            return new dev.itsdropper.vantaloader.api.ModMenuEntry(
+                    descriptor.id(), descriptor.name(), descriptor.version().toString(),
+                    descriptor.description(), descriptor.license(), descriptor.website(),
+                    descriptor.sources(), icon, mod.instance() instanceof dev.itsdropper.vantaloader.api.ModMenuApi);
+        }).toList();
+    }
+
+    /**
+     * Opens a mod's settings through the opt-in public Mod Menu API.
+     * Returns the game-specific screen object without linking the loader API to Minecraft classes.
+     */
+    public Object createModConfigScreen(String modId, Object parentScreen) throws Exception {
+        if (closed) throw new IllegalStateException("Mod runtime is closed");
+        LoadedMod mod = initialized.stream().filter(candidate -> candidate.id().equals(modId))
+                .findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown mod: " + modId));
+        if (!(mod.instance() instanceof dev.itsdropper.vantaloader.api.ModMenuApi menuApi)) {
+            throw new IllegalStateException("Mod '" + modId + "' has not implemented ModMenuApi");
+        }
+        ClassLoader previous = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(mod.classLoader());
+        try {
+            return menuApi.createConfigScreen(parentScreen);
+        } finally {
+            Thread.currentThread().setContextClassLoader(previous);
+        }
+    }
+
     private record LoadedMod(String id, VantaMod instance, ModClassLoader classLoader,
-                             ModEventBus.Scope eventScope) { }
+                             ModEventBus.Scope eventScope,
+                             dev.itsdropper.vantaloader.metadata.ModDescriptor descriptor) { }
 
     /** Child-first for mod implementation classes, with explicit dependency visibility. */
     private static final class ModClassLoader extends URLClassLoader {
