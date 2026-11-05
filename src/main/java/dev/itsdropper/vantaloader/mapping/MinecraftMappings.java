@@ -39,41 +39,45 @@ public final class MinecraftMappings {
         Map<String, String> reverse = new HashMap<>();
         Map<String, String> methods = new HashMap<>();
         Map<String, String> fields = new HashMap<>();
-        String currentOwner = null;
-        try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            String line;
-            int lineNumber = 0;
-            while ((line = reader.readLine()) != null) {
-                lineNumber++;
-                if (line.isBlank() || line.startsWith("#")) continue;
-                if (!Character.isWhitespace(line.charAt(0))) {
-                    if (!line.endsWith(":")) {
-                        throw new IOException("Malformed class mapping at line " + lineNumber);
-                    }
-                    String mapping = line.substring(0, line.length() - 1).trim();
-                    int separator = mapping.lastIndexOf(" -> ");
-                    if (separator <= 0 || separator + 4 >= mapping.length()) {
-                        throw new IOException("Malformed class mapping at line " + lineNumber);
-                    }
-                    String named = mapping.substring(0, separator).trim();
-                    String runtime = mapping.substring(separator + 4).trim();
-                    if (!isBinaryName(named) || !isBinaryName(runtime)) {
-                        throw new IOException("Invalid class name in mapping at line " + lineNumber);
-                    }
-                    String previousRuntime = forward.putIfAbsent(named, runtime);
-                    String previousNamed = reverse.putIfAbsent(runtime, named);
-                    if (previousRuntime != null || previousNamed != null) {
-                        throw new IOException("Duplicate or conflicting class mapping at line " + lineNumber);
-                    }
-                    currentOwner = named;
-                    continue;
-                }
-                if (currentOwner == null || !line.contains(" -> ")) continue;
-                parseMember(line.trim(), currentOwner, forward, methods, fields, lineNumber);
+        java.util.List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
+
+        // First pass indexes every class. Member descriptors can refer to classes
+        // declared later in the official mapping file.
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            if (line.isBlank() || line.startsWith("#") || Character.isWhitespace(line.charAt(0))) continue;
+            if (!line.endsWith(":")) throw new IOException("Malformed class mapping at line " + (i + 1));
+            String mapping = line.substring(0, line.length() - 1).trim();
+            int separator = mapping.lastIndexOf(" -> ");
+            if (separator <= 0 || separator + 4 >= mapping.length()) {
+                throw new IOException("Malformed class mapping at line " + (i + 1));
+            }
+            String named = mapping.substring(0, separator).trim();
+            String runtime = mapping.substring(separator + 4).trim();
+            if (!isBinaryName(named) || !isBinaryName(runtime)) {
+                throw new IOException("Invalid class name in mapping at line " + (i + 1));
+            }
+            String previousRuntime = forward.putIfAbsent(named, runtime);
+            String previousNamed = reverse.putIfAbsent(runtime, named);
+            if (previousRuntime != null || previousNamed != null) {
+                throw new IOException("Duplicate or conflicting class mapping at line " + (i + 1));
             }
         }
         if (forward.isEmpty()) {
             throw new IOException("Minecraft client mappings contain no class mappings: " + file);
+        }
+
+        String currentOwner = null;
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            if (line.isBlank() || line.startsWith("#")) continue;
+            if (!Character.isWhitespace(line.charAt(0))) {
+                String mapping = line.substring(0, line.length() - 1).trim();
+                int separator = mapping.lastIndexOf(" -> ");
+                currentOwner = mapping.substring(0, separator).trim();
+            } else if (currentOwner != null && line.contains(" -> ")) {
+                parseMember(line.trim(), currentOwner, forward, methods, fields, i + 1);
+            }
         }
         return new MinecraftMappings(forward, reverse, methods, fields);
     }
