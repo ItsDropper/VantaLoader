@@ -180,6 +180,10 @@ class TransformationServiceTest {
                         "[L" + Type.getInternalName(HierarchyRight.class) + ";"));
         assertEquals("java/lang/Object",
                 writer.commonSuperClass("[I", "[J"));
+        assertEquals("[Ljava/lang/Object;",
+                writer.commonSuperClass("[[Ljava/lang/String;", "[Ljava/lang/Object;"));
+        assertEquals("[Ljava/lang/Object;",
+                writer.commonSuperClass("[Ljava/lang/String;", "[Ljava/lang/Integer;"));
     }
 
     public static class HierarchyBase { }
