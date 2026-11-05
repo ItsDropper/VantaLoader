@@ -1,6 +1,8 @@
 package dev.itsdropper.vantaloader.bootstrap;
 
 import dev.itsdropper.vantaloader.dependency.ModResolver;
+import dev.itsdropper.vantaloader.api.MinecraftCapabilities;
+import dev.itsdropper.vantaloader.api.MinecraftCapability;
 import dev.itsdropper.vantaloader.discovery.ModArtifact;
 import dev.itsdropper.vantaloader.discovery.ModDiscovery;
 import dev.itsdropper.vantaloader.metadata.LoaderVersion;
@@ -63,7 +65,19 @@ public final class VantaLoader {
         } else {
             LOGGER.warning("No JVM instrumentation supplied; registered class transformations will not run");
         }
-        ModRuntime runtime = new ModRuntime(gameDirectory, transformations);
+        MinecraftCapabilities capabilities;
+        if (instrumentation != null && mappings != null) {
+            capabilities = MinecraftCapabilities.of(MinecraftCapability.CLASS_TRANSFORMATIONS,
+                    MinecraftCapability.OFFICIAL_MOJANG_MAPPINGS);
+        } else if (instrumentation != null) {
+            capabilities = MinecraftCapabilities.of(MinecraftCapability.CLASS_TRANSFORMATIONS);
+        } else if (mappings != null) {
+            capabilities = MinecraftCapabilities.of(MinecraftCapability.OFFICIAL_MOJANG_MAPPINGS);
+        } else {
+            capabilities = MinecraftCapabilities.none();
+        }
+        LOGGER.info("Verified Minecraft capabilities: " + capabilities.asSet());
+        ModRuntime runtime = new ModRuntime(gameDirectory, transformations, capabilities);
         try {
             runtime.start(ordered);
             LOGGER.info("All VantaLoader mods initialized successfully");
