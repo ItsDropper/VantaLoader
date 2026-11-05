@@ -67,15 +67,31 @@ public final class HierarchyClassWriter extends ClassWriter {
                     || "java/io/Serializable".equals(second)) return second;
             return "java/lang/Object";
         }
-        org.objectweb.asm.Type a = org.objectweb.asm.Type.getType(first);
-        org.objectweb.asm.Type b = org.objectweb.asm.Type.getType(second);
-        if (a.getDimensions() != b.getDimensions()) return "java/lang/Object";
-        org.objectweb.asm.Type ae = a.getElementType();
-        org.objectweb.asm.Type be = b.getElementType();
-        if (ae.getSort() != org.objectweb.asm.Type.OBJECT
-                || be.getSort() != org.objectweb.asm.Type.OBJECT) return "java/lang/Object";
-        String common = getCommonSuperClass(ae.getInternalName(), be.getInternalName());
-        return "[".repeat(a.getDimensions()) + "L" + common + ";";
+
+        String firstComponent = first.substring(1);
+        String secondComponent = second.substring(1);
+        if (firstComponent.equals(secondComponent)) return first;
+        if (isPrimitiveDescriptor(firstComponent) || isPrimitiveDescriptor(secondComponent)) {
+            return "java/lang/Object";
+        }
+
+        String commonComponent;
+        if (firstComponent.startsWith("[") && secondComponent.startsWith("[")) {
+            commonComponent = commonArraySupertype(firstComponent, secondComponent);
+            if (!commonComponent.startsWith("[")) return "[L" + commonComponent + ";";
+            return "[" + commonComponent;
+        } else if (firstComponent.startsWith("[") || secondComponent.startsWith("[")) {
+            commonComponent = "java/lang/Object";
+        } else {
+            String firstName = firstComponent.substring(1, firstComponent.length() - 1);
+            String secondName = secondComponent.substring(1, secondComponent.length() - 1);
+            commonComponent = getCommonSuperClass(firstName, secondName);
+        }
+        return "[L" + commonComponent + ";";
+    }
+
+    private static boolean isPrimitiveDescriptor(String descriptor) {
+        return descriptor.length() == 1 && "ZCBSIFJD".indexOf(descriptor.charAt(0)) >= 0;
     }
 
     private boolean isAssignableFrom(String target, String source) {
