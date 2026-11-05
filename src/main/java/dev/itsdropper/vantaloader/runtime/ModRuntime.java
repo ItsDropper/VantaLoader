@@ -2,6 +2,7 @@ package dev.itsdropper.vantaloader.runtime;
 
 import dev.itsdropper.vantaloader.api.VantaMod;
 import dev.itsdropper.vantaloader.api.MinecraftCapabilities;
+import dev.itsdropper.vantaloader.bootstrap.MinecraftHooks;
 import dev.itsdropper.vantaloader.discovery.ModArtifact;
 import dev.itsdropper.vantaloader.transformation.TransformationService;
 
@@ -82,6 +83,7 @@ public final class ModRuntime implements AutoCloseable {
                 invokeInitialize(mod, artifact, eventScope);
                 LOGGER.info("Initialized " + mod.id() + " " + artifact.descriptor().version());
             }
+            MinecraftHooks.bind(eventBus);
             started = true;
         } catch (Throwable failure) {
             rollback(failure);
@@ -91,10 +93,7 @@ public final class ModRuntime implements AutoCloseable {
         }
     }
 
-    /**
-     * Validates the complete ordered mod set before creating class loaders or invoking
-     * third-party code. This prevents duplicate IDs from replacing loader-map entries.
-     */
+    /** Validates the complete ordered mod set before invoking third-party code. */
     private static void validateOrderedMods(List<ModArtifact> orderedMods) {
         java.util.Objects.requireNonNull(orderedMods, "orderedMods");
         java.util.Set<String> seen = new java.util.HashSet<>();
@@ -171,6 +170,7 @@ public final class ModRuntime implements AutoCloseable {
     }
 
     private void rollback(Throwable original) {
+        MinecraftHooks.unbind(eventBus);
         for (int i = initialized.size() - 1; i >= 0; i--) {
             LoadedMod mod = initialized.get(i);
             invokeShutdown(mod, original);
@@ -196,6 +196,7 @@ public final class ModRuntime implements AutoCloseable {
 
     public void stop() throws Exception {
         if (closed) return;
+        MinecraftHooks.unbind(eventBus);
         Exception aggregate = null;
         try {
             for (int i = initialized.size() - 1; i >= 0; i--) {
@@ -238,10 +239,7 @@ public final class ModRuntime implements AutoCloseable {
     private record LoadedMod(String id, VantaMod instance, ModClassLoader classLoader,
                              ModEventBus.Scope eventScope) { }
 
-    /**
-     * Child-first for mod implementation classes, with explicit dependency visibility.
-     * The Java platform and VantaLoader API remain parent-first to preserve type identity.
-     */
+    /** Child-first for mod implementation classes, with explicit dependency visibility. */
     private static final class ModClassLoader extends URLClassLoader {
         private static final String[] PARENT_FIRST = {
                 "java.", "javax.", "jdk.", "sun.", "com.sun.",

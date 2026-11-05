@@ -39,8 +39,8 @@ Milestones describe intended work, not promises or release dates. A milestone is
 
 - [x] Define the initial version identity boundary: parse legacy/modern release strings and weekly snapshots without imposing a false global ordering; expose it through a binary-compatible default ModContext method.
 - [x] Define the mod-facing Minecraft capability contract and conservative runtime reporting.
-- [ ] Implement exact-version Minecraft adapters and adapter selection.
-- [ ] Implement the first in-game lifecycle and event hooks.
+- [x] Implement exact-version adapter selection and a fixture-tested Minecraft 1.21.11 client tick adapter; real-game verification remains pending.
+- [x] Implement typed client tick START/END event dispatch in the 1.21.11 fixture adapter; real-game hook verification remains open.
 - [x] Specify native transformation contracts.
 - [x] Implement deterministic exact-target dispatch and transformation ordering.
 - [x] Implement and test both legacy Java 8 and Java 9+ Instrumentation transformer callback signatures.

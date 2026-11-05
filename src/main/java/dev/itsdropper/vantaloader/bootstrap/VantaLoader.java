@@ -3,6 +3,8 @@ package dev.itsdropper.vantaloader.bootstrap;
 import dev.itsdropper.vantaloader.dependency.ModResolver;
 import dev.itsdropper.vantaloader.api.MinecraftCapabilities;
 import dev.itsdropper.vantaloader.api.MinecraftCapability;
+import dev.itsdropper.vantaloader.bootstrap.minecraft.MinecraftAdapter;
+import dev.itsdropper.vantaloader.bootstrap.minecraft.MinecraftAdapterRegistry;
 import dev.itsdropper.vantaloader.discovery.ModArtifact;
 import dev.itsdropper.vantaloader.discovery.ModDiscovery;
 import dev.itsdropper.vantaloader.metadata.LoaderVersion;
@@ -11,7 +13,6 @@ import dev.itsdropper.vantaloader.runtime.ModRuntime;
 import dev.itsdropper.vantaloader.transformation.TransformationService;
 
 import java.lang.instrument.Instrumentation;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -57,26 +58,37 @@ public final class VantaLoader {
             var descriptor = ordered.get(i).descriptor();
             LOGGER.info("Load order " + (i + 1) + ": " + descriptor.id() + " " + descriptor.version());
         }
-        MinecraftMappings mappings = loadMinecraftMappings();
+
+        String minecraftVersion = System.getProperty("vanta.minecraft.version", "unknown");
+        // 1.21.11 is the first unobfuscated release; its adapter uses direct
+        // Mojang class/member names and must not apply legacy obfuscation maps.
+        MinecraftMappings mappings = "1.21.11".equals(minecraftVersion)
+                ? null : loadMinecraftMappings();
         TransformationService transformations = new TransformationService(mappings);
+
+        List<MinecraftCapability> verifiedCapabilities = new java.util.ArrayList<>();
+        if (mappings != null) {
+            verifiedCapabilities.add(MinecraftCapability.OFFICIAL_MOJANG_MAPPINGS);
+        }
         if (instrumentation != null) {
+            MinecraftAdapter adapter = MinecraftAdapterRegistry.find(minecraftVersion).orElse(null);
+            if (adapter != null) {
+                adapter.install(transformations);
+                verifiedCapabilities.add(MinecraftCapability.CLIENT_LIFECYCLE_EVENTS);
+                LOGGER.info("Installed exact Minecraft adapter: " + adapter.minecraftVersion());
+            } else {
+                LOGGER.info("No exact Minecraft adapter is available for " + minecraftVersion);
+            }
             instrumentation.addTransformer(transformations, false);
+            verifiedCapabilities.add(MinecraftCapability.CLASS_TRANSFORMATIONS);
             LOGGER.info("Native class transformation service installed");
         } else {
             LOGGER.warning("No JVM instrumentation supplied; registered class transformations will not run");
         }
-        MinecraftCapabilities capabilities;
-        if (instrumentation != null && mappings != null) {
-            capabilities = MinecraftCapabilities.of(MinecraftCapability.CLASS_TRANSFORMATIONS,
-                    MinecraftCapability.OFFICIAL_MOJANG_MAPPINGS);
-        } else if (instrumentation != null) {
-            capabilities = MinecraftCapabilities.of(MinecraftCapability.CLASS_TRANSFORMATIONS);
-        } else if (mappings != null) {
-            capabilities = MinecraftCapabilities.of(MinecraftCapability.OFFICIAL_MOJANG_MAPPINGS);
-        } else {
-            capabilities = MinecraftCapabilities.none();
-        }
+        MinecraftCapabilities capabilities = MinecraftCapabilities.of(
+                verifiedCapabilities.toArray(MinecraftCapability[]::new));
         LOGGER.info("Verified Minecraft capabilities: " + capabilities.asSet());
+
         ModRuntime runtime = new ModRuntime(gameDirectory, transformations, capabilities);
         try {
             runtime.start(ordered);
