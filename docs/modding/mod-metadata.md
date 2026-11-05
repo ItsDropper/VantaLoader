@@ -86,3 +86,19 @@ VantaLoader invokes `onInitialize(ModContext)` after required dependencies have 
 The metadata parser now exposes display information and dependency intent for future launcher and in-game UI. Icon paths are validated as safe relative JAR resources, but icon extraction/rendering is not yet wired into a Minecraft screen. Optional dependency categories are parsed and preserved, but do not yet affect resolution. Mixin configurations, access wideners, and runtime settings screens are separate capabilities and are not implied by these metadata fields.
 
 Each mod receives its own class loader. It can load its own classes and classes/resources from explicitly declared dependencies; unrelated mods are not searched. Java platform classes and the VantaLoader API are parent-first so all entrypoints share the same API type identity. This is namespace isolation, not a security boundary: Java code in a mod still runs with the operating-system user's permissions.
+
+## In-game settings screen API
+
+A mod opts into a settings button by implementing `dev.itsdropper.vantaloader.api.ModMenuApi` on its main entrypoint class:
+
+~~~java
+public final class ExampleMod implements VantaMod, ModMenuApi {
+    @Override
+    public Object createConfigScreen(Object parentScreen) {
+        // Return the Minecraft Screen implementation for this game version.
+        return createSettingsScreen(parentScreen);
+    }
+}
+~~~
+
+The loader exposes each loaded mod's display metadata, resolved icon resource, and whether it implements this API. Mods without the interface do not receive a settings button. The API avoids a hard compile-time dependency on Minecraft classes; a mod's game-version integration is responsible for returning the active game's screen object. The runtime API contract is in place; the actual Minecraft Mod Menu screen and screen-navigation integration are still in development.
