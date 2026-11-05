@@ -1,6 +1,7 @@
 package dev.itsdropper.vantaloader.runtime;
 
 import dev.itsdropper.vantaloader.api.ModContext;
+import dev.itsdropper.vantaloader.api.MinecraftCapabilities;
 import dev.itsdropper.vantaloader.api.EventBus;
 import dev.itsdropper.vantaloader.api.TransformationRegistry;
 import dev.itsdropper.vantaloader.metadata.LoaderVersion;
@@ -17,15 +18,18 @@ final class DefaultModContext implements ModContext {
     private final Logger logger;
     private final TransformationRegistry transformations;
     private final EventBus events;
+    private final MinecraftCapabilities minecraftCapabilities;
 
     DefaultModContext(ModDescriptor descriptor, Path gameDirectory, Path configDirectory,
-                      TransformationService transformationService, EventBus events) {
+                      TransformationService transformationService, EventBus events,
+                      MinecraftCapabilities minecraftCapabilities) {
         this.descriptor = descriptor;
         this.gameDirectory = gameDirectory;
         this.configDirectory = configDirectory;
         this.logger = Logger.getLogger("VantaLoader.Mod." + descriptor.id());
         this.transformations = transformationService.forMod(descriptor.id());
         this.events = java.util.Objects.requireNonNull(events, "events");
+        this.minecraftCapabilities = java.util.Objects.requireNonNull(minecraftCapabilities, "minecraftCapabilities");
     }
     @Override public String modId() { return descriptor.id(); }
     @Override public String modVersion() { return descriptor.version().toString(); }
@@ -33,6 +37,7 @@ final class DefaultModContext implements ModContext {
     @Override public String minecraftVersion() {
         return System.getProperty("vanta.minecraft.version", "unknown");
     }
+    @Override public MinecraftCapabilities minecraftCapabilities() { return minecraftCapabilities; }
     @Override public String environment() {
         return System.getProperty("vanta.environment", "client");
     }
