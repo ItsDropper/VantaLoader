@@ -9,12 +9,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import dev.itsdropper.vantaloader.api.MinecraftMappingView;
 
 /**
  * Read-only index for Mojang's ProGuard-style client mappings.
  * Member lookups require the named JVM descriptor, avoiding ambiguous overload guesses.
  */
-public final class MinecraftMappings {
+public final class MinecraftMappings implements MinecraftMappingView {
     private final Map<String, String> namedToRuntime;
     private final Map<String, String> runtimeToNamed;
     private final Map<String, String> methods;
@@ -182,6 +183,22 @@ public final class MinecraftMappings {
     }
 
     /** Returns the obfuscated runtime name, or the input for non-Minecraft classes. */
+    @Override
+    public String runtimeClassName(String namedBinaryName) { return toRuntimeClassName(namedBinaryName); }
+
+    @Override
+    public String namedClassName(String runtimeBinaryName) { return toNamedClassName(runtimeBinaryName); }
+
+    @Override
+    public String runtimeMethodName(String ownerBinaryName, String namedMethodName, String namedDescriptor) {
+        return toRuntimeMethodName(ownerBinaryName, namedMethodName, namedDescriptor);
+    }
+
+    @Override
+    public String runtimeFieldName(String ownerBinaryName, String namedFieldName, String namedDescriptor) {
+        return toRuntimeFieldName(ownerBinaryName, namedFieldName, namedDescriptor);
+    }
+
     public String toRuntimeClassName(String namedBinaryName) {
         return namedToRuntime.getOrDefault(namedBinaryName, namedBinaryName);
     }
