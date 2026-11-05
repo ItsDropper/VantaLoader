@@ -26,6 +26,8 @@ public final class ModResolver {
         }
         for (ModArtifact artifact : artifacts) {
             var descriptor = artifact.descriptor();
+            validateIncompatibilities(descriptor.id(), "conflicts", descriptor.conflicts(), byId);
+            validateIncompatibilities(descriptor.id(), "breaks", descriptor.breaks(), byId);
             for (var dependency : descriptor.depends().entrySet()) {
                 ModArtifact target = byId.get(dependency.getKey());
                 if (target == null) throw new IOException("Mod '" + descriptor.id()
