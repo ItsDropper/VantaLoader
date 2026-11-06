@@ -64,7 +64,7 @@ jobs:
             fi
           done
 
-          if ! dpkg-query -W -f='${Status}' python3-pil 2>/dev/null | grep -q "install ok installed"; then
+          if ! /usr/bin/python3 -c "from PIL import Image" >/dev/null 2>&1; then
             packages+=(python3-pil)
           fi
 
