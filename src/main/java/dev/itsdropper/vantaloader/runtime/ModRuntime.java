@@ -361,7 +361,16 @@ public final class ModRuntime implements AutoCloseable {
                         }
                     }
                 }
-                return defineClass(name, bytecode, 0, bytecode.length);
+                URL codeSourceUrl = resource;
+                java.net.URLConnection connection = resource.openConnection();
+                if (connection instanceof java.net.JarURLConnection jarConnection) {
+                    codeSourceUrl = jarConnection.getJarFileURL();
+                }
+                java.security.CodeSource codeSource = new java.security.CodeSource(
+                        codeSourceUrl, (java.security.cert.Certificate[]) null);
+                java.security.ProtectionDomain protectionDomain = new java.security.ProtectionDomain(
+                        codeSource, null, this, null);
+                return defineClass(name, bytecode, 0, bytecode.length, protectionDomain);
             } catch (IOException exception) {
                 throw new ClassNotFoundException("Cannot read mod class " + name + " from " + resource, exception);
             }
