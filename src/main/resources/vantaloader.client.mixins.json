@@ -1,0 +1,10 @@
+{
+  "required": false,
+  "minVersion": "0.8.7",
+  "package": "dev.itsdropper.vantaloader.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
