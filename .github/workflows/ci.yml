@@ -46,16 +46,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Hosted Ubuntu images already contain many graphics/runtime packages.
-          # Only install missing executables and libraries; avoid an unconditional
-          # apt-get update, which can stall before Minecraft is ever started.
+          # Hosted Ubuntu images already contain Xvfb and graphics libraries.
+          # Install only xdotool plus missing runtime libraries. Screenshots use
+          # java.awt.Robot, so no window manager or scrot dependency is needed.
           packages=()
           for item in \
             "xvfb:Xvfb" \
-            "openbox:openbox" \
-            "wmctrl:wmctrl" \
-            "xdotool:xdotool" \
-            "scrot:scrot"; do
+            "xdotool:xdotool"; do
             package="${item%%:*}"
             executable="${item#*:}"
             if ! command -v "$executable" >/dev/null 2>&1; then
@@ -87,9 +84,10 @@ jobs:
             echo "All screenshot and graphics dependencies are already installed."
           fi
 
-          for executable in Xvfb openbox wmctrl xdotool scrot; do
+          for executable in Xvfb xdotool javac java; do
             command -v "$executable"
           done
+          javac scripts/ci/ScreenCapture.java
       - name: Cache Mojang client libraries and assets
         uses: actions/cache@v4
         with:
