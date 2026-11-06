@@ -26,6 +26,7 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
 
     @Override
     public void install(TransformationService transformations) {
+        System.setProperty("vanta.minecraft.version", VERSION);
         var registry = Objects.requireNonNull(transformations, "transformations").forMod("vantaloader");
         registry.register("minecraft-1.21.11-client-tick", CLIENT_CLASS, 0, this::transformClientTick);
         registry.register("minecraft-1.21.11-title-screen", "net.minecraft.client.gui.screens.TitleScreen",
