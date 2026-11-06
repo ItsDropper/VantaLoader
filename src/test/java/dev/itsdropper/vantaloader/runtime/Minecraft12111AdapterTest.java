@@ -64,8 +64,8 @@ class Minecraft12111AdapterTest {
 
     private static void assertTitleFooterHook(TransformationService transformations) throws Exception {
         byte[] transformed = transformations.transform(null, Minecraft12111AdapterTest.class.getClassLoader(),
-                "net/minecraft/client/gui/screens/TitleScreen", null, null,
-                screenFixture("net/minecraft/client/gui/screens/TitleScreen"));
+                "net/minecraft/client/gui/screens/Screen", null, null,
+                screenFixture("net/minecraft/client/gui/screens/Screen"));
         assertNotNull(transformed);
         org.objectweb.asm.ClassReader reader = new org.objectweb.asm.ClassReader(transformed);
         boolean[] found = {false};
@@ -87,7 +87,7 @@ class Minecraft12111AdapterTest {
                 };
             }
         }, 0);
-        assertTrue(found[0], "Expected VantaLoader version footer hook in TitleScreen.render");
+        assertTrue(found[0], "Expected VantaLoader version footer hook in Screen.render for TitleScreen inheritance");
     }
 
     private static void assertScreenHook(TransformationService transformations, String target) throws Exception {
@@ -132,7 +132,7 @@ class Minecraft12111AdapterTest {
         init.visitInsn(Opcodes.RETURN);
         init.visitMaxs(0, 0);
         init.visitEnd();
-        if (internalName.endsWith("/TitleScreen")) {
+        if (internalName.endsWith("/Screen")) {
             MethodVisitor render = writer.visitMethod(Opcodes.ACC_PUBLIC, "render",
                     "(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", null, null);
             render.visitCode();
