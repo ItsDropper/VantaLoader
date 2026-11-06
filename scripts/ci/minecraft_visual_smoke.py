@@ -285,9 +285,14 @@ def main():
 
             # 1280x720 physical display, guiScale=2: button center is logical
             # (580,342), therefore physical (1160,684).
-            subprocess.run(["xdotool", "mousemove", "1160", "684", "click", "1"],
+            subprocess.run(["xdotool", "mousemove", "--sync", "1160", "684"],
                            check=True, timeout=10)
-            subprocess.run(["xdotool", "mousemove", "20", "20"], check=True, timeout=10)
+            time.sleep(1)
+            subprocess.run(["xdotool", "click", "--clearmodifiers", "--delay", "100", "1"],
+                           check=True, timeout=10)
+            time.sleep(2)
+            subprocess.run(["xdotool", "mousemove", "--sync", "20", "20"],
+                           check=True, timeout=10)
             menu_text = wait_for_screen(process, log_path, output / "mod-menu-probe.png",
                                         ("VantaLoader 1.21.11", "Loaded 1 mod", "Hello World"), 60)
             shutil.copy2(output / "mod-menu-probe.png", output / "mod-menu.png")
