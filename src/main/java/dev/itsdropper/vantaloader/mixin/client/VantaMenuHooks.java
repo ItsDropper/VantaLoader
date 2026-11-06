@@ -31,6 +31,7 @@ public final class VantaMenuHooks {
     private static volatile Object parentScreen;
     private static volatile Class<?> generatedScreenClass;
     private static volatile int scrollOffset;
+    private static volatile boolean menuRenderLogged;
     private static final Map<Object, Map<String, Object>> CONFIG_BUTTONS =
             java.util.Collections.synchronizedMap(new WeakHashMap<>());
 
@@ -59,6 +60,7 @@ public final class VantaMenuHooks {
     private static void openMenu(Object parent) {
         try {
             parentScreen = parent;
+            menuRenderLogged = false;
             Class<?> screenType = generatedScreenClass();
             Class<?> componentType = minecraftClass("net.minecraft.network.chat.Component");
             Object title = literalComponent("Mods");
@@ -328,6 +330,10 @@ public final class VantaMenuHooks {
             scrollOffset = clampScrollOffset(scrollOffset, entries.size(), visible);
             updateConfigButtonPositions(screen, entries, visible);
 
+            if (!menuRenderLogged) {
+                LOGGER.info("VantaLoader mod menu rendered; entries=" + entries.size());
+                menuRenderLogged = true;
+            }
             var header = current.modMenuHeader();
             centered(graphics, font, "Mods", width / 2, 18, 0xFFFFFFFF);
             centered(graphics, font, header.subtitle(), width / 2, 34, 0xFFA0A0A0);
@@ -397,6 +403,9 @@ public final class VantaMenuHooks {
                 4, int.class, int.class, int.class, int.class).invoke(builder, x, y, width, height);
         Object button = mappedMethod(builder.getClass(), builderName, "build",
                 "()Lnet/minecraft/client/gui/components/Button;", 0).invoke(builder);
+        if ("Mods".equals(label)) {
+            LOGGER.info("VantaLoader Mods button registered at " + x + "," + y + "," + width + "," + height);
+        }
 
         Class<?> listenerType = minecraftClass("net.minecraft.client.gui.components.events.GuiEventListener");
         String screenName = "net.minecraft.client.gui.screens.Screen";
