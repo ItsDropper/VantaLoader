@@ -92,6 +92,7 @@ public final class VantaLoader {
         ModRuntime runtime = new ModRuntime(gameDirectory, transformations, capabilities);
         try {
             runtime.start(ordered);
+            dev.itsdropper.vantaloader.mixin.client.VantaMenuHooks.bind(runtime);
             LOGGER.info("All VantaLoader mods initialized successfully");
         } catch (Exception failure) {
             try { runtime.close(); }
