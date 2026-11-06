@@ -72,7 +72,6 @@ public final class VantaMixinService extends MixinServiceAbstract
     @Override public IMixinAuditTrail getAuditTrail() { return null; }
     @Override public IFeatureValidator getFeatureValidator() { return IFeatureValidator.ALLOW_ALL; }
     @Override public IAdviceProvider getAdviceProvider() { return IAdviceProvider.GENERIC; }
-    @Override public String getSideName() { return "CLIENT"; }
     @Override public void offer(IMixinInternal internal) {
         super.offer(internal);
         if (internal instanceof IMixinTransformerFactory factory) {
