@@ -58,10 +58,11 @@ class Minecraft12111AdapterTest {
         TransformationService transformations = new TransformationService();
         new Minecraft12111Adapter().install(transformations);
         assertScreenHook(transformations, "net/minecraft/client/gui/screens/TitleScreen");
+        assertTitleVersionHook(transformations);
         assertScreenHook(transformations, "net/minecraft/client/gui/screens/PauseScreen");
     }
 
-    private static void assertTitleFooterHook(TransformationService transformations) throws Exception {
+    private static void assertTitleVersionHook(TransformationService transformations) throws Exception {
         byte[] transformed = transformations.transform(null, Minecraft12111AdapterTest.class.getClassLoader(),
                 "net/minecraft/client/gui/screens/TitleScreen", null, null,
                 screenFixture("net/minecraft/client/gui/screens/TitleScreen"));
@@ -78,15 +79,15 @@ class Minecraft12111AdapterTest {
                                                 String methodDescriptor, boolean isInterface) {
                         if (opcode == Opcodes.INVOKESTATIC
                                 && owner.equals("dev/itsdropper/vantaloader/mixin/client/VantaMenuHooks")
-                                && method.equals("renderTitleFooter")
-                                && methodDescriptor.equals("(Ljava/lang/Object;Ljava/lang/Object;)V")) {
+                                && method.equals("drawTitleVersion")
+                                && methodDescriptor.equals("(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;III)I")) {
                             found[0] = true;
                         }
                     }
                 };
             }
         }, 0);
-        assertTrue(found[0], "Expected VantaLoader version footer hook in TitleScreen.render");
+        assertTrue(found[0], "Expected original title version draw call to route through VantaLoader");
     }
 
     private static void assertScreenHook(TransformationService transformations, String target) throws Exception {
@@ -131,10 +132,19 @@ class Minecraft12111AdapterTest {
         init.visitInsn(Opcodes.RETURN);
         init.visitMaxs(0, 0);
         init.visitEnd();
-        if (internalName.endsWith("/Screen")) {
+        if (internalName.endsWith("/TitleScreen")) {
             MethodVisitor render = writer.visitMethod(Opcodes.ACC_PUBLIC, "render",
                     "(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", null, null);
             render.visitCode();
+            render.visitVarInsn(Opcodes.ALOAD, 1);
+            render.visitInsn(Opcodes.ACONST_NULL);
+            render.visitLdcInsn("Minecraft 1.21.11");
+            render.visitInsn(Opcodes.ICONST_0);
+            render.visitInsn(Opcodes.ICONST_0);
+            render.visitInsn(Opcodes.ICONST_0);
+            render.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "net/minecraft/client/gui/GuiGraphics",
+                    "drawString", "(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)I", false);
+            render.visitInsn(Opcodes.POP);
             render.visitInsn(Opcodes.RETURN);
             render.visitMaxs(0, 0);
             render.visitEnd();
