@@ -72,8 +72,8 @@ def resolve_arguments(items, features, substitutions):
             values = [value] if isinstance(value, str) else value
         for value in values:
             for key, replacement in substitutions.items():
-                value = value.replace("\${" + key + "}", replacement)
-            if "\${" in value:
+                value = value.replace(chr(36) + "{" + key + "}", replacement)
+            if chr(36) + "{" in value:
                 raise RuntimeError("Unresolved Minecraft launch argument: " + value)
             result.append(value)
     return result
