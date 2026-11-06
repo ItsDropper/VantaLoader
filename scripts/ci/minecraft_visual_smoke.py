@@ -151,8 +151,7 @@ def install_client(cache):
                                  log_file.get("sha1")))
     return metadata, assets_dir, natives_dir, classpath, logging_path, mappings_path
 
-def screenshot_and_ocr(path, region=None):
-    subprocess.run(["scrot", str(path)], check=True, timeout=15)
+def ocr_image(path, region=None):
     source = path
     if region is not None:
         from PIL import Image
@@ -164,6 +163,11 @@ def screenshot_and_ocr(path, region=None):
     result = subprocess.run(["tesseract", str(source), "stdout", "--psm", "6"], check=True,
                             capture_output=True, text=True, timeout=20)
     return result.stdout
+
+
+def screenshot_and_ocr(path, region=None):
+    subprocess.run(["scrot", str(path)], check=True, timeout=15)
+    return ocr_image(path, region)
 
 def wait_for_log_marker(process, log_path, marker, timeout):
     def failure(reason):
@@ -294,9 +298,14 @@ def main():
             subprocess.run(["xdotool", "mousemove", "--sync", "20", "20"],
                            check=True, timeout=10)
             menu_text = wait_for_screen(process, log_path, output / "mod-menu-probe.png",
-                                        ("VantaLoader 1.21.11", "Loaded 1 mod", "Hello World"), 60)
+                                        ("VantaLoader", "Loaded 1 mod"), 60)
+            mod_row_text = ocr_image(output / "mod-menu-probe.png", (110, 115, 850, 210))
+            if "hello world" not in re.sub(r"\s+", " ", mod_row_text).casefold():
+                raise RuntimeError("The mod menu opened but the Hello World entry was not detected; "
+                                   f"row OCR was {mod_row_text!r}")
             shutil.copy2(output / "mod-menu-probe.png", output / "mod-menu.png")
             print("Mod menu OCR:", re.sub(r"\s+", " ", menu_text).strip())
+            print("Mod entry OCR:", re.sub(r"\s+", " ", mod_row_text).strip())
 
         logs = log_path.read_text(encoding="utf-8", errors="replace")
         required = ("Sponge Mixin active", "Initialized hello_world 1.0.0",
