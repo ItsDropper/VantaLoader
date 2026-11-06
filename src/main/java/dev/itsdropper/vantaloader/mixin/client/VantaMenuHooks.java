@@ -504,6 +504,12 @@ public final class VantaMenuHooks {
     }
 
 
+    /** Replaces only Minecraft's native version footer string. */
+    public static String replaceTitleVersion(String original) {
+        if (original == null || !original.startsWith("Minecraft ")) return original;
+        return "VantaLoader (" + System.getProperty("vanta.minecraft.version", "unknown") + ")";
+    }
+
     /**
      * Draws the native title-screen version label, replacing only Minecraft's own
      * version string. All other title-screen drawString calls remain unchanged.
