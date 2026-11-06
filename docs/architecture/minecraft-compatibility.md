@@ -24,7 +24,7 @@ The capability snapshot is immutable. `supportsAll` is appropriate when a featur
 - `CLIENT_LIFECYCLE_EVENTS`: reported when the exact Minecraft 1.21.11 adapter is selected and its client-tick transformation is registered. It emits typed START and END events. Fixture-tested; real-game verification remains pending.
 - `SERVER_LIFECYCLE_EVENTS`: not implemented; never reported.
 - `RESOURCE_RELOAD`: not implemented; never reported.
-- `MIXIN_INTEROP`: not implemented; never reported.
+- `MIXIN_INTEROP`: an experimental SpongePowered Mixin service/bootstrap and per-mod configuration registration path is wired into the Instrumentation runtime. It is deliberately not advertised as a verified capability until third-party Mixin mods pass real Minecraft integration tests.
 
 The standalone runtime has no Instrumentation instance and therefore reports no transformation capability. The default `ModContext` implementation also reports an empty set, preserving safe behavior for older/custom implementations.
 
