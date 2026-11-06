@@ -324,11 +324,9 @@ public final class VantaMenuHooks {
             scrollOffset = clampScrollOffset(scrollOffset, entries.size(), visible);
             updateConfigButtonPositions(screen, entries, visible);
 
-            fill(graphics, 12, 12, width - 12, height - 12, 0xD9101722);
-            fill(graphics, 12, 12, width - 12, 14, 0xFF55A8FF);
             var header = current.modMenuHeader();
-            centered(graphics, font, header.title(), width / 2, 26, 0xFFFFFFFF);
-            centered(graphics, font, header.subtitle(), width / 2, 43, 0xFFB7C7D9);
+            centered(graphics, font, "Mods", width / 2, 18, 0xFFFFFFFF);
+            centered(graphics, font, header.subtitle(), width / 2, 34, 0xFFA0A0A0);
 
             if (entries.isEmpty()) {
                 centered(graphics, font, "No mods loaded", width / 2, 112, 0xFFB7C7D9);
@@ -340,19 +338,12 @@ public final class VantaMenuHooks {
                         ModMenuEntry entry = entries.get(index);
                         int row = index - scrollOffset;
                         int y = LIST_TOP + row * ROW_HEIGHT;
-                        fill(graphics, 22, y, width - 22, y + 34, 0xA51E2A39);
-                        fill(graphics, 22, y, 25, y + 34, 0xFF4B9DEB);
-                        fill(graphics, 30, y + 3, 58, y + 31, 0xFF263C54);
-                        String initial = entry.name().isBlank() ? "?" :
-                                entry.name().substring(0, 1).toUpperCase(java.util.Locale.ROOT);
-                        centered(graphics, font, initial, 44, y + 12, 0xFFFFFFFF);
-                        draw(graphics, font, entry.name() + "  " + entry.version(), 66, y + 3, 0xFFFFFFFF);
-                        String details = entry.description() == null ? "No description provided" : entry.description();
-                        if (entry.license() != null) details += "  •  " + entry.license();
-                        if (entry.website() != null) details += "  •  " + entry.website();
-                        if (entry.sources() != null) details += "  •  Source: " + entry.sources();
-                        draw(graphics, font, truncate(details, Math.max(12, (width - 245) / 6)),
-                                66, y + 18, 0xFFB7C7D9);
+                        draw(graphics, font, entry.name() + "  " + entry.version(), 28, y + 2, 0xFFFFFFFF);
+                        String details = entry.description() == null || entry.description().isBlank()
+                                ? "No description provided" : entry.description();
+                        draw(graphics, font, truncate(details, Math.max(12, (width - 64) / 6)),
+                                28, y + 16, 0xFFA0A0A0);
+                        fill(graphics, 24, y + 34, width - 24, y + 35, 0xFF505050);
                     }
                 } finally {
                     disableScissor(graphics);
@@ -384,7 +375,7 @@ public final class VantaMenuHooks {
         Object press = Proxy.newProxyInstance(buttonType.getClassLoader(), new Class<?>[]{pressType},
                 (proxy, method, args) -> {
                     if (method.getParameterCount() == 1 && method.getReturnType() == void.class) {
-                        if ("VantaLoader".equals(label)) LOGGER.info("VantaLoader menu button activated");
+                        if ("Mods".equals(label)) LOGGER.info("VantaLoader menu button activated");
                         action.run();
                     }
                     return null;
