@@ -194,6 +194,66 @@ public final class VantaMenuHooks {
         }
     }
 
+    private static boolean isScreen(Object screen, String namedClass) {
+        String runtimeName = screen.getClass().getName();
+        return mappings == null ? runtimeName.equals(namedClass) : mappings.toNamedClassName(runtimeName).equals(namedClass);
+    }
+
+    private static void addTitleMenuButton(Object screen) throws Exception {
+        Object realms = null, options = null, quit = null;
+        for (Object child : screenChildren(screen)) {
+            String label = widgetLabel(child);
+            if (label == null) continue;
+            String value = label.toLowerCase(java.util.Locale.ROOT);
+            if (value.contains("realms")) realms = child;
+            else if (value.contains("options")) options = child;
+            else if (value.contains("quit")) quit = child;
+        }
+        if (realms == null) {
+            int width = numberField(screen, "width"), height = numberField(screen, "height");
+            addButton(screen, "Mods", width / 2 - 100, height / 2 + 72, 200, 20, () -> openMenu(screen));
+            return;
+        }
+        int x = widgetNumber(realms, "getX"), y = widgetNumber(realms, "getY");
+        int w = widgetNumber(realms, "getWidth"), h = widgetNumber(realms, "getHeight");
+        int modsY = y + h + 4, nextY = modsY + h + 4;
+        addButton(screen, "Mods", x, modsY, w, h, () -> openMenu(screen));
+        if (options != null) setWidgetY(options, nextY);
+        if (quit != null) setWidgetY(quit, nextY);
+        int overflow = nextY + h - (numberField(screen, "height") - 24);
+        if (overflow > 0) {
+            setWidgetY(realms, y - overflow);
+            setWidgetY(findButtonByLabel(screen, "Mods"), modsY - overflow);
+            if (options != null) setWidgetY(options, nextY - overflow);
+            if (quit != null) setWidgetY(quit, nextY - overflow);
+        }
+    }
+
+    private static Object findButtonByLabel(Object screen, String label) throws Exception {
+        for (Object child : screenChildren(screen)) if (label.equals(widgetLabel(child))) return child;
+        return null;
+    }
+
+    private static List<?> screenChildren(Object screen) throws Exception {
+        Object value = mappedMethod(minecraftClass("net.minecraft.client.gui.screens.Screen"),
+                "net.minecraft.client.gui.screens.Screen", "children", "()Ljava/util/List;", 0).invoke(screen);
+        return (List<?>) value;
+    }
+
+    private static String widgetLabel(Object widget) {
+        try {
+            Object component = mappedMethod(widget.getClass(), "net.minecraft.client.gui.components.AbstractButton",
+                    "getMessage", "()Lnet/minecraft/network/chat/Component;", 0).invoke(widget);
+            return (String) mappedMethod(component.getClass(), "net.minecraft.network.chat.Component",
+                    "getString", "()Ljava/lang/String;", 0).invoke(component);
+        } catch (Throwable ignored) { return null; }
+    }
+
+    private static int widgetNumber(Object widget, String method) throws Exception {
+        return ((Number) mappedMethod(widget.getClass(), "net.minecraft.client.gui.components.AbstractWidget",
+                method, "()I", 0).invoke(widget)).intValue();
+    }
+
     private static void openModSettings(Object menu, String modId) {
         ModRuntime current = runtime;
         if (current == null) return;
