@@ -68,7 +68,7 @@ public final class AutoSprintMod implements VantaMod {
         context.logger().info("Auto Sprint transformer registered");
     }
 
-    private byte[] transformLocalPlayer(ClassTransformContext context, byte[] originalClass)
+    byte[] transformLocalPlayer(ClassTransformContext context, byte[] originalClass)
             throws IOException {
         MinecraftMappingView mappings = context.mappings();
         String runtimeTarget = internal(mappings.runtimeClassName(TARGET));
