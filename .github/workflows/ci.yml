@@ -78,11 +78,15 @@ jobs:
 
           if (("${#packages[@]}" > 0)); then
             echo "Installing missing packages: ${packages[*]}"
-            sudo timeout 180s apt-get update \
-              -o Acquire::http::Timeout=20 \
-              -o Acquire::https::Timeout=20 \
-              -o Acquire::Retries=1
-            sudo timeout 180s apt-get install -y --no-install-recommends "${packages[@]}"
+            # GitHub-hosted Ubuntu images already ship with usable apt indexes.
+            # Refreshing every repository adds a network-dependent failure point
+            # before the actual visual test; install directly from the runner cache.
+            sudo env DEBIAN_FRONTEND=noninteractive timeout 180s apt-get install -y \
+              --no-install-recommends \
+              -o Acquire::http::Timeout=15 \
+              -o Acquire::https::Timeout=15 \
+              -o Acquire::Retries=1 \
+              "${packages[@]}"
           else
             echo "All screenshot and graphics dependencies are already installed."
           fi
