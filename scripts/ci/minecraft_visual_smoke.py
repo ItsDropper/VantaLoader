@@ -151,24 +151,6 @@ def install_client(cache):
                                  log_file.get("sha1")))
     return metadata, assets_dir, natives_dir, classpath, logging_path, mappings_path
 
-def ocr_image(path, region=None, psm=6):
-    source = path
-    if region is not None:
-        from PIL import Image
-        with Image.open(path) as screenshot:
-            crop = screenshot.crop(region)
-            crop = crop.resize((crop.width * 4, crop.height * 4))
-            source = path.with_name(path.stem + "-ocr.png")
-            crop.save(source)
-    result = subprocess.run(["tesseract", str(source), "stdout", "--psm", str(psm)], check=True,
-                            capture_output=True, text=True, timeout=20)
-    return result.stdout
-
-
-def screenshot_and_ocr(path, region=None):
-    subprocess.run(["scrot", str(path)], check=True, timeout=15)
-    return ocr_image(path, region)
-
 def wait_for_log_marker(process, log_path, marker, timeout):
     def failure(reason):
         log_text = log_path.read_text(encoding="utf-8", errors="replace") if log_path.exists() else ""
@@ -198,19 +180,6 @@ def activate_minecraft_window():
         time.sleep(1)
     raise RuntimeError("Minecraft window was not found by the X11 window manager")
 
-
-def wait_for_screen(process, log_path, image_path, required, timeout):
-    deadline = time.monotonic() + timeout
-    last_text = ""
-    while time.monotonic() < deadline:
-        if process.poll() is not None:
-            raise RuntimeError(f"Minecraft exited ({process.returncode}); inspect {log_path}")
-        last_text = screenshot_and_ocr(image_path)
-        normalized = re.sub(r"\s+", " ", last_text).casefold()
-        if all(term.casefold() in normalized for term in required):
-            return last_text
-        time.sleep(2)
-    raise RuntimeError(f"Timed out waiting for {required}; last OCR: {last_text!r}; log: {log_path}")
 
 def main():
     parser = argparse.ArgumentParser()
