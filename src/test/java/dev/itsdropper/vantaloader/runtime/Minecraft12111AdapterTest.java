@@ -121,10 +121,9 @@ class Minecraft12111AdapterTest {
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
         writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, target, null, "java/lang/Object", null);
         MethodVisitor draw = writer.visitMethod(Opcodes.ACC_PUBLIC, "drawString",
-                "(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)I", null, null);
+                "(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)V", null, null);
         draw.visitCode();
-        draw.visitInsn(Opcodes.ICONST_0);
-        draw.visitInsn(Opcodes.IRETURN);
+        draw.visitInsn(Opcodes.RETURN);
         draw.visitMaxs(0, 0);
         draw.visitEnd();
         writer.visitEnd();
