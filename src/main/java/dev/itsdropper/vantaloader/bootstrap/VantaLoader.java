@@ -88,7 +88,7 @@ public final class VantaLoader {
                 verifiedCapabilities.toArray(MinecraftCapability[]::new));
         LOGGER.info("Verified Minecraft capabilities: " + capabilities.asSet());
 
-        ModRuntime runtime = new ModRuntime(gameDirectory, transformations, capabilities);
+        ModRuntime runtime = new ModRuntime(gameDirectory, transformations, capabilities, mappings);
         try {
             runtime.start(ordered);
             dev.itsdropper.vantaloader.mixin.client.VantaMenuHooks.bind(runtime, mappings);
