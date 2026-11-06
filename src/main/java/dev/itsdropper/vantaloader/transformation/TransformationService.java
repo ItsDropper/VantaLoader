@@ -104,6 +104,13 @@ public final class TransformationService implements ClassFileTransformer {
 
         byte[] current = classfileBuffer.clone();
         boolean changed = false;
+        byte[] mixinTransformed = dev.itsdropper.vantaloader.mixin.VantaMixinService
+                .transform(binaryName, current);
+        if (mixinTransformed == null || mixinTransformed.length == 0) {
+            throw new IllegalStateException("Sponge Mixin returned an empty class for " + binaryName);
+        }
+        if (!java.util.Arrays.equals(current, mixinTransformed)) changed = true;
+        current = mixinTransformed.clone();
         for (Registration registration : matching) {
             try {
                 byte[] transformed = registration.transformer().transform(
