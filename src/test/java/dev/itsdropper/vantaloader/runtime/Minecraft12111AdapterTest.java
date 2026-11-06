@@ -58,7 +58,36 @@ class Minecraft12111AdapterTest {
         TransformationService transformations = new TransformationService();
         new Minecraft12111Adapter().install(transformations);
         assertScreenHook(transformations, "net/minecraft/client/gui/screens/TitleScreen");
+        assertTitleFooterHook(transformations);
         assertScreenHook(transformations, "net/minecraft/client/gui/screens/PauseScreen");
+    }
+
+    private static void assertTitleFooterHook(TransformationService transformations) throws Exception {
+        byte[] transformed = transformations.transform(null, Minecraft12111AdapterTest.class.getClassLoader(),
+                "net/minecraft/client/gui/screens/TitleScreen", null, null,
+                screenFixture("net/minecraft/client/gui/screens/TitleScreen"));
+        assertNotNull(transformed);
+        org.objectweb.asm.ClassReader reader = new org.objectweb.asm.ClassReader(transformed);
+        boolean[] found = {false};
+        reader.accept(new org.objectweb.asm.ClassVisitor(Opcodes.ASM9) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String descriptor,
+                                             String signature, String[] exceptions) {
+                return new MethodVisitor(Opcodes.ASM9) {
+                    @Override
+                    public void visitMethodInsn(int opcode, String owner, String method,
+                                                String methodDescriptor, boolean isInterface) {
+                        if (opcode == Opcodes.INVOKESTATIC
+                                && owner.equals("dev/itsdropper/vantaloader/mixin/client/VantaMenuHooks")
+                                && method.equals("renderTitleFooter")
+                                && methodDescriptor.equals("(Ljava/lang/Object;Ljava/lang/Object;)V")) {
+                            found[0] = true;
+                        }
+                    }
+                };
+            }
+        }, 0);
+        assertTrue(found[0], "Expected VantaLoader version footer hook in TitleScreen.render");
     }
 
     private static void assertScreenHook(TransformationService transformations, String target) throws Exception {
@@ -103,6 +132,14 @@ class Minecraft12111AdapterTest {
         init.visitInsn(Opcodes.RETURN);
         init.visitMaxs(0, 0);
         init.visitEnd();
+        if (internalName.endsWith("/TitleScreen")) {
+            MethodVisitor render = writer.visitMethod(Opcodes.ACC_PUBLIC, "render",
+                    "(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", null, null);
+            render.visitCode();
+            render.visitInsn(Opcodes.RETURN);
+            render.visitMaxs(0, 0);
+            render.visitEnd();
+        }
         writer.visitEnd();
         return writer.toByteArray();
     }
