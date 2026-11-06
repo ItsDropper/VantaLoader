@@ -41,7 +41,7 @@ jobs:
         with:
           gradle-version: "8.14"
       - name: Install headless graphics and screenshot tools
-        timeout-minutes: 6
+        timeout-minutes: 14
         shell: bash
         run: |
           set -euo pipefail
@@ -78,12 +78,12 @@ jobs:
 
           if (("${#packages[@]}" > 0)); then
             echo "Installing missing packages: ${packages[*]}"
-            # GitHub-hosted Ubuntu images already ship with usable apt indexes.
-            # Refreshing every repository adds a network-dependent failure point
-            # before the actual visual test; install directly from the runner cache.
+            # The hosted runner's Azure Ubuntu mirror can be very slow for larger packages
+            # (the OCR/font dependency chain is ~33 MB). Allow a bounded 12-minute
+            # transfer window instead of killing a healthy but slow download.
             echo "Runner: $(. /etc/os-release && echo "$PRETTY_NAME")"
             apt-get --version | head -n 1
-            sudo env DEBIAN_FRONTEND=noninteractive timeout 180s apt-get install -y \
+            sudo env DEBIAN_FRONTEND=noninteractive timeout 720s apt-get install -y \
               --no-install-recommends \
               -o DPkg::Lock::Timeout=30 \
               -o Acquire::http::Timeout=15 \
