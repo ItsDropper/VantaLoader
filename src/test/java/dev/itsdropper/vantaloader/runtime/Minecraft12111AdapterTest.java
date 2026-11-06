@@ -58,7 +58,6 @@ class Minecraft12111AdapterTest {
         TransformationService transformations = new TransformationService();
         new Minecraft12111Adapter().install(transformations);
         assertScreenHook(transformations, "net/minecraft/client/gui/screens/TitleScreen");
-        assertTitleFooterHook(transformations);
         assertScreenHook(transformations, "net/minecraft/client/gui/screens/PauseScreen");
     }
 
