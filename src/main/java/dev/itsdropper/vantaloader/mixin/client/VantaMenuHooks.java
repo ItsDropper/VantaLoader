@@ -1,6 +1,7 @@
 package dev.itsdropper.vantaloader.mixin.client;
 
 import dev.itsdropper.vantaloader.api.ModMenuEntry;
+import dev.itsdropper.vantaloader.mapping.MinecraftMappings;
 import dev.itsdropper.vantaloader.runtime.ModRuntime;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
@@ -26,6 +27,7 @@ public final class VantaMenuHooks {
     private static final int LIST_TOP = 62;
     private static final int LIST_BOTTOM_MARGIN = 54;
     private static volatile ModRuntime runtime;
+    private static volatile MinecraftMappings mappings;
     private static volatile Object parentScreen;
     private static volatile Class<?> generatedScreenClass;
     private static volatile int scrollOffset;
@@ -34,8 +36,9 @@ public final class VantaMenuHooks {
 
     private VantaMenuHooks() { }
 
-    public static void bind(ModRuntime modRuntime) {
+    public static void bind(ModRuntime modRuntime, MinecraftMappings minecraftMappings) {
         runtime = Objects.requireNonNull(modRuntime, "modRuntime");
+        mappings = minecraftMappings;
     }
 
     public static void addMenuButton(Object hostScreen) {
@@ -53,8 +56,7 @@ public final class VantaMenuHooks {
         try {
             parentScreen = parent;
             Class<?> screenType = generatedScreenClass();
-            Class<?> componentType = Class.forName("net.minecraft.network.chat.Component");
-            Object title = componentType.getMethod("literal", String.class).invoke(null, "VantaLoader");
+            Object title = literalComponent("VantaLoader");
             Object screen = screenType.getConstructor(componentType).newInstance(title);
             setMinecraftScreen(screen);
         } catch (Throwable failure) {
@@ -67,46 +69,63 @@ public final class VantaMenuHooks {
         if (cached != null) return cached;
         synchronized (VantaMenuHooks.class) {
             if (generatedScreenClass != null) return generatedScreenClass;
-            Class<?> base = Class.forName("net.minecraft.client.gui.screens.Screen");
-            String internalName = "net/minecraft/client/gui/screens/VantaLoaderGeneratedScreen";
+            String screenName = "net.minecraft.client.gui.screens.Screen";
+            Class<?> base = minecraftClass(screenName);
+            Class<?> componentClass = minecraftClass("net.minecraft.network.chat.Component");
+            Class<?> graphicsClass = minecraftClass("net.minecraft.client.gui.GuiGraphics");
+            String internalName = base.getPackageName().isEmpty() ? "VantaLoaderGeneratedScreen"
+                    : base.getPackageName().replace('.', '/') + "/VantaLoaderGeneratedScreen";
             String hooks = Type.getInternalName(VantaMenuHooks.class);
-            String component = "net/minecraft/network/chat/Component";
-            String graphics = "net/minecraft/client/gui/GuiGraphics";
+            String component = Type.getInternalName(componentClass);
+            String graphics = Type.getInternalName(graphicsClass);
+            String baseInternal = Type.getInternalName(base);
+            String initName = runtimeMethod(screenName, "init", "()V");
+            String renderName = runtimeMethod(screenName, "render",
+                    "(Lnet/minecraft/client/gui/GuiGraphics;IIF)V");
+            String scrollName = runtimeMethod("net.minecraft.client.gui.components.events.AbstractContainerEventHandler",
+                    "mouseScrolled", "(DDDD)Z");
+            if (scrollName.equals("mouseScrolled")) {
+                scrollName = runtimeMethod("net.minecraft.client.gui.components.events.GuiEventListener",
+                        "mouseScrolled", "(DDDD)Z");
+            }
+            String closeName = runtimeMethod(screenName, "onClose", "()V");
+
             ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL | Opcodes.ACC_SUPER,
-                    internalName, null, Type.getInternalName(base), null);
+                    internalName, null, baseInternal, null);
 
             MethodVisitor constructor = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>",
                     "(L" + component + ";)V", null, null);
             constructor.visitCode();
             constructor.visitVarInsn(Opcodes.ALOAD, 0);
             constructor.visitVarInsn(Opcodes.ALOAD, 1);
-            constructor.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(base),
+            constructor.visitMethodInsn(Opcodes.INVOKESPECIAL, baseInternal,
                     "<init>", "(L" + component + ";)V", false);
             constructor.visitInsn(Opcodes.RETURN);
             constructor.visitMaxs(0, 0);
             constructor.visitEnd();
 
-            MethodVisitor init = writer.visitMethod(Opcodes.ACC_PUBLIC, "init", "()V", null, null);
+            MethodVisitor init = writer.visitMethod(Opcodes.ACC_PUBLIC, initName, "()V", null, null);
             init.visitCode();
             init.visitVarInsn(Opcodes.ALOAD, 0);
-            init.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(base), "init", "()V", false);
+            init.visitMethodInsn(Opcodes.INVOKESPECIAL, baseInternal, initName, "()V", false);
             init.visitVarInsn(Opcodes.ALOAD, 0);
             init.visitMethodInsn(Opcodes.INVOKESTATIC, hooks, "initialize", "(Ljava/lang/Object;)V", false);
             init.visitInsn(Opcodes.RETURN);
             init.visitMaxs(0, 0);
             init.visitEnd();
 
-            MethodVisitor render = writer.visitMethod(Opcodes.ACC_PUBLIC, "render",
-                    "(L" + graphics + ";IIF)V", null, null);
+            String renderDescriptor = "(L" + graphics + ";IIF)V";
+            MethodVisitor render = writer.visitMethod(Opcodes.ACC_PUBLIC, renderName,
+                    renderDescriptor, null, null);
             render.visitCode();
             render.visitVarInsn(Opcodes.ALOAD, 0);
             render.visitVarInsn(Opcodes.ALOAD, 1);
             render.visitVarInsn(Opcodes.ILOAD, 2);
             render.visitVarInsn(Opcodes.ILOAD, 3);
             render.visitVarInsn(Opcodes.FLOAD, 4);
-            render.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(base), "render",
-                    "(L" + graphics + ";IIF)V", false);
+            render.visitMethodInsn(Opcodes.INVOKESPECIAL, baseInternal, renderName,
+                    renderDescriptor, false);
             render.visitVarInsn(Opcodes.ALOAD, 0);
             render.visitVarInsn(Opcodes.ALOAD, 1);
             render.visitVarInsn(Opcodes.ILOAD, 2);
@@ -118,7 +137,7 @@ public final class VantaMenuHooks {
             render.visitMaxs(0, 0);
             render.visitEnd();
 
-            MethodVisitor scroll = writer.visitMethod(Opcodes.ACC_PUBLIC, "mouseScrolled", "(DDDD)Z", null, null);
+            MethodVisitor scroll = writer.visitMethod(Opcodes.ACC_PUBLIC, scrollName, "(DDDD)Z", null, null);
             scroll.visitCode();
             scroll.visitVarInsn(Opcodes.ALOAD, 0);
             scroll.visitVarInsn(Opcodes.DLOAD, 1);
@@ -131,7 +150,7 @@ public final class VantaMenuHooks {
             scroll.visitMaxs(0, 0);
             scroll.visitEnd();
 
-            MethodVisitor close = writer.visitMethod(Opcodes.ACC_PUBLIC, "onClose", "()V", null, null);
+            MethodVisitor close = writer.visitMethod(Opcodes.ACC_PUBLIC, closeName, "()V", null, null);
             close.visitCode();
             close.visitVarInsn(Opcodes.ALOAD, 0);
             close.visitMethodInsn(Opcodes.INVOKESTATIC, hooks, "close", "(Ljava/lang/Object;)V", false);
@@ -291,125 +310,157 @@ public final class VantaMenuHooks {
         setMinecraftScreen(parentScreen);
     }
 
-    private static Object addButton(Object screen, String label, int x, int y, int width, int height, Runnable action)
-            throws Exception {
-        ClassLoader loader = screen.getClass().getClassLoader();
-        Class<?> componentType = Class.forName("net.minecraft.network.chat.Component", true, loader);
-        Class<?> buttonType = Class.forName("net.minecraft.client.gui.components.Button", true, loader);
-        Class<?> pressType = Class.forName("net.minecraft.client.gui.components.Button$OnPress", true, loader);
-        Object component = componentType.getMethod("literal", String.class).invoke(null, label);
-        Object press = Proxy.newProxyInstance(loader, new Class<?>[]{pressType}, (proxy, method, args) -> {
-            if (method.getName().equals("onPress")) action.run();
-            return null;
-        });
-        Method builderMethod = null;
-        for (Method method : buttonType.getMethods()) {
-            if (method.getName().equals("builder") && method.getParameterCount() == 2
-                    && method.getParameterTypes()[0].isAssignableFrom(componentType)
-                    && method.getParameterTypes()[1].isAssignableFrom(pressType)) {
-                builderMethod = method;
-                break;
-            }
-        }
-        if (builderMethod == null) throw new NoSuchMethodException("Button.builder(Component, OnPress)");
+    private static Object addButton(Object screen, String label, int x, int y, int width, int height,
+                                    Runnable action) throws Exception {
+        Class<?> componentType = minecraftClass("net.minecraft.network.chat.Component");
+        Class<?> buttonType = minecraftClass("net.minecraft.client.gui.components.Button");
+        Class<?> pressType = minecraftClass("net.minecraft.client.gui.components.Button$OnPress");
+        Object component = literalComponent(label);
+        Object press = Proxy.newProxyInstance(buttonType.getClassLoader(), new Class<?>[]{pressType},
+                (proxy, method, args) -> {
+                    if (method.getParameterCount() == 1 && method.getReturnType() == void.class) action.run();
+                    return null;
+                });
+        String buttonName = "net.minecraft.client.gui.components.Button";
+        String builderDescriptor = "(Lnet/minecraft/network/chat/Component;"
+                + "Lnet/minecraft/client/gui/components/Button$OnPress;)"
+                + "Lnet/minecraft/client/gui/components/Button$Builder;";
+        Method builderMethod = mappedMethod(buttonType, buttonName, "builder", builderDescriptor,
+                2, componentType, pressType);
         Object builder = builderMethod.invoke(null, component, press);
-        Method bounds = builder.getClass().getMethod("bounds", int.class, int.class, int.class, int.class);
-        bounds.invoke(builder, x, y, width, height);
-        Object button = builder.getClass().getMethod("build").invoke(builder);
-        Method add = findMethod(screen.getClass(), "addRenderableWidget", 1);
-        add.setAccessible(true);
-        add.invoke(screen, button);
+        String builderName = "net.minecraft.client.gui.components.Button$Builder";
+        String boundsDescriptor = "(IIII)Lnet/minecraft/client/gui/components/Button$Builder;";
+        mappedMethod(builder.getClass(), builderName, "bounds", boundsDescriptor,
+                4, int.class, int.class, int.class, int.class).invoke(builder, x, y, width, height);
+        Object button = mappedMethod(builder.getClass(), builderName, "build",
+                "()Lnet/minecraft/client/gui/components/Button;", 0).invoke(builder);
+
+        Class<?> listenerType = minecraftClass("net.minecraft.client.gui.components.events.GuiEventListener");
+        String screenName = "net.minecraft.client.gui.screens.Screen";
+        String addDescriptor = "(Lnet/minecraft/client/gui/components/events/GuiEventListener;)"
+                + "Lnet/minecraft/client/gui/components/events/GuiEventListener;";
+        mappedMethod(screen.getClass(), screenName, "addRenderableWidget", addDescriptor,
+                1, listenerType).invoke(screen, button);
         return button;
     }
 
     private static void setWidgetY(Object widget, int y) throws Exception {
-        Method setter = findMethod(widget.getClass(), "setY", 1);
-        setter.setAccessible(true);
-        setter.invoke(widget, y);
+        String owner = "net.minecraft.client.gui.components.AbstractWidget";
+        mappedMethod(widget.getClass(), owner, "setY", "(I)V", 1, int.class).invoke(widget, y);
     }
 
     private static void enableScissor(Object graphics, int left, int top, int right, int bottom) throws Exception {
-        graphics.getClass().getMethod("enableScissor", int.class, int.class, int.class, int.class)
-                .invoke(graphics, left, top, right, bottom);
+        String owner = "net.minecraft.client.gui.GuiGraphics";
+        mappedMethod(graphics.getClass(), owner, "enableScissor", "(IIII)V",
+                4, int.class, int.class, int.class, int.class).invoke(graphics, left, top, right, bottom);
     }
 
     private static void disableScissor(Object graphics) throws Exception {
-        graphics.getClass().getMethod("disableScissor").invoke(graphics);
+        mappedMethod(graphics.getClass(), "net.minecraft.client.gui.GuiGraphics",
+                "disableScissor", "()V", 0).invoke(graphics);
     }
 
     private static void setMinecraftScreen(Object target) {
         if (target == null) return;
         try {
-            Class<?> minecraft = Class.forName("net.minecraft.client.Minecraft");
-            Object instance = minecraft.getMethod("getInstance").invoke(null);
-            for (Method method : minecraft.getMethods()) {
-                if (method.getName().equals("setScreen") && method.getParameterCount() == 1
-                        && method.getParameterTypes()[0].isInstance(target)) {
-                    method.invoke(instance, target);
-                    return;
-                }
-            }
-            throw new NoSuchMethodException("Minecraft.setScreen(Screen)");
+            String owner = "net.minecraft.client.Minecraft";
+            Class<?> minecraft = minecraftClass(owner);
+            Object instance = mappedMethod(minecraft, owner, "getInstance",
+                    "()Lnet/minecraft/client/Minecraft;", 0).invoke(null);
+            mappedMethod(minecraft, owner, "setScreen",
+                    "(Lnet/minecraft/client/gui/screens/Screen;)V", 1,
+                    minecraftClass("net.minecraft.client.gui.screens.Screen")).invoke(instance, target);
         } catch (Throwable failure) {
             LOGGER.log(Level.WARNING, "Could not switch Minecraft screens", failure);
         }
     }
 
+    private static Object literalComponent(String value) throws Exception {
+        Class<?> component = minecraftClass("net.minecraft.network.chat.Component");
+        return mappedMethod(component, "net.minecraft.network.chat.Component", "literal",
+                "(Ljava/lang/String;)Lnet/minecraft/network/chat/MutableComponent;", 1,
+                String.class).invoke(null, value);
+    }
+
     private static void fill(Object graphics, int x1, int y1, int x2, int y2, int color) throws Exception {
-        graphics.getClass().getMethod("fill", int.class, int.class, int.class, int.class, int.class)
+        mappedMethod(graphics.getClass(), "net.minecraft.client.gui.GuiGraphics", "fill",
+                "(IIIII)V", 5, int.class, int.class, int.class, int.class, int.class)
                 .invoke(graphics, x1, y1, x2, y2, color);
     }
 
-    private static void centered(Object graphics, Object font, String text, int x, int y, int color) throws Exception {
-        Class<?> component = Class.forName("net.minecraft.network.chat.Component");
-        Object value = component.getMethod("literal", String.class).invoke(null, text);
-        for (Method method : graphics.getClass().getMethods()) {
-            if (method.getName().equals("drawCenteredString") && method.getParameterCount() == 5
-                    && method.getParameterTypes()[1].isInstance(value)) {
-                method.invoke(graphics, font, value, x, y, color);
-                return;
-            }
-        }
+    private static void centered(Object graphics, Object font, String text, int x, int y, int color)
+            throws Exception {
+        Object value = literalComponent(text);
+        mappedMethod(graphics.getClass(), "net.minecraft.client.gui.GuiGraphics", "drawCenteredString",
+                "(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)V",
+                5, minecraftClass("net.minecraft.client.gui.Font"),
+                minecraftClass("net.minecraft.network.chat.Component"),
+                int.class, int.class, int.class).invoke(graphics, font, value, x, y, color);
     }
 
-    private static void draw(Object graphics, Object font, String text, int x, int y, int color) throws Exception {
-        Class<?> component = Class.forName("net.minecraft.network.chat.Component");
-        Object value = component.getMethod("literal", String.class).invoke(null, text);
-        for (Method method : graphics.getClass().getMethods()) {
-            if (method.getName().equals("drawString") && method.getParameterCount() == 5
-                    && method.getParameterTypes()[1].isInstance(value)) {
-                method.invoke(graphics, font, value, x, y, color);
-                return;
-            }
-        }
+    private static void draw(Object graphics, Object font, String text, int x, int y, int color)
+            throws Exception {
+        Object value = literalComponent(text);
+        mappedMethod(graphics.getClass(), "net.minecraft.client.gui.GuiGraphics", "drawString",
+                "(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)V",
+                5, minecraftClass("net.minecraft.client.gui.Font"),
+                minecraftClass("net.minecraft.network.chat.Component"),
+                int.class, int.class, int.class).invoke(graphics, font, value, x, y, color);
     }
 
     private static int numberField(Object target, String name) throws Exception {
-        return ((Number) field(target.getClass(), name).get(target)).intValue();
+        return ((Number) field(target, name, "I").get(target)).intValue();
     }
 
     private static Object objectField(Object target, String name) throws Exception {
-        return field(target.getClass(), name).get(target);
+        return field(target, name, "Lnet/minecraft/client/gui/Font;").get(target);
     }
 
-    private static Field field(Class<?> type, String name) throws Exception {
-        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+    private static Field field(Object target, String name, String descriptor) throws Exception {
+        String owner = "net.minecraft.client.gui.screens.Screen";
+        String runtimeName = mappings == null ? name : mappings.toRuntimeFieldName(owner, name, descriptor);
+        Class<?> mappedOwner = minecraftClass(owner);
+        for (Class<?> current = target.getClass(); current != null; current = current.getSuperclass()) {
+            if (current != mappedOwner && !mappedOwner.isAssignableFrom(current)) continue;
             try {
-                Field field = current.getDeclaredField(name);
+                Field field = current.getDeclaredField(runtimeName);
                 field.setAccessible(true);
                 return field;
             } catch (NoSuchFieldException ignored) { }
         }
-        throw new NoSuchFieldException(type.getName() + "." + name);
+        throw new NoSuchFieldException(mappedOwner.getName() + "." + runtimeName);
     }
 
-    private static Method findMethod(Class<?> type, String name, int parameterCount) throws NoSuchMethodException {
-        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+    private static Class<?> minecraftClass(String namedBinaryName) throws ClassNotFoundException {
+        String runtimeName = mappings == null ? namedBinaryName : mappings.toRuntimeClassName(namedBinaryName);
+        return Class.forName(runtimeName);
+    }
+
+    private static String runtimeMethod(String owner, String name, String descriptor) {
+        return mappings == null ? name : mappings.toRuntimeMethodName(owner, name, descriptor);
+    }
+
+    private static Method mappedMethod(Class<?> runtimeOwner, String namedOwner, String namedName,
+                                       String descriptor, int parameterCount, Class<?>... parameterTypes)
+            throws NoSuchMethodException {
+        String runtimeName = runtimeMethod(namedOwner, namedName, descriptor);
+        for (Class<?> current = runtimeOwner; current != null; current = current.getSuperclass()) {
             for (Method method : current.getDeclaredMethods()) {
-                if (method.getName().equals(name) && method.getParameterCount() == parameterCount) return method;
+                if (!method.getName().equals(runtimeName) || method.getParameterCount() != parameterCount) continue;
+                if (parameterTypes.length > 0
+                        && !java.util.Arrays.equals(method.getParameterTypes(), parameterTypes)) continue;
+                method.setAccessible(true);
+                return method;
             }
         }
-        throw new NoSuchMethodException(type.getName() + "." + name);
+        for (Method method : runtimeOwner.getMethods()) {
+            if (!method.getName().equals(runtimeName) || method.getParameterCount() != parameterCount) continue;
+            if (parameterTypes.length > 0
+                    && !java.util.Arrays.equals(method.getParameterTypes(), parameterTypes)) continue;
+            method.setAccessible(true);
+            return method;
+        }
+        throw new NoSuchMethodException(runtimeOwner.getName() + "." + runtimeName + descriptor);
     }
 
     private static String truncate(String value, int max) {

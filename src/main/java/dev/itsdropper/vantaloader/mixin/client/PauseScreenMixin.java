@@ -5,9 +5,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(targets = "net.minecraft.client.gui.screens.PauseScreen")
+@Mixin(targets = "grx")
 abstract class PauseScreenMixin {
-    @Inject(method = "init", at = @At("TAIL"))
+    @Inject(method = "bg_", at = @At("TAIL"))
     private void vantaloader$addMenuButton(CallbackInfo callback) {
         VantaMenuHooks.addMenuButton(this);
     }

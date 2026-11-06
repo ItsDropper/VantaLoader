@@ -60,10 +60,9 @@ public final class VantaLoader {
         }
 
         String minecraftVersion = System.getProperty("vanta.minecraft.version", "unknown");
-        // 1.21.11 is the first unobfuscated release; its adapter uses direct
-        // Mojang class/member names and must not apply legacy obfuscation maps.
-        MinecraftMappings mappings = "1.21.11".equals(minecraftVersion)
-                ? null : loadMinecraftMappings();
+        // Minecraft 1.21.11 still ships obfuscated runtime names. Use Mojang's
+        // official client mappings for both native adapters and reflection-backed UI.
+        MinecraftMappings mappings = loadMinecraftMappings();
         TransformationService transformations = new TransformationService(mappings);
 
         List<MinecraftCapability> verifiedCapabilities = new java.util.ArrayList<>();
@@ -92,7 +91,7 @@ public final class VantaLoader {
         ModRuntime runtime = new ModRuntime(gameDirectory, transformations, capabilities);
         try {
             runtime.start(ordered);
-            dev.itsdropper.vantaloader.mixin.client.VantaMenuHooks.bind(runtime);
+            dev.itsdropper.vantaloader.mixin.client.VantaMenuHooks.bind(runtime, mappings);
             LOGGER.info("All VantaLoader mods initialized successfully");
         } catch (Exception failure) {
             try { runtime.close(); }

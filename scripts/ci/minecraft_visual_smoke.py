@@ -137,13 +137,19 @@ def install_client(cache):
     with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
         list(executor.map(lambda item: fetch(*item), assets))
 
+    mapping_info = metadata.get("downloads", {}).get("client_mappings")
+    if not mapping_info:
+        raise RuntimeError(f"Mojang did not publish official client mappings for {VERSION}")
+    mappings_path = fetch(mapping_info["url"], version_dir / "client-mappings.txt",
+                          mapping_info.get("sha1"))
+
     logging_path = ""
     logging = metadata.get("logging", {}).get("client")
     if logging:
         log_file = logging["file"]
         logging_path = str(fetch(log_file["url"], assets_dir / "log_configs" / log_file["id"],
                                  log_file.get("sha1")))
-    return metadata, assets_dir, natives_dir, classpath, logging_path
+    return metadata, assets_dir, natives_dir, classpath, logging_path, mappings_path
 
 def screenshot_and_ocr(path):
     subprocess.run(["scrot", str(path)], check=True, timeout=15)
@@ -204,7 +210,7 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     cache = Path(os.environ.get("VANTA_MINECRAFT_CACHE",
                   Path.home() / ".cache" / "vantaloader" / "minecraft" / VERSION))
-    metadata, assets_dir, natives_dir, classpath, logging_path = install_client(cache)
+    metadata, assets_dir, natives_dir, classpath, logging_path, mappings_path = install_client(cache)
 
     game_dir = output / "instance"
     mods_dir = game_dir / "mods"
@@ -231,7 +237,8 @@ def main():
     jvm = resolve_arguments(metadata.get("arguments", {}).get("jvm", []), features, substitutions)
     game = resolve_arguments(metadata.get("arguments", {}).get("game", []), features, substitutions)
     jvm.extend(["-Xms512M", "-Xmx2G", f"-Djava.library.path={natives_dir}",
-                f"-Dvanta.minecraft.version={VERSION}", f"-javaagent:{agent}", "-Djava.awt.headless=false"])
+                f"-Dvanta.minecraft.version={VERSION}", f"-Dvanta.minecraft.mappings={mappings_path}",
+                f"-javaagent:{agent}", "-Djava.awt.headless=false"])
     if "--width" not in game:
         game.extend(["--width", "1280", "--height", "720"])
     java = str(Path(os.environ.get("JAVA_HOME", "/usr")).joinpath("bin", "java"))
