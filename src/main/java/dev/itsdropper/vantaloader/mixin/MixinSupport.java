@@ -105,7 +105,7 @@ public final class MixinSupport {
     }
 
     private static void validateConfigPath(String path, String modId) throws IOException {
-        if (path == null || path.isBlank() || path.startsWith("/") || path.indexOf('\\\\') >= 0
+        if (path == null || path.isBlank() || path.startsWith("/") || path.indexOf('\\') >= 0
                 || path.matches("^[A-Za-z]:.*")) {
             throw new IOException("Mixin config path declared by " + modId + " is not a safe JAR resource path");
         }
