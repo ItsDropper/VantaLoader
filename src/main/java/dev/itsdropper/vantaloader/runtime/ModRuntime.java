@@ -368,6 +368,23 @@ public final class ModRuntime implements AutoCloseable {
         }
 
         @Override
+        public java.io.InputStream getResourceAsStream(String name) {
+            if (mappings != null && name.endsWith(".class")) {
+                URL resource = findResource(name);
+                if (resource != null) {
+                    try (java.io.InputStream input = resource.openStream()) {
+                        byte[] bytecode = MinecraftClassRemapper.remap(input.readAllBytes(), mappings);
+                        return new java.io.ByteArrayInputStream(bytecode);
+                    } catch (IOException exception) {
+                        LOGGER.log(Level.WARNING, "Cannot remap mod class resource " + name, exception);
+                        return null;
+                    }
+                }
+            }
+            return super.getResourceAsStream(name);
+        }
+
+        @Override
         protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
             synchronized (getClassLoadingLock(name)) {
                 Class<?> loaded = findLoadedClass(name);
