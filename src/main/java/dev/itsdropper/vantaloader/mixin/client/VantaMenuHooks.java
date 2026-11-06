@@ -45,8 +45,12 @@ public final class VantaMenuHooks {
         try {
             int width = numberField(hostScreen, "width");
             int height = numberField(hostScreen, "height");
-            addButton(hostScreen, "VantaLoader", width - 112, height - 28, 104, 20,
-                    () -> openMenu(hostScreen));
+            if (isScreen(hostScreen, "net.minecraft.client.gui.screens.TitleScreen")) {
+                addTitleMenuButton(hostScreen);
+            } else {
+                addButton(hostScreen, "Mods", width - 112, height - 28, 104, 20,
+                        () -> openMenu(hostScreen));
+            }
         } catch (Throwable failure) {
             LOGGER.log(Level.WARNING, "Could not add VantaLoader button to " + hostScreen.getClass().getName(), failure);
         }
@@ -183,7 +187,7 @@ public final class VantaMenuHooks {
             }
             CONFIG_BUTTONS.put(screen, buttons);
             updateConfigButtonPositions(screen, entries, visibleRows(height));
-            addButton(screen, "Back", width - 104, height - 30, 88, 20,
+            addButton(screen, "Done", width / 2 - 100, height - 30, 200, 20,
                     () -> setMinecraftScreen(parentScreen));
         } catch (Throwable failure) {
             LOGGER.log(Level.WARNING, "Could not initialize VantaLoader screen controls", failure);
