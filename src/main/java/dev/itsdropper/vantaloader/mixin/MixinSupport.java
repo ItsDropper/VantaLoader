@@ -66,18 +66,29 @@ public final class MixinSupport {
         LOGGER.info("Sponge Mixin active; discovered " + configs.size() + " mod configuration(s)");
     }
 
+    static List<String> discoverConfigNames(List<ModArtifact> mods) throws IOException {
+        return discoverConfigs(mods).stream().map(ConfigSource::name).toList();
+    }
+
     private static List<ConfigSource> discoverConfigs(List<ModArtifact> mods) throws IOException {
         java.util.Map<String, String> discovered = new java.util.LinkedHashMap<>();
         for (ModArtifact mod : mods) {
             String modId = mod.descriptor().id();
-            for (String declared : mod.descriptor().mixins()) {
-                addConfig(discovered, declared, modId);
-            }
             try (JarFile archive = new JarFile(mod.path().toFile())) {
+                for (String declared : mod.descriptor().mixins()) {
+                    validateConfigPath(declared, modId);
+                    var entry = archive.getJarEntry(declared);
+                    if (entry == null || entry.isDirectory()) {
+                        throw new IOException("Mixin config '" + declared + "' declared by "
+                                + modId + " is missing from its mod JAR");
+                    }
+                    addConfig(discovered, declared, modId);
+                }
                 archive.stream()
                         .filter(entry -> !entry.isDirectory() && entry.getName().endsWith(".mixins.json"))
                         .forEach(entry -> {
                             try {
+                                validateConfigPath(entry.getName(), modId);
                                 addConfig(discovered, entry.getName(), modId);
                             } catch (IOException exception) {
                                 throw new ConfigDiscoveryException(exception);
@@ -91,6 +102,21 @@ public final class MixinSupport {
                 .map(entry -> new ConfigSource(entry.getKey(), entry.getValue()))
                 .sorted(Comparator.comparing(ConfigSource::name).thenComparing(ConfigSource::modId))
                 .toList();
+    }
+
+    private static void validateConfigPath(String path, String modId) throws IOException {
+        if (path == null || path.isBlank() || path.startsWith("/") || path.startsWith("\\")
+                || path.contains("\\\\") || path.matches("^[A-Za-z]:.*")) {
+            throw new IOException("Mixin config path declared by " + modId + " is not a safe JAR resource path");
+        }
+        for (String segment : path.split("/", -1)) {
+            if (segment.isBlank() || segment.equals(".") || segment.equals("..")) {
+                throw new IOException("Mixin config path declared by " + modId + " is not a safe JAR resource path");
+            }
+        }
+        if (!path.endsWith(".mixins.json")) {
+            throw new IOException("Mixin config declared by " + modId + " must end in .mixins.json: " + path);
+        }
     }
 
     private static void addConfig(java.util.Map<String, String> discovered, String path, String modId)
