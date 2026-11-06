@@ -44,7 +44,7 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
      */
     private byte[] transformGuiGraphicsVersionLabel(ClassTransformContext context, byte[] originalClass) {
         String owner = "net.minecraft.client.gui.GuiGraphics";
-        String descriptor = "(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)I";
+        String descriptor = "(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)V";
         String runtimeName = context.mappings().runtimeMethodName(owner, "drawString", descriptor);
         String runtimeDescriptor = context.mappings().runtimeDescriptor(descriptor);
         ClassReader reader = new ClassReader(originalClass);
