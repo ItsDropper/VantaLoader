@@ -39,42 +39,33 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
 
 
     /**
-     * Rewrites the original version-label draw call in TitleScreen.render.
-     * The receiver and all five arguments stay on the operand stack; the static
-     * bridge receives the same values and draws the replacement through GuiGraphics.
+     * Rewrites the native GuiGraphics String draw call in TitleScreen.
+     *
+     * Minecraft 1.21.11 delegates parts of title rendering to private helpers;
+     * scanning only render() misses the footer call on some official client builds.
+     * The exact receiver and descriptor identify the String overload without
+     * depending on the obfuscated method name.
      */
     private byte[] transformTitleScreenRender(ClassTransformContext context, byte[] originalClass) {
-        String owner = "net.minecraft.client.gui.screens.TitleScreen";
-        String renderDescriptor = "(Lnet/minecraft/client/gui/GuiGraphics;IIF)V";
-        String runtimeMethod = context.mappings().runtimeMethodName(owner, "render", renderDescriptor);
-        String runtimeDescriptor = context.mappings().runtimeDescriptor(renderDescriptor);
         String graphicsOwner = context.mappings().runtimeClassName("net.minecraft.client.gui.GuiGraphics")
                 .replace('.', '/');
         String drawDescriptor = "(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)I";
-        String drawMethod = context.mappings().runtimeMethodName(
-                "net.minecraft.client.gui.GuiGraphics", "drawString", drawDescriptor);
         String runtimeDrawDescriptor = context.mappings().runtimeDescriptor(drawDescriptor);
 
         ClassReader reader = new ClassReader(originalClass);
         ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-        boolean[] matchedRender = {false};
         int[] replacedDrawCalls = {0};
         ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
             @Override
             public MethodVisitor visitMethod(int access, String name, String descriptor,
                                              String signature, String[] exceptions) {
                 MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions);
-                if (!runtimeMethod.equals(name) || !runtimeDescriptor.equals(descriptor)) return delegate;
-                if (matchedRender[0]) {
-                    throw new IllegalStateException("Multiple Minecraft title render methods found");
-                }
-                matchedRender[0] = true;
                 return new MethodVisitor(Opcodes.ASM9, delegate) {
                     @Override
                     public void visitMethodInsn(int opcode, String callOwner, String callName,
                                                 String callDescriptor, boolean isInterface) {
                         if (opcode == Opcodes.INVOKEVIRTUAL && graphicsOwner.equals(callOwner)
-                                && drawMethod.equals(callName) && runtimeDrawDescriptor.equals(callDescriptor)) {
+                                && runtimeDrawDescriptor.equals(callDescriptor)) {
                             replacedDrawCalls[0]++;
                             super.visitMethodInsn(Opcodes.INVOKESTATIC, MENU_HOOK_OWNER, "drawTitleVersion",
                                     "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;III)I", false);
@@ -86,10 +77,10 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
             }
         };
         reader.accept(visitor, 0);
-        if (!matchedRender[0] || replacedDrawCalls[0] == 0) {
-            throw new IllegalStateException("Could not locate Minecraft 1.21.11 title version draw call: "
-                    + runtimeMethod + runtimeDescriptor + ", GuiGraphics."
-                    + drawMethod + runtimeDrawDescriptor + ", matches=" + replacedDrawCalls[0]);
+        if (replacedDrawCalls[0] == 0) {
+            throw new IllegalStateException("Could not locate Minecraft 1.21.11 native title version draw call"
+                    + " in any TitleScreen method: GuiGraphics=" + graphicsOwner
+                    + ", descriptor=" + runtimeDrawDescriptor);
         }
         return writer.toByteArray();
     }
