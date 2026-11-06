@@ -280,16 +280,16 @@ def main():
             # of a small anti-aliased button label.
             wait_for_log_marker(process, log_path, "VantaLoader Mods button registered at ", 30)
             logs = log_path.read_text(encoding="utf-8", errors="replace")
-            match = re.search(r"VantaLoader Mods button registered at (\\d+),(\\d+),(\\d+),(\\d+)", logs)
+            match = re.search(r"VantaLoader Mods button registered at (\d+),(\d+),(\d+),(\d+)", logs)
             if not match:
                 raise RuntimeError("Mods button registration was not reported by the title-screen hook")
             x, y, width, height = map(int, match.groups())
             subprocess.run(["scrot", str(output / "main-menu-probe.png")], check=True, timeout=15)
             footer_text = ocr_image(output / "main-menu-probe.png", (0, 695, 250, 719), psm=7)
             shutil.copy2(output / "main-menu-probe.png", output / "main-menu.png")
-            normalized_footer = re.sub(r"\\s+", " ", footer_text).casefold()
+            normalized_footer = re.sub(r"\s+", " ", footer_text).casefold()
             print(f"Mods button bounds (logical): {x},{y},{width},{height}")
-            print("Title footer OCR:", re.sub(r"\\s+", " ", footer_text).strip())
+            print("Title footer OCR:", re.sub(r"\s+", " ", footer_text).strip())
             if "vantaloader" not in normalized_footer or "1.21.11" not in normalized_footer:
                 raise RuntimeError("The title footer was not replaced with VantaLoader (1.21.11); "
                                    f"OCR was {footer_text!r}")
