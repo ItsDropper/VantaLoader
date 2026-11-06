@@ -9,8 +9,6 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.commons.AdviceAdapter;
-import org.objectweb.asm.commons.Method;
 import java.util.Objects;
 
 /** Initial exact-version client adapter for Minecraft 1.21.11. */
@@ -20,7 +18,9 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
     private static final String CLIENT_TICK_METHOD = "tick";
     private static final String CLIENT_TICK_DESCRIPTOR = "()V";
     private static final String HOOK_OWNER = Type.getInternalName(MinecraftHooks.class);
-    private static final Method HOOK_METHOD = new Method("onClientTick", "(Ljava/lang/Object;Z)V");
+    private static final String TICK_HOOK_DESCRIPTOR = "(Ljava/lang/Object;Z)V";
+    private static final String MENU_HOOK_OWNER = "dev/itsdropper/vantaloader/mixin/client/VantaMenuHooks";
+    private static final String MENU_HOOK_DESCRIPTOR = "(Ljava/lang/Object;)V";
 
     @Override public String minecraftVersion() { return VERSION; }
 
@@ -35,9 +35,9 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
     }
 
     private byte[] transformScreenInit(ClassTransformContext context, byte[] originalClass, String screenKind) {
-        String runtimeMethod = context.mappings().runtimeMethodName(
-                screenKind.equals("title") ? "net.minecraft.client.gui.screens.TitleScreen"
-                        : "net.minecraft.client.gui.screens.PauseScreen", "init", "()V");
+        String owner = screenKind.equals("title") ? "net.minecraft.client.gui.screens.TitleScreen"
+                : "net.minecraft.client.gui.screens.PauseScreen";
+        String runtimeMethod = context.mappings().runtimeMethodName(owner, "init", "()V");
         String runtimeDescriptor = context.mappings().runtimeDescriptor("()V");
         ClassReader reader = new ClassReader(originalClass);
         ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
@@ -50,17 +50,22 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
                 if (!runtimeMethod.equals(name) || !runtimeDescriptor.equals(descriptor)) return delegate;
                 if (matched[0]) throw new IllegalStateException("Multiple matching screen init methods found");
                 matched[0] = true;
-                return new AdviceAdapter(Opcodes.ASM9, delegate, access, name, descriptor) {
-                    @Override protected void onMethodExit(int opcode) {
-                        if (opcode != RETURN) return;
-                        loadThis();
-                        invokeStatic(Type.getObjectType("dev/itsdropper/vantaloader/mixin/client/VantaMenuHooks"),
-                                new Method("addMenuButton", "(Ljava/lang/Object;)V"));
+                return new MethodVisitor(Opcodes.ASM9, delegate) {
+                    @Override
+                    public void visitInsn(int opcode) {
+                        if (opcode == Opcodes.RETURN) {
+                            // This hook only consumes the existing receiver. Avoid LocalVariablesSorter:
+                            // Minecraft's obfuscated methods contain complex StackMapTable chop frames.
+                            super.visitVarInsn(Opcodes.ALOAD, 0);
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, MENU_HOOK_OWNER,
+                                    "addMenuButton", MENU_HOOK_DESCRIPTOR, false);
+                        }
+                        super.visitInsn(opcode);
                     }
                 };
             }
         };
-        reader.accept(visitor, ClassReader.EXPAND_FRAMES);
+        reader.accept(visitor, 0);
         if (!matched[0]) {
             throw new IllegalStateException("Expected Minecraft 1.21.11 " + screenKind
                     + " screen init method missing: " + runtimeMethod + runtimeDescriptor);
@@ -84,25 +89,33 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
                 if (!runtimeMethod.equals(name) || !runtimeDescriptor.equals(descriptor)) return delegate;
                 if (matched[0]) throw new IllegalStateException("Multiple matching client tick methods found");
                 matched[0] = true;
-                return new AdviceAdapter(Opcodes.ASM9, delegate, access, name, descriptor) {
-                    @Override protected void onMethodEnter() {
-                        loadThis();
-                        push(true);
-                        invokeStatic(Type.getObjectType(HOOK_OWNER), HOOK_METHOD);
+                return new MethodVisitor(Opcodes.ASM9, delegate) {
+                    @Override
+                    public void visitCode() {
+                        super.visitCode();
+                        super.visitVarInsn(Opcodes.ALOAD, 0);
+                        super.visitInsn(Opcodes.ICONST_1);
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOK_OWNER,
+                                "onClientTick", TICK_HOOK_DESCRIPTOR, false);
                     }
-                    @Override protected void onMethodExit(int opcode) {
-                        if (opcode != RETURN) return;
-                        loadThis();
-                        push(false);
-                        invokeStatic(Type.getObjectType(HOOK_OWNER), HOOK_METHOD);
+
+                    @Override
+                    public void visitInsn(int opcode) {
+                        if (opcode == Opcodes.RETURN) {
+                            super.visitVarInsn(Opcodes.ALOAD, 0);
+                            super.visitInsn(Opcodes.ICONST_0);
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOK_OWNER,
+                                    "onClientTick", TICK_HOOK_DESCRIPTOR, false);
+                        }
+                        super.visitInsn(opcode);
                     }
                 };
             }
         };
-        // AdviceAdapter's LocalVariablesSorter requires expanded StackMapTable frames.
-        // Minecraft's production classes contain these frames even when tiny test
-        // fixtures do not, so expand them before visiting the method.
-        reader.accept(visitor, ClassReader.EXPAND_FRAMES);
+        // The injected calls use only the receiver and operand stack. Preserve the
+        // original StackMapTable verbatim instead of routing frames through a local
+        // variable remapper.
+        reader.accept(visitor, 0);
         if (!matched[0]) {
             throw new IllegalStateException("Expected Minecraft 1.21.11 target missing: "
                     + CLIENT_CLASS + "." + runtimeMethod + runtimeDescriptor);
