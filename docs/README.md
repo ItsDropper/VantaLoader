@@ -4,7 +4,8 @@ VantaLoader is pre-alpha. These documents describe current design direction; pro
 
 ## Architecture
 
-- [Architecture overview](architecture/overview.md) — intended runtime boundaries and design principles.
+- [Architecture overview](architecture/overview.md) — runtime boundaries and design principles.
+- [Vanta Launcher integration contract](architecture/launcher-contract.md) — implemented JVM property handoff, artifact verification responsibilities, and failure behavior.
 - [Transformation pipeline](architecture/transformation-pipeline.md) — current ASM-backed class transformation pipeline and its boundaries.
 - [Minecraft compatibility](architecture/minecraft-compatibility.md) — adapter boundaries, capability negotiation, and Java runtime constraints.
 
