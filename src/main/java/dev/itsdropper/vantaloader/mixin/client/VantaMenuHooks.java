@@ -170,19 +170,6 @@ public final class VantaMenuHooks {
         }
     }
 
-    public static void renderTitleFooter(Object screen, Object graphics) {
-        try {
-            if (!isScreen(screen, "net.minecraft.client.gui.screens.TitleScreen")) return;
-            int height = numberField(screen, "height");
-            Object font = objectField(screen, "font");
-            String version = System.getProperty("vanta.minecraft.version", "unknown");
-            fill(graphics, 0, height - 14, 176, height, 0x80000000);
-            draw(graphics, font, "VantaLoader (" + version + ")", 2, height - 11, 0xFFFFFFFF);
-        } catch (Throwable failure) {
-            LOGGER.log(Level.FINE, "Could not render VantaLoader title footer", failure);
-        }
-    }
-
     public static void initialize(Object screen) {
         ModRuntime current = runtime;
         if (current == null) return;
@@ -213,7 +200,6 @@ public final class VantaMenuHooks {
     }
 
     private static void addTitleMenuButton(Object screen) throws Exception {
-        addTitleVersionLabel(screen);
         Object singleplayer = null, multiplayer = null, realms = null, options = null, quit = null;
         for (Object child : screenChildren(screen)) {
             String label = widgetLabel(child);
@@ -245,32 +231,6 @@ public final class VantaMenuHooks {
             if (options != null) setWidgetY(options, nextY - overflow);
             if (quit != null) setWidgetY(quit, nextY - overflow);
         }
-    }
-
-    private static void addTitleVersionLabel(Object screen) throws Exception {
-        int height = numberField(screen, "height");
-        // The vanilla version string is painted directly by Minecraft, not exposed as a widget.
-        // A disabled vanilla button supplies a clean background patch; the StringWidget above it
-        // provides the replacement label without modifying Minecraft's inherited render method.
-        Object backdrop = addButton(screen, "", 0, height - 19, 184, 19, () -> { });
-        try {
-            mappedMethod(minecraftClass("net.minecraft.client.gui.components.AbstractWidget"),
-                    "net.minecraft.client.gui.components.AbstractWidget", "active", "(Z)V", 1, boolean.class)
-                    .invoke(backdrop, false);
-        } catch (NoSuchMethodException ignored) {
-            // The inert callback remains safe if this minor-version setter is unavailable.
-        }
-        Class<?> widgetType = minecraftClass("net.minecraft.client.gui.components.StringWidget");
-        Class<?> componentType = minecraftClass("net.minecraft.network.chat.Component");
-        Class<?> fontType = minecraftClass("net.minecraft.client.gui.Font");
-        Object font = objectField(screen, "font");
-        Object message = literalComponent("VantaLoader (" + System.getProperty("vanta.minecraft.version", "1.21.11") + ")");
-        Object label = widgetType.getConstructor(int.class, int.class, int.class, int.class, componentType, fontType)
-                .newInstance(2, height - 17, 180, 16, message, font);
-        Class<?> listener = minecraftClass("net.minecraft.client.gui.components.events.GuiEventListener");
-        String owner = "net.minecraft.client.gui.screens.Screen";
-        String descriptor = "(Lnet/minecraft/client/gui/components/events/GuiEventListener;)Lnet/minecraft/client/gui/components/events/GuiEventListener;";
-        mappedMethod(minecraftClass(owner), owner, "addRenderableWidget", descriptor, 1, listener).invoke(screen, label);
     }
 
     private static Object findButtonByLabel(Object screen, String label) throws Exception {
