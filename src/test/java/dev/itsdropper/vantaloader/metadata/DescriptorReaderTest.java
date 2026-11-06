@@ -27,6 +27,7 @@ class DescriptorReaderTest {
                  "entrypoints":{"main":"example.ExampleMod"},
                  "description":"A useful example.","icon":"assets/example/icon.png",
                  "license":"MIT","website":"https://example.com","sources":"https://github.com/example/mod",
+                 "mixins":["example.mixins.json","client/client.mixins.json"],
                  "depends":{"corelib":">=1.0.0"},
                  "recommends":{"maplib":"*"},"suggests":{"optional_ui":">=1.0.0 <2.0.0"},
                  "conflicts":{"old_api":"<2.0.0"},"breaks":{"broken_addon":"*"}}
@@ -37,10 +38,24 @@ class DescriptorReaderTest {
         assertEquals("MIT", d.license());
         assertEquals("https://example.com", d.website());
         assertEquals("https://github.com/example/mod", d.sources());
+        assertEquals(java.util.List.of("example.mixins.json", "client/client.mixins.json"), d.mixins());
         assertTrue(d.recommends().containsKey("maplib"));
         assertTrue(d.suggests().containsKey("optional_ui"));
         assertTrue(d.conflicts().containsKey("old_api"));
         assertTrue(d.breaks().containsKey("broken_addon"));
+    }
+
+    @Test void rejectsUnsafeOrDuplicateMixinConfigPaths() {
+        String unsafe = """
+                {"schemaVersion":1,"id":"example","name":"Example","version":"1.0.0",
+                 "entrypoints":{"main":"example.Main"},"mixins":["../outside.json"]}
+                """;
+        String duplicate = """
+                {"schemaVersion":1,"id":"example","name":"Example","version":"1.0.0",
+                 "entrypoints":{"main":"example.Main"},"mixins":["client.mixins.json","client.mixins.json"]}
+                """;
+        assertThrows(java.io.IOException.class, () -> reader.read(new StringReader(unsafe)));
+        assertThrows(java.io.IOException.class, () -> reader.read(new StringReader(duplicate)));
     }
 
     @Test void rejectsUnsafeIconPaths() {
