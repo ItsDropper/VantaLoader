@@ -3,10 +3,7 @@
   "minVersion": "0.8.7",
   "package": "dev.itsdropper.vantaloader.mixin.client",
   "compatibilityLevel": "JAVA_21",
-  "client": [
-    "TitleScreenMixin",
-    "PauseScreenMixin"
-  ],
+  "client": [],
   "injectors": {
     "defaultRequire": 1
   }
