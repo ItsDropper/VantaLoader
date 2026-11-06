@@ -26,9 +26,46 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
 
     @Override
     public void install(TransformationService transformations) {
-        Objects.requireNonNull(transformations, "transformations")
-                .forMod("vantaloader")
-                .register("minecraft-1.21.11-client-tick", CLIENT_CLASS, 0, this::transformClientTick);
+        var registry = Objects.requireNonNull(transformations, "transformations").forMod("vantaloader");
+        registry.register("minecraft-1.21.11-client-tick", CLIENT_CLASS, 0, this::transformClientTick);
+        registry.register("minecraft-1.21.11-title-screen", "net.minecraft.client.gui.screens.TitleScreen",
+                0, (context, bytes) -> transformScreenInit(context, bytes, "title"));
+        registry.register("minecraft-1.21.11-pause-screen", "net.minecraft.client.gui.screens.PauseScreen",
+                0, (context, bytes) -> transformScreenInit(context, bytes, "pause"));
+    }
+
+    private byte[] transformScreenInit(ClassTransformContext context, byte[] originalClass, String screenKind) {
+        String runtimeMethod = context.mappings().runtimeMethodName(
+                screenKind.equals("title") ? "net.minecraft.client.gui.screens.TitleScreen"
+                        : "net.minecraft.client.gui.screens.PauseScreen", "init", "()V");
+        String runtimeDescriptor = context.mappings().runtimeDescriptor("()V");
+        ClassReader reader = new ClassReader(originalClass);
+        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        boolean[] matched = {false};
+        ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String descriptor,
+                                             String signature, String[] exceptions) {
+                MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions);
+                if (!runtimeMethod.equals(name) || !runtimeDescriptor.equals(descriptor)) return delegate;
+                if (matched[0]) throw new IllegalStateException("Multiple matching screen init methods found");
+                matched[0] = true;
+                return new AdviceAdapter(Opcodes.ASM9, delegate, access, name, descriptor) {
+                    @Override protected void onMethodExit(int opcode) {
+                        if (opcode != RETURN) return;
+                        loadThis();
+                        invokeStatic(Type.getObjectType("dev/itsdropper/vantaloader/mixin/client/VantaMenuHooks"),
+                                new Method("addMenuButton", "(Ljava/lang/Object;)V"));
+                    }
+                };
+            }
+        };
+        reader.accept(visitor, ClassReader.EXPAND_FRAMES);
+        if (!matched[0]) {
+            throw new IllegalStateException("Expected Minecraft 1.21.11 " + screenKind
+                    + " screen init method missing: " + runtimeMethod + runtimeDescriptor);
+        }
+        return writer.toByteArray();
     }
 
     private byte[] transformClientTick(ClassTransformContext context, byte[] originalClass) {
