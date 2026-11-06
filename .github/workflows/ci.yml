@@ -43,10 +43,10 @@ jobs:
       - name: Install headless graphics and screenshot tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb xdotool scrot tesseract-ocr \
-            libgl1-mesa-dri libglx-mesa0 libxrandr2 libxinerama1 \
-            libxcursor1 libxi6 libxrender1 libxtst6 libxkbcommon0 \
-            libopenal1 libasound2t64
+          sudo apt-get install -y xvfb openbox wmctrl xdotool scrot tesseract-ocr \
+            dmz-cursor-theme libflite1 libgl1-mesa-dri libglx-mesa0 \
+            libxrandr2 libxinerama1 libxcursor1 libxi6 libxrender1 \
+            libxtst6 libxkbcommon0 libopenal1 libasound2t64
       - name: Cache Mojang client libraries and assets
         uses: actions/cache@v4
         with:
@@ -58,8 +58,8 @@ jobs:
         run: gradle --no-daemon -p examples/hello-mod clean build
       - name: Launch Minecraft and capture both screens
         run: |
-          xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX +render -noreset" \
-            python3 scripts/ci/minecraft_visual_smoke.py \
+          XCURSOR_THEME=DMZ-White XCURSOR_SIZE=24 xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX +render -noreset" \
+            bash scripts/ci/run_visual_smoke.sh \
               --agent build/agent/VantaLoader-agent.jar \
               --mod examples/hello-mod/build/libs/vantaloader-hello-mod-1.0.0.jar \
               --output build/visual-smoke \

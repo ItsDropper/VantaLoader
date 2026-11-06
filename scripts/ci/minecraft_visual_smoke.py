@@ -151,6 +151,31 @@ def screenshot_and_ocr(path):
                             capture_output=True, text=True, timeout=20)
     return result.stdout
 
+def wait_for_log_marker(process, log_path, marker, timeout):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise RuntimeError(f"Minecraft exited ({process.returncode}); inspect {log_path}")
+        if marker in log_path.read_text(encoding="utf-8", errors="replace"):
+            return
+        time.sleep(1)
+    raise RuntimeError(f"Timed out waiting for Minecraft log marker {marker!r}; inspect {log_path}")
+
+
+def activate_minecraft_window():
+    for _ in range(30):
+        result = subprocess.run(["wmctrl", "-l"], capture_output=True, text=True, check=False)
+        for line in result.stdout.splitlines():
+            if "minecraft" in line.casefold():
+                window_id = line.split()[0]
+                subprocess.run(["wmctrl", "-i", "-a", window_id], check=False)
+                subprocess.run(["wmctrl", "-i", "-r", window_id, "-b", "add,fullscreen"], check=False)
+                time.sleep(2)
+                return
+        time.sleep(1)
+    raise RuntimeError("Minecraft window was not found by the X11 window manager")
+
+
 def wait_for_screen(process, log_path, image_path, required, timeout):
     deadline = time.monotonic() + timeout
     last_text = ""
@@ -186,7 +211,7 @@ def main():
     mods_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(mod, mods_dir / "hello-world.jar")
     (game_dir / "options.txt").write_text(
-        "fullscreen:false\nguiScale:2\nmaxFps:60\nrenderDistance:2\nsimulationDistance:2\n",
+        "fullscreen:false\nguiScale:2\nmaxFps:60\nrenderDistance:2\nsimulationDistance:5\nnarrator:0\n",
         encoding="utf-8"
     )
     features = {"is_demo_user": False, "has_custom_resolution": True,
@@ -224,10 +249,16 @@ def main():
         with log_path.open("w", encoding="utf-8") as log:
             process = subprocess.Popen(command, cwd=game_dir, env=environment,
                                        stdout=log, stderr=subprocess.STDOUT)
-            main_text = wait_for_screen(process, log_path, output / "main-menu-probe.png",
-                                        ("VantaLoader",), args.timeout)
+            wait_for_log_marker(process, log_path, "Sound engine started", min(args.timeout, 180))
+            time.sleep(8)
+            activate_minecraft_window()
+            main_text = screenshot_and_ocr(output / "main-menu-probe.png")
             shutil.copy2(output / "main-menu-probe.png", output / "main-menu.png")
+            normalized_main = re.sub(r"\s+", " ", main_text).casefold()
             print("Main menu OCR:", re.sub(r"\s+", " ", main_text).strip())
+            if "vantaloader" not in normalized_main:
+                raise RuntimeError("The Minecraft title screen did not render the VantaLoader button; "
+                                   f"OCR was {main_text!r}")
 
             # 1280x720 physical display, guiScale=2: button center is logical
             # (580,342), therefore physical (1160,684).
