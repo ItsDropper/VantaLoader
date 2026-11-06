@@ -124,13 +124,13 @@ public final class VantaMixinService extends MixinServiceAbstract
         }
     }
     private InputStream openClassResource(String resource) {
-        for (ClassLoader loader : MixinClassPath.loaders()) {
-            InputStream stream = loader.getResourceAsStream(resource);
-            if (stream != null) return stream;
-        }
         ClassLoader context = Thread.currentThread().getContextClassLoader();
         if (context != null) {
             InputStream stream = context.getResourceAsStream(resource);
+            if (stream != null) return stream;
+        }
+        for (ClassLoader loader : MixinClassPath.loaders()) {
+            InputStream stream = loader.getResourceAsStream(resource);
             if (stream != null) return stream;
         }
         return ClassLoader.getSystemResourceAsStream(resource);
