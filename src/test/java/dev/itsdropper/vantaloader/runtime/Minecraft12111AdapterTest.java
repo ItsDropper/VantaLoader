@@ -78,8 +78,8 @@ class Minecraft12111AdapterTest {
                                                 String methodDescriptor, boolean isInterface) {
                         if (opcode == Opcodes.INVOKESTATIC
                                 && owner.equals("dev/itsdropper/vantaloader/mixin/client/VantaMenuHooks")
-                                && method.equals("drawTitleVersion")
-                                && methodDescriptor.equals("(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;III)I")) {
+                                && method.equals("replaceTitleVersion")
+                                && methodDescriptor.equals("(Ljava/lang/String;)Ljava/lang/String;")) {
                             found[0] = true;
                         }
                     }
