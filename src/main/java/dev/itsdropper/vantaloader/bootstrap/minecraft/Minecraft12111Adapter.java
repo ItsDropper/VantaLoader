@@ -9,6 +9,10 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.analysis.Analyzer;
+import org.objectweb.asm.tree.analysis.BasicInterpreter;
+import org.objectweb.asm.tree.analysis.Frame;
 import java.util.Objects;
 
 /** Initial exact-version client adapter for Minecraft 1.21.11. */
@@ -80,33 +84,38 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         String descriptor = "(Lnet/minecraft/client/gui/GuiGraphics;IIF)V";
         String runtimeMethod = context.mappings().runtimeMethodName(owner, "render", descriptor);
         String runtimeDescriptor = context.mappings().runtimeDescriptor(descriptor);
-        ClassReader reader = new ClassReader(originalClass);
-        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-        boolean[] matched = {false};
-        ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
-            @Override
-            public MethodVisitor visitMethod(int access, String name, String desc,
-                                             String signature, String[] exceptions) {
-                MethodVisitor delegate = super.visitMethod(access, name, desc, signature, exceptions);
-                if (!runtimeMethod.equals(name) || !runtimeDescriptor.equals(desc)) return delegate;
-                if (matched[0]) throw new IllegalStateException("Multiple title render methods found");
-                matched[0] = true;
-                return new MethodVisitor(Opcodes.ASM9, delegate) {
-                    @Override
-                    public void visitInsn(int opcode) {
-                        if (opcode == Opcodes.RETURN) {
-                            super.visitVarInsn(Opcodes.ALOAD, 0);
-                            super.visitVarInsn(Opcodes.ALOAD, 1);
-                            super.visitMethodInsn(Opcodes.INVOKESTATIC, MENU_HOOK_OWNER,
-                                    "renderTitleFooter", "(Ljava/lang/Object;Ljava/lang/Object;)V", false);
-                        }
-                        super.visitInsn(opcode);
-                    }
-                };
+        ClassNode classNode = new ClassNode(Opcodes.ASM9);
+        new ClassReader(originalClass).accept(classNode, ClassReader.EXPAND_FRAMES);
+        MethodNode target = null;
+        for (MethodNode method : classNode.methods) {
+            if (!runtimeMethod.equals(method.name) || !runtimeDescriptor.equals(method.desc)) continue;
+            if (target != null) throw new IllegalStateException("Multiple title render methods found");
+            target = method;
+        }
+        if (target == null) throw new IllegalStateException("Minecraft 1.21.11 title render method missing");
+        try {
+            Frame<?>[] frames = new Analyzer<>(new BasicInterpreter()).analyze(classNode.name, target);
+            int injected = 0;
+            for (int i = 0; i < target.instructions.size(); i++) {
+                AbstractInsnNode instruction = target.instructions.get(i);
+                if (instruction.getOpcode() != Opcodes.RETURN) continue;
+                Frame<?> frame = frames[i];
+                if (frame == null || frame.getLocals() < 2
+                        || frame.getLocal(0) == null || frame.getLocal(1) == null) continue;
+                InsnList hook = new InsnList();
+                hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                hook.add(new VarInsnNode(Opcodes.ALOAD, 1));
+                hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, MENU_HOOK_OWNER,
+                        "renderTitleFooter", "(Ljava/lang/Object;Ljava/lang/Object;)V", false));
+                target.instructions.insertBefore(instruction, hook);
+                injected++;
             }
-        };
-        reader.accept(visitor, 0);
-        if (!matched[0]) throw new IllegalStateException("Minecraft 1.21.11 title render method missing");
+            if (injected == 0) throw new IllegalStateException("No reachable title render return accepts footer hook");
+        } catch (org.objectweb.asm.tree.analysis.AnalyzerException failure) {
+            throw new IllegalStateException("Could not analyze Minecraft title render method", failure);
+        }
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        classNode.accept(writer);
         return writer.toByteArray();
     }
 
