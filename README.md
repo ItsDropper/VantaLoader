@@ -202,6 +202,7 @@ Arbitrary Java class hot replacement is not promised. Resource reload, component
 
 - [Documentation index](docs/README.md)
 - [Architecture overview](docs/architecture/overview.md)
+- [Vanta Launcher integration contract](docs/architecture/launcher-contract.md)
 - [Transformation pipeline](docs/architecture/transformation-pipeline.md)
 - [Minecraft compatibility](docs/architecture/minecraft-compatibility.md)
 - [Native mod quickstart](docs/modding/getting-started.md)
