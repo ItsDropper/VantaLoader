@@ -151,7 +151,7 @@ def install_client(cache):
                                  log_file.get("sha1")))
     return metadata, assets_dir, natives_dir, classpath, logging_path, mappings_path
 
-def ocr_image(path, region=None):
+def ocr_image(path, region=None, psm=6):
     source = path
     if region is not None:
         from PIL import Image
@@ -160,7 +160,7 @@ def ocr_image(path, region=None):
             crop = crop.resize((crop.width * 4, crop.height * 4))
             source = path.with_name(path.stem + "-ocr.png")
             crop.save(source)
-    result = subprocess.run(["tesseract", str(source), "stdout", "--psm", "6"], check=True,
+    result = subprocess.run(["tesseract", str(source), "stdout", "--psm", str(psm)], check=True,
                             capture_output=True, text=True, timeout=20)
     return result.stdout
 
@@ -278,18 +278,22 @@ def main():
             activate_minecraft_window()
             # The Mods button is inserted into the vanilla central button column.
             # Inspect its center crop and the bottom-left version label independently.
-            main_text = screenshot_and_ocr(output / "main-menu-probe.png", (500, 380, 780, 470))
-            footer_text = ocr_image(output / "main-menu-probe.png", (0, 680, 300, 719))
+            main_text = screenshot_and_ocr(output / "main-menu-probe.png", (520, 394, 760, 438))
+            main_text_line = ocr_image(output / "main-menu-probe.png", (520, 394, 760, 438), psm=7)
+            footer_text = ocr_image(output / "main-menu-probe.png", (0, 680, 300, 719), psm=7)
             shutil.copy2(output / "main-menu-probe.png", output / "main-menu.png")
-            normalized_main = re.sub(r"\s+", " ", main_text).casefold()
+            normalized_main = re.sub(r"\s+", " ", main_text + " " + main_text_line).casefold()
             normalized_footer = re.sub(r"\s+", " ", footer_text).casefold()
-            print("Main menu button OCR:", re.sub(r"\s+", " ", main_text).strip())
+            print("Main menu button OCR:", re.sub(r"\s+", " ", main_text + " | " + main_text_line).strip())
             print("Title footer OCR:", re.sub(r"\s+", " ", footer_text).strip())
             if "mods" not in normalized_main:
                 raise RuntimeError("The Minecraft title screen did not render the Mods button; "
                                    f"OCR was {main_text!r}")
-            if "vantaloader" not in normalized_footer:
-                raise RuntimeError("The title footer did not render VantaLoader with the Minecraft version; "
+            if "vantaloader" not in normalized_footer or "1.21.11" not in normalized_footer:
+                raise RuntimeError("The vanilla version draw call was not replaced with VantaLoader (1.21.11); "
+                                   f"OCR was {footer_text!r}")
+            if "minecraft" in normalized_footer:
+                raise RuntimeError("The vanilla Minecraft version label is still present; "
                                    f"OCR was {footer_text!r}")
 
             # 1280x720 physical display, guiScale=2: central Mods button is around
