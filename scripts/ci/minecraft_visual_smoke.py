@@ -151,9 +151,17 @@ def install_client(cache):
                                  log_file.get("sha1")))
     return metadata, assets_dir, natives_dir, classpath, logging_path, mappings_path
 
-def screenshot_and_ocr(path):
+def screenshot_and_ocr(path, region=None):
     subprocess.run(["scrot", str(path)], check=True, timeout=15)
-    result = subprocess.run(["tesseract", str(path), "stdout"], check=True,
+    source = path
+    if region is not None:
+        from PIL import Image
+        with Image.open(path) as screenshot:
+            crop = screenshot.crop(region)
+            crop = crop.resize((crop.width * 4, crop.height * 4))
+            source = path.with_name(path.stem + "-ocr.png")
+            crop.save(source)
+    result = subprocess.run(["tesseract", str(source), "stdout", "--psm", "6"], check=True,
                             capture_output=True, text=True, timeout=20)
     return result.stdout
 
@@ -264,7 +272,10 @@ def main():
             wait_for_log_marker(process, log_path, "Sound engine started", min(args.timeout, 180))
             time.sleep(8)
             activate_minecraft_window()
-            main_text = screenshot_and_ocr(output / "main-menu-probe.png")
+            # The button is deliberately anchored at the lower-right edge. OCR on the full
+            # 1280x720 screenshot routinely drops this small label, so inspect a 4x
+            # enlarged crop while retaining the untouched full-resolution screenshot.
+            main_text = screenshot_and_ocr(output / "main-menu-probe.png", (1035, 640, 1279, 719))
             shutil.copy2(output / "main-menu-probe.png", output / "main-menu.png")
             normalized_main = re.sub(r"\s+", " ", main_text).casefold()
             print("Main menu OCR:", re.sub(r"\s+", " ", main_text).strip())
