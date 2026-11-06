@@ -81,8 +81,11 @@ jobs:
             # GitHub-hosted Ubuntu images already ship with usable apt indexes.
             # Refreshing every repository adds a network-dependent failure point
             # before the actual visual test; install directly from the runner cache.
+            echo "Runner: $(. /etc/os-release && echo "$PRETTY_NAME")"
+            apt-get --version | head -n 1
             sudo env DEBIAN_FRONTEND=noninteractive timeout 180s apt-get install -y \
               --no-install-recommends \
+              -o DPkg::Lock::Timeout=30 \
               -o Acquire::http::Timeout=15 \
               -o Acquire::https::Timeout=15 \
               -o Acquire::Retries=1 \
