@@ -6,6 +6,8 @@ import dev.itsdropper.vantaloader.api.MinecraftCapability;
 import dev.itsdropper.vantaloader.bootstrap.MinecraftHooks;
 import dev.itsdropper.vantaloader.discovery.ModArtifact;
 import dev.itsdropper.vantaloader.transformation.TransformationService;
+import dev.itsdropper.vantaloader.mapping.MinecraftMappings;
+import dev.itsdropper.vantaloader.mapping.MinecraftClassRemapper;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -31,6 +33,7 @@ public final class ModRuntime implements AutoCloseable {
     private final Path configDirectory;
     private final TransformationService transformationService;
     private final MinecraftCapabilities minecraftCapabilities;
+    private final MinecraftMappings minecraftMappings;
     private final List<LoadedMod> initialized = new ArrayList<>();
     private final List<ModClassLoader> classLoaders = new ArrayList<>();
     private final ModEventBus eventBus = new ModEventBus();
@@ -47,10 +50,16 @@ public final class ModRuntime implements AutoCloseable {
 
     public ModRuntime(Path gameDirectory, TransformationService transformationService,
                       MinecraftCapabilities minecraftCapabilities) {
+        this(gameDirectory, transformationService, minecraftCapabilities, null);
+    }
+
+    public ModRuntime(Path gameDirectory, TransformationService transformationService,
+                      MinecraftCapabilities minecraftCapabilities, MinecraftMappings minecraftMappings) {
         this.gameDirectory = gameDirectory.toAbsolutePath().normalize();
         this.configDirectory = this.gameDirectory.resolve("config").resolve("vantaloader");
         this.transformationService = java.util.Objects.requireNonNull(transformationService, "transformationService");
         this.minecraftCapabilities = java.util.Objects.requireNonNull(minecraftCapabilities, "minecraftCapabilities");
+        this.minecraftMappings = minecraftMappings;
     }
 
     public void start(List<ModArtifact> orderedMods) throws Exception {
@@ -71,7 +80,7 @@ public final class ModRuntime implements AutoCloseable {
                     dependencies.add(dependencyLoader);
                 }
                 ModClassLoader loader = new ModClassLoader(toUrl(artifact.path()),
-                        VantaMod.class.getClassLoader(), dependencies);
+                        VantaMod.class.getClassLoader(), dependencies, minecraftMappings);
                 classLoaders.add(loader);
                 loadersById.put(id, loader);
             }
@@ -316,10 +325,41 @@ public final class ModRuntime implements AutoCloseable {
                 "dev.itsdropper.vantaloader.api.", "org.objectweb.asm.", "org.spongepowered.asm."
         };
         private final List<ClassLoader> dependencies;
+        private final MinecraftMappings mappings;
 
-        private ModClassLoader(URL jar, ClassLoader parent, List<ClassLoader> dependencies) {
+        private ModClassLoader(URL jar, ClassLoader parent, List<ClassLoader> dependencies,
+                               MinecraftMappings mappings) {
             super(new URL[]{jar}, parent);
             this.dependencies = List.copyOf(dependencies);
+            this.mappings = mappings;
+        }
+
+        @Override
+        protected Class<?> findClass(String name) throws ClassNotFoundException {
+            String resourceName = name.replace('.', '/') + ".class";
+            URL resource = findResource(resourceName);
+            if (resource == null) throw new ClassNotFoundException(name);
+            try (java.io.InputStream input = resource.openStream()) {
+                byte[] bytecode = input.readAllBytes();
+                if (mappings != null) bytecode = MinecraftClassRemapper.remap(bytecode, mappings);
+
+                int packageSeparator = name.lastIndexOf('.');
+                if (packageSeparator > 0) {
+                    String packageName = name.substring(0, packageSeparator);
+                    synchronized (this) {
+                        if (getDefinedPackage(packageName) == null) {
+                            try {
+                                definePackage(packageName, null, null, null, null, null, null, null);
+                            } catch (IllegalArgumentException alreadyDefined) {
+                                if (getDefinedPackage(packageName) == null) throw alreadyDefined;
+                            }
+                        }
+                    }
+                }
+                return defineClass(name, bytecode, 0, bytecode.length);
+            } catch (IOException exception) {
+                throw new ClassNotFoundException("Cannot read mod class " + name + " from " + resource, exception);
+            }
         }
 
         @Override
