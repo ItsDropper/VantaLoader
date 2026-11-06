@@ -48,7 +48,7 @@ The adapter is fixture-tested, not yet validated against a real game process. If
 2. Add additional lifecycle hooks only after each exact target and descriptor is verified.
 3. Add structured transformation reports and more precise conflict diagnostics.
 4. Implement version-specific adapters for additional Minecraft releases.
-5. Evaluate SpongePowered Mixin interoperability while preserving Mixin's own semantics.
+5. Validate the existing experimental SpongePowered Mixin service against real third-party Mixin mods, then advertise `MIXIN_INTEROP` only after reproducible Minecraft integration tests.
 
 ## Reload constraints
 
