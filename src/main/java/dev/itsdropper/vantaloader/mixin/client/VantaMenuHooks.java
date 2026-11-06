@@ -11,17 +11,26 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /** Reflection-isolated Minecraft screen bridge; game classes never enter the public loader API. */
 public final class VantaMenuHooks {
     private static final Logger LOGGER = Logger.getLogger("VantaLoader.ModMenu");
+    private static final int ROW_HEIGHT = 38;
+    private static final int LIST_TOP = 62;
+    private static final int LIST_BOTTOM_MARGIN = 54;
     private static volatile ModRuntime runtime;
     private static volatile Object parentScreen;
     private static volatile Class<?> generatedScreenClass;
+    private static volatile int scrollOffset;
+    private static final Map<Object, Map<String, Object>> CONFIG_BUTTONS =
+            java.util.Collections.synchronizedMap(new WeakHashMap<>());
 
     private VantaMenuHooks() { }
 
@@ -109,6 +118,19 @@ public final class VantaMenuHooks {
             render.visitMaxs(0, 0);
             render.visitEnd();
 
+            MethodVisitor scroll = writer.visitMethod(Opcodes.ACC_PUBLIC, "mouseScrolled", "(DDDD)Z", null, null);
+            scroll.visitCode();
+            scroll.visitVarInsn(Opcodes.ALOAD, 0);
+            scroll.visitVarInsn(Opcodes.DLOAD, 1);
+            scroll.visitVarInsn(Opcodes.DLOAD, 3);
+            scroll.visitVarInsn(Opcodes.DLOAD, 5);
+            scroll.visitVarInsn(Opcodes.DLOAD, 7);
+            scroll.visitMethodInsn(Opcodes.INVOKESTATIC, hooks, "scroll",
+                    "(Ljava/lang/Object;DDDD)Z", false);
+            scroll.visitInsn(Opcodes.IRETURN);
+            scroll.visitMaxs(0, 0);
+            scroll.visitEnd();
+
             MethodVisitor close = writer.visitMethod(Opcodes.ACC_PUBLIC, "onClose", "()V", null, null);
             close.visitCode();
             close.visitVarInsn(Opcodes.ALOAD, 0);
@@ -130,14 +152,17 @@ public final class VantaMenuHooks {
         try {
             int width = numberField(screen, "width");
             int height = numberField(screen, "height");
+            scrollOffset = 0;
             List<ModMenuEntry> entries = current.modMenuEntries();
-            for (int i = 0; i < entries.size(); i++) {
-                ModMenuEntry entry = entries.get(i);
+            Map<String, Object> buttons = new LinkedHashMap<>();
+            for (ModMenuEntry entry : entries) {
                 if (!entry.hasConfigScreen()) continue;
-                int y = 74 + i * 38;
-                addButton(screen, "Settings", width - 132, y, 112, 20,
+                Object button = addButton(screen, "Settings", width - 132, -1000, 112, 20,
                         () -> openModSettings(screen, entry.id()));
+                buttons.put(entry.id(), button);
             }
+            CONFIG_BUTTONS.put(screen, buttons);
+            updateConfigButtonPositions(screen, entries, visibleRows(height));
             addButton(screen, "Back", width - 104, height - 30, 88, 20,
                     () -> setMinecraftScreen(parentScreen));
         } catch (Throwable failure) {
@@ -157,6 +182,52 @@ public final class VantaMenuHooks {
         }
     }
 
+    public static boolean scroll(Object screen, double mouseX, double mouseY,
+                                 double horizontalAmount, double verticalAmount) {
+        if (verticalAmount == 0) return false;
+        try {
+            int height = numberField(screen, "height");
+            if (mouseY < LIST_TOP - 4 || mouseY > height - LIST_BOTTOM_MARGIN) return false;
+            ModRuntime current = runtime;
+            if (current == null) return false;
+            List<ModMenuEntry> entries = current.modMenuEntries();
+            int visible = visibleRows(height);
+            int next = clampScrollOffset(scrollOffset - (int) Math.signum(verticalAmount),
+                    entries.size(), visible);
+            scrollOffset = next;
+            updateConfigButtonPositions(screen, entries, visible);
+            return true;
+        } catch (Throwable failure) {
+            LOGGER.log(Level.FINE, "Could not update VantaLoader scroll position", failure);
+            return false;
+        }
+    }
+
+    static int visibleRows(int height) {
+        return Math.max(1, (height - 112) / ROW_HEIGHT);
+    }
+
+    static int clampScrollOffset(int requested, int entryCount, int visibleRows) {
+        int maximum = Math.max(0, entryCount - Math.max(1, visibleRows));
+        return Math.max(0, Math.min(requested, maximum));
+    }
+
+    private static void updateConfigButtonPositions(Object screen, List<ModMenuEntry> entries, int visible) {
+        Map<String, Object> buttons = CONFIG_BUTTONS.get(screen);
+        if (buttons == null || buttons.isEmpty()) return;
+        for (int i = 0; i < entries.size(); i++) {
+            Object button = buttons.get(entries.get(i).id());
+            if (button == null) continue;
+            int row = i - scrollOffset;
+            int y = row >= 0 && row < visible ? LIST_TOP + row * ROW_HEIGHT + 7 : -1000;
+            try {
+                setWidgetY(button, y);
+            } catch (Exception failure) {
+                LOGGER.log(Level.FINE, "Could not reposition mod settings button", failure);
+            }
+        }
+    }
+
     public static void render(Object screen, Object graphics, int mouseX, int mouseY, float partialTick) {
         ModRuntime current = runtime;
         if (current == null) return;
@@ -165,29 +236,49 @@ public final class VantaMenuHooks {
             int height = numberField(screen, "height");
             Object font = objectField(screen, "font");
             List<ModMenuEntry> entries = current.modMenuEntries();
+            int visible = visibleRows(height);
+            scrollOffset = clampScrollOffset(scrollOffset, entries.size(), visible);
+            updateConfigButtonPositions(screen, entries, visible);
+
             fill(graphics, 12, 12, width - 12, height - 12, 0xD9101722);
             fill(graphics, 12, 12, width - 12, 14, 0xFF55A8FF);
             var header = current.modMenuHeader();
             centered(graphics, font, header.title(), width / 2, 26, 0xFFFFFFFF);
             centered(graphics, font, header.subtitle(), width / 2, 43, 0xFFB7C7D9);
 
-            int visible = Math.max(0, Math.min(entries.size(), (height - 112) / 38));
-            for (int i = 0; i < visible; i++) {
-                ModMenuEntry entry = entries.get(i);
-                int y = 62 + i * 38;
-                fill(graphics, 22, y, width - 22, y + 34, 0xA51E2A39);
-                fill(graphics, 22, y, 25, y + 34, 0xFF4B9DEB);
-                draw(graphics, font, entry.name() + "  " + entry.version(), 34, y + 3, 0xFFFFFFFF);
-                String details = entry.description() == null ? "No description provided" : entry.description();
-                if (entry.license() != null) details += "  •  " + entry.license();
-                if (entry.website() != null) details += "  •  " + entry.website();
-                if (entry.sources() != null) details += "  •  Source: " + entry.sources();
-                draw(graphics, font, truncate(details, Math.max(12, (width - 190) / 6)),
-                        34, y + 18, 0xFFB7C7D9);
-            }
-            if (entries.size() > visible) {
-                centered(graphics, font, (entries.size() - visible) + " more mods — scroll support coming later",
-                        width / 2, height - 48, 0xFF8EA3BA);
+            if (entries.isEmpty()) {
+                centered(graphics, font, "No mods loaded", width / 2, 112, 0xFFB7C7D9);
+            } else {
+                int end = Math.min(entries.size(), scrollOffset + visible);
+                enableScissor(graphics, 22, LIST_TOP - 4, width - 22, height - LIST_BOTTOM_MARGIN);
+                try {
+                    for (int index = scrollOffset; index < end; index++) {
+                        ModMenuEntry entry = entries.get(index);
+                        int row = index - scrollOffset;
+                        int y = LIST_TOP + row * ROW_HEIGHT;
+                        fill(graphics, 22, y, width - 22, y + 34, 0xA51E2A39);
+                        fill(graphics, 22, y, 25, y + 34, 0xFF4B9DEB);
+                        fill(graphics, 30, y + 3, 58, y + 31, 0xFF263C54);
+                        String initial = entry.name().isBlank() ? "?" :
+                                entry.name().substring(0, 1).toUpperCase(java.util.Locale.ROOT);
+                        centered(graphics, font, initial, 44, y + 12, 0xFFFFFFFF);
+                        draw(graphics, font, entry.name() + "  " + entry.version(), 66, y + 3, 0xFFFFFFFF);
+                        String details = entry.description() == null ? "No description provided" : entry.description();
+                        if (entry.license() != null) details += "  •  " + entry.license();
+                        if (entry.website() != null) details += "  •  " + entry.website();
+                        if (entry.sources() != null) details += "  •  Source: " + entry.sources();
+                        draw(graphics, font, truncate(details, Math.max(12, (width - 245) / 6)),
+                                66, y + 18, 0xFFB7C7D9);
+                    }
+                } finally {
+                    disableScissor(graphics);
+                }
+                if (entries.size() > visible) {
+                    int first = scrollOffset + 1;
+                    centered(graphics, font, "Showing " + first + "–" + end + " of " + entries.size()
+                                    + "  •  Scroll to browse",
+                            width / 2, height - 48, 0xFF8EA3BA);
+                }
             }
         } catch (Throwable failure) {
             LOGGER.log(Level.FINE, "VantaLoader screen rendering skipped", failure);
@@ -195,10 +286,12 @@ public final class VantaMenuHooks {
     }
 
     public static void close(Object screen) {
+        CONFIG_BUTTONS.remove(screen);
+        scrollOffset = 0;
         setMinecraftScreen(parentScreen);
     }
 
-    private static void addButton(Object screen, String label, int x, int y, int width, int height, Runnable action)
+    private static Object addButton(Object screen, String label, int x, int y, int width, int height, Runnable action)
             throws Exception {
         ClassLoader loader = screen.getClass().getClassLoader();
         Class<?> componentType = Class.forName("net.minecraft.network.chat.Component", true, loader);
@@ -226,6 +319,22 @@ public final class VantaMenuHooks {
         Method add = findMethod(screen.getClass(), "addRenderableWidget", 1);
         add.setAccessible(true);
         add.invoke(screen, button);
+        return button;
+    }
+
+    private static void setWidgetY(Object widget, int y) throws Exception {
+        Method setter = findMethod(widget.getClass(), "setY", 1);
+        setter.setAccessible(true);
+        setter.invoke(widget, y);
+    }
+
+    private static void enableScissor(Object graphics, int left, int top, int right, int bottom) throws Exception {
+        graphics.getClass().getMethod("enableScissor", int.class, int.class, int.class, int.class)
+                .invoke(graphics, left, top, right, bottom);
+    }
+
+    private static void disableScissor(Object graphics) throws Exception {
+        graphics.getClass().getMethod("disableScissor").invoke(graphics);
     }
 
     private static void setMinecraftScreen(Object target) {
