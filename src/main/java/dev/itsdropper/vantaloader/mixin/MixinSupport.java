@@ -39,7 +39,9 @@ public final class MixinSupport {
             MixinEnvironment.getCurrentEnvironment().setSide(MixinEnvironment.Side.CLIENT);
             initialized = true;
         }
-        if (REGISTERED_CONFIGS.add(BUILTIN_CLIENT_CONFIG)) {
+        boolean builtInClientScreen = "1.21.11".equals(
+                System.getProperty("vanta.minecraft.version", "unknown"));
+        if (builtInClientScreen && REGISTERED_CONFIGS.add(BUILTIN_CLIENT_CONFIG)) {
             Mixins.addConfiguration(BUILTIN_CLIENT_CONFIG);
         }
 
