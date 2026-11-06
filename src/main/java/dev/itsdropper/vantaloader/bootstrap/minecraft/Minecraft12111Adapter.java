@@ -96,8 +96,9 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
                     public void visitInsn(int opcode) {
                         if (opcode == Opcodes.RETURN) {
                             super.visitVarInsn(Opcodes.ALOAD, 0);
+                            super.visitVarInsn(Opcodes.ALOAD, 1);
                             super.visitMethodInsn(Opcodes.INVOKESTATIC, MENU_HOOK_OWNER,
-                                    "renderTitleFooter", "(Ljava/lang/Object;)V", false);
+                                    "renderTitleFooter", "(Ljava/lang/Object;Ljava/lang/Object;)V", false);
                         }
                         super.visitInsn(opcode);
                     }
