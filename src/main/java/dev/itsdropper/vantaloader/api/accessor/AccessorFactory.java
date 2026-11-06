@@ -41,8 +41,8 @@ public final class AccessorFactory {
                 throw new IllegalArgumentException("Accessor method must declare @Accessor or @Invoker: " + method);
             }
             bindings.add(new Binding(method, accessor != null
-                    ? resolveField(target.getClass(), method, accessor.value())
-                    : resolveMethod(target.getClass(), method, invoker.value())));
+                    ? resolveField(target.getClass(), target, method, accessor.value())
+                    : resolveMethod(target.getClass(), target, method, invoker.value())));
         }
 
         InvocationHandler handler = (proxy, method, args) -> {
@@ -68,7 +68,7 @@ public final class AccessorFactory {
         return accessorType.cast(proxy);
     }
 
-    private static MethodHandle resolveField(Class<?> targetType, Method accessor, String explicitName) {
+    private static MethodHandle resolveField(Class<?> targetType, Object target, Method accessor, String explicitName) {
         String fieldName = explicitName.isBlank() ? inferFieldName(accessor) : explicitName;
         boolean getter = accessor.getParameterCount() == 0 && accessor.getReturnType() != void.class;
         boolean setter = accessor.getParameterCount() == 1 && accessor.getReturnType() == void.class;
@@ -79,27 +79,24 @@ public final class AccessorFactory {
         for (Class<?> owner = targetType; owner != null; owner = owner.getSuperclass()) {
             try {
                 MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(owner, MethodHandles.lookup());
-                if (getter) return lookup.findGetter(owner, fieldName, accessor.getReturnType());
-                return lookup.findSetter(owner, fieldName, accessor.getParameterTypes()[0]);
+                if (getter) return lookup.findGetter(owner, fieldName, accessor.getReturnType()).bindTo(target);
+                return lookup.findSetter(owner, fieldName, accessor.getParameterTypes()[0]).bindTo(target);
             } catch (NoSuchFieldException ignored) {
                 // Continue into the superclass.
             } catch (IllegalAccessException exception) {
                 throw inaccessible("field", owner, fieldName, exception);
-            } catch (NoSuchMethodException exception) {
-                throw new IllegalArgumentException("Field '" + fieldName
-                        + "' has a different type than accessor " + accessor, exception);
             }
         }
         throw new IllegalArgumentException("No field '" + fieldName + "' found on " + targetType.getName());
     }
 
-    private static MethodHandle resolveMethod(Class<?> targetType, Method accessor, String explicitName) {
+    private static MethodHandle resolveMethod(Class<?> targetType, Object target, Method accessor, String explicitName) {
         String methodName = explicitName.isBlank() ? inferInvokedMethodName(accessor) : explicitName;
         MethodType type = MethodType.methodType(accessor.getReturnType(), accessor.getParameterTypes());
         for (Class<?> owner = targetType; owner != null; owner = owner.getSuperclass()) {
             try {
                 MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(owner, MethodHandles.lookup());
-                return lookup.findVirtual(owner, methodName, type);
+                return lookup.findVirtual(owner, methodName, type).bindTo(target);
             } catch (NoSuchMethodException ignored) {
                 // Continue into the superclass.
             } catch (IllegalAccessException exception) {
