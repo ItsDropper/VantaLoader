@@ -142,7 +142,7 @@ public final class VantaMixinService extends MixinServiceAbstract
     }
     @Override public String getClassRestrictions(String className) { return ""; }
     @Override public Collection<ITransformer> getTransformers() {
-        return transformer == null ? List.of() : List.of((ITransformer) transformer);
+        return List.of();
     }
     @Override public Collection<ITransformer> getDelegatedTransformers() { return List.of(); }
     @Override public void addTransformerExclusion(String name) { }
