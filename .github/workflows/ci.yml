@@ -26,6 +26,8 @@ jobs:
       - name: Build proof example mod
         working-directory: examples/proof-mod
         run: gradle --no-daemon clean build
+      - name: Build Auto Sprint gameplay mod
+        run: gradle --no-daemon -p examples/auto-sprint clean build
 
   minecraft-visual-smoke:
     name: Minecraft title and mod-menu screenshots
@@ -70,7 +72,7 @@ jobs:
 
           if (("${#packages[@]}" > 0)); then
             echo "Installing missing packages: ${packages[*]}"
-            # Keep dependency installation bounded; screenshot OCR is not used by this smoke test.
+            # Keep dependency installation bounded; the JDK captures screenshots directly.
             echo "Runner: $(. /etc/os-release && echo "$PRETTY_NAME")"
             apt-get --version | head -n 1
             sudo env DEBIAN_FRONTEND=noninteractive timeout 180s apt-get install -y \
