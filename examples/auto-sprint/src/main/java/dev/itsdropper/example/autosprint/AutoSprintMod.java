@@ -17,9 +17,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 /** Automatically sprints while forward is held, using verified runtime mappings. */
 public final class AutoSprintMod implements VantaMod {
+    private static final Logger LOGGER = Logger.getLogger("VantaLoader.AutoSprint");
     private static final String TARGET = "net.minecraft.client.player.LocalPlayer";
     private static final String MINECRAFT = "net.minecraft.client.Minecraft";
     private static final String OPTIONS = "net.minecraft.client.Options";
@@ -148,7 +150,7 @@ public final class AutoSprintMod implements VantaMod {
             throw new IllegalStateException("Expected exactly one mapped LocalPlayer.aiStep()V method, found "
                     + matches[0] + " in " + runtimeTarget);
         }
-        this.context.logger().fine("Applied Auto Sprint to " + runtimeTarget + "." + tickName);
+        LOGGER.fine("Applied Auto Sprint to " + runtimeTarget + "." + tickName);
         return writer.toByteArray();
     }
 
