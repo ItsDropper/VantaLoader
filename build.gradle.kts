@@ -9,6 +9,7 @@ version = providers.gradleProperty("vantaVersion").orElse("0.1.0-SNAPSHOT").get(
 repositories { mavenCentral() }
 dependencies {
     implementation("com.google.code.gson:gson:2.13.2")
+    implementation("net.fabricmc:sponge-mixin:0.17.5+mixin.0.8.7")
     // Shared bytecode toolkit exposed to native mods through the agent classpath.
     implementation("org.ow2.asm:asm:9.11.1")
     implementation("org.ow2.asm:asm-tree:9.11.1")
