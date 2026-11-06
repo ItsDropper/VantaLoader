@@ -169,16 +169,21 @@ def wait_for_log_marker(process, log_path, marker, timeout):
 
 def activate_minecraft_window():
     for _ in range(30):
-        result = subprocess.run(["wmctrl", "-l"], capture_output=True, text=True, check=False)
-        for line in result.stdout.splitlines():
-            if "minecraft" in line.casefold():
-                window_id = line.split()[0]
-                subprocess.run(["wmctrl", "-i", "-a", window_id], check=False)
-                subprocess.run(["wmctrl", "-i", "-r", window_id, "-b", "add,fullscreen"], check=False)
-                time.sleep(2)
-                return
+        result = subprocess.run(
+            ["xdotool", "search", "--onlyvisible", "--name", "Minecraft"],
+            capture_output=True, text=True, check=False
+        )
+        window_ids = result.stdout.split()
+        if window_ids:
+            window_id = window_ids[-1]
+            subprocess.run(["xdotool", "windowraise", window_id], check=True, timeout=10)
+            subprocess.run(["xdotool", "windowmove", window_id, "0", "0"], check=True, timeout=10)
+            subprocess.run(["xdotool", "windowsize", window_id, "1280", "720"], check=True, timeout=10)
+            subprocess.run(["xdotool", "windowfocus", window_id], check=True, timeout=10)
+            time.sleep(2)
+            return
         time.sleep(1)
-    raise RuntimeError("Minecraft window was not found by the X11 window manager")
+    raise RuntimeError("Minecraft window was not found by xdotool")
 
 
 def main():
@@ -255,7 +260,8 @@ def main():
             if not match:
                 raise RuntimeError("Mods button registration was not reported by the title-screen hook")
             x, y, width, height = map(int, match.groups())
-            subprocess.run(["scrot", str(output / "main-menu-probe.png")], check=True, timeout=15)
+            subprocess.run(["java", "-cp", str(Path(__file__).resolve().parent), "ScreenCapture",
+                            str(output / "main-menu-probe.png")], check=True, timeout=15)
             # Preserve the title-screen screenshot without testing footer text.
             shutil.copy2(output / "main-menu-probe.png", output / "main-menu.png")
             print(f"Mods button bounds (logical): {x},{y},{width},{height}")
@@ -274,9 +280,10 @@ def main():
             subprocess.run(["xdotool", "mousemove", "--sync", "20", "20"],
                            check=True, timeout=10)
             time.sleep(1)
-            subprocess.run(["scrot", str(output / "mod-menu-probe.png")], check=True, timeout=15)
+            subprocess.run(["java", "-cp", str(Path(__file__).resolve().parent), "ScreenCapture",
+                            str(output / "mod-menu-probe.png")], check=True, timeout=15)
             shutil.copy2(output / "mod-menu-probe.png", output / "mod-menu.png")
-            print("Mod menu confirmed by runtime render hook; one mod entry loaded.")
+            print(f"Mod menu confirmed by runtime render hook; {len(mods)} mod entries loaded.")
 
         logs = log_path.read_text(encoding="utf-8", errors="replace")
         required = ("Sponge Mixin active", "Initialized hello_world 1.0.0",
