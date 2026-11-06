@@ -48,7 +48,7 @@ Milestones describe intended work, not promises or release dates. A milestone is
 - [x] Download and validate official client mappings in Vanta Launcher; parse class mappings and dispatch named class targets to obfuscated runtime classes.
 - [x] Parse official method/field mappings and resolve member names using exact named JVM descriptors.
 - [ ] Add version-specific target adapters, hierarchy-aware frame computation, and conflict reports.
-- [ ] Evaluate and implement a SpongePowered Mixin compatibility adapter.
+- [x] Implement an experimental SpongePowered Mixin service/bootstrap, mod-container classpath, and per-mod configuration discovery/registration.\n- [ ] Verify third-party Mixin mods against real Minecraft targets and publish an explicit compatibility matrix.
 - [ ] Verify behavior against real Minecraft targets.
 
 **Exit criteria:** a native test mod changes a verified in-game behavior, and transformation failures are diagnosable.
