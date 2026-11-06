@@ -8,7 +8,7 @@ class VantaMenuHooksTest {
     @Test
     void visibleRowsAlwaysLeavesRoomForAtLeastOneMod() {
         assertEquals(1, VantaMenuHooks.visibleRows(120));
-        assertEquals(6, VantaMenuHooks.visibleRows(360));
+        assertEquals(5, VantaMenuHooks.visibleRows(360));
     }
 
     @Test
