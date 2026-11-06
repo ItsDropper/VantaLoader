@@ -75,6 +75,12 @@ public final class ModRuntime implements AutoCloseable {
                 loadersById.put(id, loader);
             }
 
+            if (minecraftCapabilities.supports(MinecraftCapability.CLASS_TRANSFORMATIONS)) {
+                dev.itsdropper.vantaloader.mixin.MixinSupport.initialize(
+                        new ArrayList<>(classLoaders),
+                        orderedMods.stream().map(ModArtifact::path).toList());
+            }
+
             for (ModArtifact artifact : orderedMods) {
                 ModClassLoader loader = loadersById.get(artifact.descriptor().id());
                 ModEventBus.Scope eventScope = new ModEventBus.Scope(eventBus);
@@ -306,7 +312,7 @@ public final class ModRuntime implements AutoCloseable {
     private static final class ModClassLoader extends URLClassLoader {
         private static final String[] PARENT_FIRST = {
                 "java.", "javax.", "jdk.", "sun.", "com.sun.",
-                "dev.itsdropper.vantaloader.api.", "org.objectweb.asm."
+                "dev.itsdropper.vantaloader.api.", "org.objectweb.asm.", "org.spongepowered.asm."
         };
         private final List<ClassLoader> dependencies;
 
