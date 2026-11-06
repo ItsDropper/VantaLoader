@@ -213,6 +213,7 @@ public final class VantaMenuHooks {
     }
 
     private static void addTitleMenuButton(Object screen) throws Exception {
+        addTitleVersionLabel(screen);
         Object singleplayer = null, multiplayer = null, realms = null, options = null, quit = null;
         for (Object child : screenChildren(screen)) {
             String label = widgetLabel(child);
@@ -247,19 +248,31 @@ public final class VantaMenuHooks {
     }
 
     private static void addTitleVersionLabel(Object screen) throws Exception {
+        int height = numberField(screen, "height");
+        // The vanilla version string is painted directly by Minecraft, not exposed as a widget.
+        // A disabled vanilla button supplies a clean background patch; the StringWidget above it
+        // provides the replacement label without modifying Minecraft's inherited render method.
+        Object backdrop = addButton(screen, "", 0, height - 19, 184, 19, () -> { });
+        try {
+            mappedMethod(minecraftClass("net.minecraft.client.gui.components.AbstractWidget"),
+                    "net.minecraft.client.gui.components.AbstractWidget", "active", "(Z)V", 1, boolean.class)
+                    .invoke(backdrop, false);
+        } catch (NoSuchMethodException ignored) {
+            // The inert callback remains safe if this minor-version setter is unavailable.
+        }
         Class<?> widgetType = minecraftClass("net.minecraft.client.gui.components.StringWidget");
         Class<?> componentType = minecraftClass("net.minecraft.network.chat.Component");
         Class<?> fontType = minecraftClass("net.minecraft.client.gui.Font");
         Object font = objectField(screen, "font");
         Object message = literalComponent("VantaLoader (" + System.getProperty("vanta.minecraft.version", "1.21.11") + ")");
-        int height = numberField(screen, "height");
         Object label = widgetType.getConstructor(int.class, int.class, int.class, int.class, componentType, fontType)
-                .newInstance(2, height - 14, 220, 12, message, font);
+                .newInstance(2, height - 17, 180, 16, message, font);
         Class<?> listener = minecraftClass("net.minecraft.client.gui.components.events.GuiEventListener");
         String owner = "net.minecraft.client.gui.screens.Screen";
         String descriptor = "(Lnet/minecraft/client/gui/components/events/GuiEventListener;)Lnet/minecraft/client/gui/components/events/GuiEventListener;";
         mappedMethod(minecraftClass(owner), owner, "addRenderableWidget", descriptor, 1, listener).invoke(screen, label);
     }
+
     private static Object findButtonByLabel(Object screen, String label) throws Exception {
         for (Object child : screenChildren(screen)) if (label.equals(widgetLabel(child))) return child;
         return null;
