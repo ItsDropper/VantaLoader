@@ -503,6 +503,26 @@ public final class VantaMenuHooks {
         return mappings == null ? name : mappings.toRuntimeMethodName(owner, name, descriptor);
     }
 
+
+    /**
+     * Draws the native title-screen version label, replacing only Minecraft's own
+     * version string. All other title-screen drawString calls remain unchanged.
+     */
+    public static int drawTitleVersion(Object graphics, Object font, String original,
+                                       int x, int y, int color) {
+        String label = original != null && original.startsWith("Minecraft ")
+                ? "VantaLoader (" + System.getProperty("vanta.minecraft.version", "unknown") + ")"
+                : original;
+        try {
+            Method drawString = mappedMethod(graphics.getClass(), "net.minecraft.client.gui.GuiGraphics",
+                    "drawString", "(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)I",
+                    5, font.getClass(), String.class, int.class, int.class, int.class);
+            return ((Number) drawString.invoke(graphics, font, label, x, y, color)).intValue();
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException("Could not draw the VantaLoader title version label", failure);
+        }
+    }
+
     private static Method mappedMethod(Class<?> runtimeOwner, String namedOwner, String namedName,
                                        String descriptor, int parameterCount, Class<?>... parameterTypes)
             throws NoSuchMethodException {
