@@ -95,8 +95,13 @@ public final class ModRuntime implements AutoCloseable {
                 ModClassLoader loader = loadersById.get(artifact.descriptor().id());
                 ModEventBus.Scope eventScope = new ModEventBus.Scope(eventBus);
                 LoadedMod mod = instantiate(artifact, loader, eventScope);
-                initialized.add(mod);
-                invokeInitialize(mod, artifact, eventScope);
+                try {
+                    invokeInitialize(mod, artifact, eventScope);
+                    initialized.add(mod);
+                } catch (Exception | Error failure) {
+                    eventScope.close();
+                    throw failure;
+                }
                 LOGGER.info("Initialized " + mod.id() + " " + artifact.descriptor().version());
             }
             MinecraftHooks.bind(eventBus);
