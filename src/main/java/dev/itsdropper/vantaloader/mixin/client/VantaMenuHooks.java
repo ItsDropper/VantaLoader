@@ -213,7 +213,6 @@ public final class VantaMenuHooks {
     }
 
     private static void addTitleMenuButton(Object screen) throws Exception {
-        addTitleVersionLabel(screen);
         Object singleplayer = null, multiplayer = null, realms = null, options = null, quit = null;
         for (Object child : screenChildren(screen)) {
             String label = widgetLabel(child);
@@ -226,9 +225,7 @@ public final class VantaMenuHooks {
             else if (value.contains("quit")) quit = child;
         }
         if (realms == null) {
-            int width = numberField(screen, "width"), height = numberField(screen, "height");
-            addButton(screen, "Mods", width / 2 - 100, height / 2 + 72, 200, 20, () -> openMenu(screen));
-            return;
+            throw new IllegalStateException("Could not locate vanilla title-screen Realms button");
         }
         int x = widgetNumber(realms, "getX"), y = widgetNumber(realms, "getY");
         int w = widgetNumber(realms, "getWidth"), h = widgetNumber(realms, "getHeight");
@@ -276,7 +273,7 @@ public final class VantaMenuHooks {
 
     private static String widgetLabel(Object widget) {
         try {
-            Object component = mappedMethod(widget.getClass(), "net.minecraft.client.gui.components.AbstractButton",
+            Object component = mappedMethod(widget.getClass(), "net.minecraft.client.gui.components.AbstractWidget",
                     "getMessage", "()Lnet/minecraft/network/chat/Component;", 0).invoke(widget);
             return (String) mappedMethod(component.getClass(), "net.minecraft.network.chat.Component",
                     "getString", "()Ljava/lang/String;", 0).invoke(component);
