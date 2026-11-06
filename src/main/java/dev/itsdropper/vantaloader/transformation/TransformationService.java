@@ -112,7 +112,13 @@ public final class TransformationService implements ClassFileTransformer {
                 if (mixinTransformed == null || mixinTransformed.length == 0) {
                     throw new IllegalStateException("Sponge Mixin returned an empty class for " + binaryName);
                 }
-                if (!java.util.Arrays.equals(current, mixinTransformed)) changed = true;
+                boolean mixinChanged = !java.util.Arrays.equals(current, mixinTransformed);
+                if (mappings != null
+                        && "net.minecraft.client.gui.screens.TitleScreen".equals(
+                                mappings.toNamedClassName(binaryName))) {
+                    LOGGER.info("Sponge Mixin processed Minecraft TitleScreen; bytecodeChanged=" + mixinChanged);
+                }
+                if (mixinChanged) changed = true;
                 current = mixinTransformed.clone();
             } catch (Throwable failure) {
                 if (failure instanceof VirtualMachineError fatal) throw fatal;
