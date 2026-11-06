@@ -172,6 +172,7 @@ public final class VantaMenuHooks {
 
     public static void renderTitleFooter(Object screen, Object graphics) {
         try {
+            if (!isScreen(screen, "net.minecraft.client.gui.screens.TitleScreen")) return;
             int height = numberField(screen, "height");
             Object font = objectField(screen, "font");
             String version = System.getProperty("vanta.minecraft.version", "unknown");
