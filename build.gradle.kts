@@ -67,6 +67,9 @@ val agentJar by tasks.registering(Jar::class) {
             "Implementation-Version" to project.version,
             "Implementation-Vendor" to "ItsDropper"
         )
+        // Mixin detects ASM's minor version from package manifest metadata.
+        // A shaded agent JAR must retain the ASM package version explicitly.
+        attributes(mapOf("Implementation-Version" to "9.8"), "org/objectweb/asm/")
     }
 }
 
@@ -116,6 +119,9 @@ val verifyAgentJar by tasks.registering {
             check(attributes.getValue("Premain-Class")
                 == "dev.itsdropper.vantaloader.bootstrap.VantaLoaderAgent") {
                 "VantaLoader agent JAR is missing its Premain-Class manifest entry"
+            }
+            check(jar.manifest.entries["org/objectweb/asm/"]?.getValue("Implementation-Version") == "9.8") {
+                "VantaLoader agent JAR must preserve ASM's package implementation version for Mixin compatibility checks"
             }
             check(jar.getEntry("dev/itsdropper/vantaloader/bootstrap/VantaLoaderAgent.class") != null) {
                 "VantaLoader agent class is missing from the packaged artifact"
