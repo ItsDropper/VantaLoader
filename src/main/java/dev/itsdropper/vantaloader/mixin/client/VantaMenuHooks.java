@@ -319,7 +319,10 @@ public final class VantaMenuHooks {
         Object component = literalComponent(label);
         Object press = Proxy.newProxyInstance(buttonType.getClassLoader(), new Class<?>[]{pressType},
                 (proxy, method, args) -> {
-                    if (method.getParameterCount() == 1 && method.getReturnType() == void.class) action.run();
+                    if (method.getParameterCount() == 1 && method.getReturnType() == void.class) {
+                        if ("VantaLoader".equals(label)) LOGGER.info("VantaLoader menu button activated");
+                        action.run();
+                    }
                     return null;
                 });
         String buttonName = "net.minecraft.client.gui.components.Button";
