@@ -64,7 +64,8 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         };
         // AdviceAdapter's LocalVariablesSorter requires expanded StackMapTable frames.
         // Minecraft's production classes contain these frames even when tiny test
-        // fixtures do not, so expand them before visiting the method.\n        reader.accept(visitor, ClassReader.EXPAND_FRAMES);
+        // fixtures do not, so expand them before visiting the method.
+        reader.accept(visitor, ClassReader.EXPAND_FRAMES);
         if (!matched[0]) {
             throw new IllegalStateException("Expected Minecraft 1.21.11 target missing: "
                     + CLIENT_CLASS + "." + runtimeMethod + runtimeDescriptor);
