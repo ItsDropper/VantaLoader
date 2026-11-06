@@ -49,6 +49,15 @@ class MixinSupportTest {
     }
 
     @Test
+    void rejectsBackslashesInMixinResourcePaths() throws Exception {
+        Path jar = createModJar("backslash.jar", "nested\\\\escape.mixins.json");
+        ModArtifact artifact = artifact("backslash", jar, List.of("nested\\\\escape.mixins.json"));
+
+        assertThrows(IOException.class,
+                () -> MixinSupport.discoverConfigNames(List.of(artifact)));
+    }
+
+    @Test
     void rejectsTheSameMixinConfigClaimedByDifferentMods() throws Exception {
         Path firstJar = createModJar("first.jar", "shared.mixins.json");
         Path secondJar = createModJar("second.jar", "shared.mixins.json");
