@@ -64,6 +64,10 @@ jobs:
             fi
           done
 
+          if ! dpkg-query -W -f='${Status}' python3-pil 2>/dev/null | grep -q "install ok installed"; then
+            packages+=(python3-pil)
+          fi
+
           for package in libgl1-mesa-dri libglx-mesa0 libxrandr2 libxinerama1 \
                          libxcursor1 libxi6 libxrender1 libxtst6 libxkbcommon0 \
                          libopenal1 libasound2t64; do
