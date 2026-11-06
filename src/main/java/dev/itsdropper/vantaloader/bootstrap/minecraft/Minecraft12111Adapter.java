@@ -30,6 +30,8 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         registry.register("minecraft-1.21.11-client-tick", CLIENT_CLASS, 0, this::transformClientTick);
         registry.register("minecraft-1.21.11-title-screen", "net.minecraft.client.gui.screens.TitleScreen",
                 0, (context, bytes) -> transformScreenInit(context, bytes, "title"));
+        registry.register("minecraft-1.21.11-title-footer", "net.minecraft.client.gui.screens.TitleScreen",
+                1, this::transformTitleRender);
         registry.register("minecraft-1.21.11-pause-screen", "net.minecraft.client.gui.screens.PauseScreen",
                 0, (context, bytes) -> transformScreenInit(context, bytes, "pause"));
     }
@@ -70,6 +72,40 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
             throw new IllegalStateException("Expected Minecraft 1.21.11 " + screenKind
                     + " screen init method missing: " + runtimeMethod + runtimeDescriptor);
         }
+        return writer.toByteArray();
+    }
+
+    private byte[] transformTitleRender(ClassTransformContext context, byte[] originalClass) {
+        String owner = "net.minecraft.client.gui.screens.TitleScreen";
+        String descriptor = "(Lnet/minecraft/client/gui/GuiGraphics;IIF)V";
+        String runtimeMethod = context.mappings().runtimeMethodName(owner, "render", descriptor);
+        String runtimeDescriptor = context.mappings().runtimeDescriptor(descriptor);
+        ClassReader reader = new ClassReader(originalClass);
+        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        boolean[] matched = {false};
+        ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String desc,
+                                             String signature, String[] exceptions) {
+                MethodVisitor delegate = super.visitMethod(access, name, desc, signature, exceptions);
+                if (!runtimeMethod.equals(name) || !runtimeDescriptor.equals(desc)) return delegate;
+                if (matched[0]) throw new IllegalStateException("Multiple title render methods found");
+                matched[0] = true;
+                return new MethodVisitor(Opcodes.ASM9, delegate) {
+                    @Override
+                    public void visitInsn(int opcode) {
+                        if (opcode == Opcodes.RETURN) {
+                            super.visitVarInsn(Opcodes.ALOAD, 0);
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, MENU_HOOK_OWNER,
+                                    "renderTitleFooter", "(Ljava/lang/Object;)V", false);
+                        }
+                        super.visitInsn(opcode);
+                    }
+                };
+            }
+        };
+        reader.accept(visitor, 0);
+        if (!matched[0]) throw new IllegalStateException("Minecraft 1.21.11 title render method missing");
         return writer.toByteArray();
     }
 
