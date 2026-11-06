@@ -1,6 +1,7 @@
 package dev.itsdropper.vantaloader.metadata;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -31,7 +32,7 @@ public final class DescriptorReader {
         if (!parsed.isJsonObject()) throw new IOException(FILE_NAME + " must contain a JSON object");
         JsonObject root = parsed.getAsJsonObject();
         rejectUnknown(root, Set.of("schemaVersion", "id", "name", "version", "entrypoints",
-                "description", "icon", "license", "website", "sources",
+                "description", "icon", "license", "website", "sources", "mixins",
                 "depends", "recommends", "suggests", "conflicts", "breaks"), "root");
 
         int schema = requiredInt(root, "schemaVersion");
@@ -66,6 +67,7 @@ public final class DescriptorReader {
         String license = optionalString(root, "license", 128);
         String website = optionalUrl(root, "website", id);
         String sources = optionalUrl(root, "sources", id);
+        java.util.List<String> mixins = readMixinConfigs(root, id);
 
         Map<String, VersionConstraint> depends = readDependencies(root, "depends", id);
         Map<String, VersionConstraint> recommends = readDependencies(root, "recommends", id);
@@ -80,7 +82,30 @@ public final class DescriptorReader {
             }
         }
         return new ModDescriptor(schema, id, name, version, main, description, icon, license,
-                website, sources, depends, recommends, suggests, conflicts, breaks);
+                website, sources, mixins, depends, recommends, suggests, conflicts, breaks);
+    }
+
+    private static java.util.List<String> readMixinConfigs(JsonObject root, String modId) throws IOException {
+        if (!root.has("mixins")) return java.util.List.of();
+        JsonElement value = root.get("mixins");
+        if (!value.isJsonArray()) throw new IOException("Field 'mixins' must be an array in " + FILE_NAME);
+        JsonArray array = value.getAsJsonArray();
+        java.util.List<String> result = new java.util.ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (JsonElement element : array) {
+            if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+                throw new IOException("Every entry in 'mixins' must be a string in mod '" + modId + "'");
+            }
+            String path = element.getAsString().trim();
+            if (!path.endsWith(".json") || !isSafeArchivePath(path)) {
+                throw new IOException("Invalid Mixin config path '" + path + "' in mod '" + modId + "'");
+            }
+            if (!seen.add(path)) {
+                throw new IOException("Duplicate Mixin config path '" + path + "' in mod '" + modId + "'");
+            }
+            result.add(path);
+        }
+        return java.util.List.copyOf(result);
     }
 
     private static Map<String, VersionConstraint> readDependencies(
