@@ -5,12 +5,12 @@
 VantaLoader has moved from repository scaffolding into its first executable native-mod runtime. It discovers mod JARs, validates metadata, resolves dependencies, loads entrypoints, and manages initialization and shutdown.
 
 > [!WARNING]
-> **Pre-alpha runtime.** The standalone native runtime is implemented, and an experimental Java agent can initialize native VantaLoader entrypoints before Minecraft's main class. The agent is packaged for Vanta Launcher integration, but a real Minecraft launch has not yet been validated. An exact-version Minecraft 1.21.11 client-tick adapter emits typed START/END events and is fixture-tested, but a real Minecraft launch has not yet been validated. Mixin interoperability and broad gameplay-mod compatibility are not available. The native transformation pipeline now includes a bundled ASM toolkit and a test that transforms, verifies, defines, and invokes a real fixture class. Minecraft targets and gameplay hooks remain unverified.
+> **Pre-alpha runtime.** CI now launches Minecraft 1.21.11 with the Java agent, initializes two native mods, and verifies the title screen and in-game Mods menu. The first gameplay example, Auto Sprint, is built and its bytecode transformation is unit-tested; the visual smoke test does not enter a world, so actual player movement behavior still needs in-game validation. Mixin interoperability and broad gameplay-mod compatibility are not available.
 
 ## Implemented
 
 - Native vanta.mod.json descriptor parsing with descriptions, JAR icons, license/project links, and required/optional dependency declarations.
-- A public opt-in Mod Menu settings-screen contract and runtime metadata model; Minecraft screen UI is still in development.
+- An in-game Mods screen with runtime-derived loader/version metadata, per-mod descriptions and project links, scrolling, and opt-in settings-screen buttons through the public Mod Menu API.
 - Mod JAR discovery from a configured directory.
 - Semantic version values and basic version constraints.
 - Required dependency validation and deterministic topological ordering.
@@ -21,6 +21,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - Dependency-order initialization and reverse-order shutdown.
 - Initialization rollback, failure-tolerant reverse shutdown, and startup diagnostics.
 - A buildable [Hello World example mod](examples/hello-mod/README.md).
+- A standalone [Auto Sprint gameplay mod](examples/auto-sprint/README.md) using official 1.21.11 mappings and the native transformation API.
 - A self-contained Minecraft Java-agent artifact with Gson and ASM 9.11.1 bundled and manifest/content verification.
 - A standalone `VantaLoader-api.jar` for compiling native mods without depending on implementation classes.
 - An ASM integration test that transforms, verifies, defines, and invokes a compiled fixture class.
@@ -37,13 +38,13 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 | Java runtime and build | Implemented |
 | Mod JAR discovery | Implemented |
 | Metadata validation | Implemented; display metadata and dependency relations parsed |
-| Mod Menu API | Runtime metadata and opt-in settings factory implemented; in-game screen pending |
+| Mod Menu API | In-game mod list verified in CI; opt-in settings-screen factory implemented |
 | Dependency resolution | Implemented |
 | Native entrypoint lifecycle | Implemented |
 | Cross-mod event bus | Implemented; not Minecraft game events |
-| Minecraft Java-agent bootstrap | Experimental; real launch not verified |
+| Minecraft Java-agent bootstrap | Experimental; Minecraft 1.21.11 title/menu launch smoke-tested in CI |
 | Minecraft class/member mappings | Official class, method, and field mapping lookup by exact named JVM descriptor; version adapters remain incomplete |
-| Native class transformation API | ASM-backed JVM pipeline tested on fixture classes; Minecraft use unverified |
+| Native class transformation API | ASM-backed pipeline and Auto Sprint injection tested on fixtures; player-world execution unverified |
 | VantaTransform planning, validation and reports | In progress |
 | SpongePowered Mixin adapter | Planned |
 | Resource reload | Not implemented |
@@ -73,11 +74,11 @@ Build the example mod (after building the loader JAR):
 
 ~~~bash
 gradle build
-cd examples/hello-mod
-gradle build
+gradle -p examples/hello-mod build
+gradle -p examples/auto-sprint build
 ~~~
 
-See [the example instructions](examples/hello-mod/README.md) for running it with the standalone runtime.
+See [Hello World](examples/hello-mod/README.md) for the native lifecycle example and [Auto Sprint](examples/auto-sprint/README.md) for the first gameplay-oriented mod. Auto Sprint targets Minecraft 1.21.11 and requires verified class-transformation and official-mapping capabilities. It writes its default setting to `config/vantaloader/auto_sprint/enabled.properties`; set `enabled=false` to disable it.
 
 Build the self-contained Minecraft agent artifact:
 
@@ -173,7 +174,7 @@ context.transformations().register(
 );
 ~~~
 
-Lower priorities run first. Contributions targeting the same class are composed in priority, mod ID, and transformation ID order. The agent bundles ASM 9.11.1 (`asm`, `asm-tree`, `asm-commons`, `asm-util`, and `asm-analysis`) and makes those classes parent-first so mods share one runtime ASM copy. A transformer can use ASM to edit bytecode. VantaLoader parses every output and rejects a changed target class identity; full JVM verification still depends on the game and target class hierarchy. Mods that need computed stack-map frames can use `HierarchyClassWriter` with the Minecraft class loader; it reads class headers as resources rather than loading or initializing game classes. Its resolution is only as complete as the resources exposed by that loader. Official Mojang mappings are loaded from the instance's `minecraft/client_mappings.txt`. Mods may register named class targets, and the transformation context exposes read-only class, method, and field name resolution. Member lookup requires the exact named JVM descriptor to disambiguate overloads. An exact-version 1.21.11 client-tick adapter demonstrates bytecode injection against fixture classes; it is not yet verified in a real Minecraft process. Automatic bytecode remapping and additional version adapters remain unimplemented. See the [transformation pipeline](docs/architecture/transformation-pipeline.md) for limitations and the next implementation stages.
+Lower priorities run first. Contributions targeting the same class are composed in priority, mod ID, and transformation ID order. The agent bundles ASM 9.11.1 (`asm`, `asm-tree`, `asm-commons`, `asm-util`, and `asm-analysis`) and makes those classes parent-first so mods share one runtime ASM copy. A transformer can use ASM to edit bytecode. VantaLoader parses every output and rejects a changed target class identity; full JVM verification still depends on the game and target class hierarchy. Mods that need computed stack-map frames can use `HierarchyClassWriter` with the Minecraft class loader; it reads class headers as resources rather than loading or initializing game classes. Its resolution is only as complete as the resources exposed by that loader. Official Mojang mappings are loaded from the instance's `minecraft/client_mappings.txt`. Mods may register named class targets, and the transformation context exposes read-only class, method, and field name resolution. Member lookup requires the exact named JVM descriptor to disambiguate overloads. An exact-version 1.21.11 client-tick adapter demonstrates bytecode injection against fixture classes. The CI launch verifies native mod initialization and menu rendering, but does not enter a world or execute player tick hooks. Automatic bytecode remapping and additional version adapters remain unimplemented. See the [transformation pipeline](docs/architecture/transformation-pipeline.md) for limitations and the next implementation stages.
 
 ### Capability negotiation
 
@@ -191,7 +192,7 @@ The current agent reports class transformation support only after installing Ins
 
 ## Architecture
 
-VantaLoader owns its native runtime; it is not a renamed Fabric Loader distribution. The first integration milestone is a Java agent that initializes native entrypoints before Minecraft's main class. It installs an exact-target JVM transformation service before native mod initialization. The bundled ASM backend is exercised against real compiled fixture classes, and the API includes resource-based hierarchy resolution for frame computation. The 1.21.11 tick adapter is fixture-tested; its behavior in a real game launch remains unverified. Mixin interoperability is not implemented.
+VantaLoader owns its native runtime; it is not a renamed Fabric Loader distribution. The first integration milestone is a Java agent that initializes native entrypoints before Minecraft's main class. It installs an exact-target JVM transformation service before native mod initialization. The bundled ASM backend is exercised against real compiled fixture classes, and the API includes resource-based hierarchy resolution for frame computation. CI verifies a real Minecraft 1.21.11 process launch, native mod initialization, title-screen integration, and Mods-menu rendering. The Auto Sprint transformer is tested against a fixture class and registered in that process, but the visual smoke test does not enter a world or execute the player tick hook. Mixin interoperability is not implemented.
 
 SpongePowered Mixin is intended to be supported through an interoperability adapter where practical. Native VantaLoader transformation APIs will not require mod developers to depend on Mixin-specific types.
 
