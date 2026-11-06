@@ -41,12 +41,51 @@ jobs:
         with:
           gradle-version: "8.14"
       - name: Install headless graphics and screenshot tools
+        timeout-minutes: 6
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb openbox wmctrl xdotool scrot tesseract-ocr \
-            dmz-cursor-theme libflite1 libgl1-mesa-dri libglx-mesa0 \
-            libxrandr2 libxinerama1 libxcursor1 libxi6 libxrender1 \
-            libxtst6 libxkbcommon0 libopenal1 libasound2t64
+          set -euo pipefail
+
+          # Hosted Ubuntu images already contain many graphics/runtime packages.
+          # Only install missing executables and libraries; avoid an unconditional
+          # apt-get update, which can stall before Minecraft is ever started.
+          packages=()
+          for item in \
+            "xvfb:Xvfb" \
+            "openbox:openbox" \
+            "wmctrl:wmctrl" \
+            "xdotool:xdotool" \
+            "scrot:scrot" \
+            "tesseract-ocr:tesseract"; do
+            package="${item%%:*}"
+            executable="${item#*:}"
+            if ! command -v "$executable" >/dev/null 2>&1; then
+              packages+=("$package")
+            fi
+          done
+
+          for package in libgl1-mesa-dri libglx-mesa0 libxrandr2 libxinerama1 \
+                         libxcursor1 libxi6 libxrender1 libxtst6 libxkbcommon0 \
+                         libopenal1 libasound2t64; do
+            if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -q "install ok installed"; then
+              packages+=("$package")
+            fi
+          done
+
+          if (("${#packages[@]}" > 0)); then
+            echo "Installing missing packages: ${packages[*]}"
+            sudo timeout 180s apt-get update \
+              -o Acquire::http::Timeout=20 \
+              -o Acquire::https::Timeout=20 \
+              -o Acquire::Retries=1
+            sudo timeout 180s apt-get install -y --no-install-recommends "${packages[@]}"
+          else
+            echo "All screenshot and graphics dependencies are already installed."
+          fi
+
+          for executable in Xvfb openbox wmctrl xdotool scrot tesseract; do
+            command -v "$executable"
+          done
       - name: Cache Mojang client libraries and assets
         uses: actions/cache@v4
         with:
