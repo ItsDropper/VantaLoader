@@ -7,7 +7,7 @@ import dev.itsdropper.vantaloader.bootstrap.minecraft.Minecraft12111Adapter;
 import dev.itsdropper.vantaloader.bootstrap.minecraft.MinecraftAdapterRegistry;
 import dev.itsdropper.vantaloader.transformation.TransformationService;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.MethodVisitor;\nimport org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
@@ -63,7 +63,7 @@ class Minecraft12111AdapterTest {
     }
 
     private static byte[] fixture(boolean includeTick) {
-        ClassWriter writer = new ClassWriter(0);
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
         writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, TARGET, null, "java/lang/Object", null);
         MethodVisitor constructor = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
         constructor.visitCode();
@@ -75,8 +75,13 @@ class Minecraft12111AdapterTest {
         if (includeTick) {
             MethodVisitor tick = writer.visitMethod(Opcodes.ACC_PUBLIC, "tick", "()V", null, null);
             tick.visitCode();
+            Label branch = new Label();
+            tick.visitInsn(Opcodes.ICONST_0);
+            tick.visitJumpInsn(Opcodes.IFEQ, branch);
+            tick.visitInsn(Opcodes.NOP);
+            tick.visitLabel(branch);
             tick.visitInsn(Opcodes.RETURN);
-            tick.visitMaxs(0, 1);
+            tick.visitMaxs(0, 0);
             tick.visitEnd();
         }
         writer.visitEnd();
