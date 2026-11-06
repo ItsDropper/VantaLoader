@@ -55,6 +55,60 @@ class Minecraft12111AdapterTest {
     }
 
     @Test
+    void injectsTitleAndPauseScreenMenuHooks() {
+        TransformationService transformations = new TransformationService();
+        new Minecraft12111Adapter().install(transformations);
+        assertScreenHook(transformations, "net/minecraft/client/gui/screens/TitleScreen");
+        assertScreenHook(transformations, "net/minecraft/client/gui/screens/PauseScreen");
+    }
+
+    private static void assertScreenHook(TransformationService transformations, String target) {
+        byte[] transformed = transformations.transform(null, Minecraft12111AdapterTest.class.getClassLoader(),
+                target, null, null, screenFixture(target));
+        assertNotNull(transformed);
+        org.objectweb.asm.ClassReader reader = new org.objectweb.asm.ClassReader(transformed);
+        boolean[] found = {false};
+        reader.accept(new org.objectweb.asm.ClassVisitor(Opcodes.ASM9) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String descriptor,
+                                             String signature, String[] exceptions) {
+                return new MethodVisitor(Opcodes.ASM9) {
+                    @Override
+                    public void visitMethodInsn(int opcode, String owner, String method,
+                                                String methodDescriptor, boolean isInterface) {
+                        if (opcode == Opcodes.INVOKESTATIC
+                                && owner.equals("dev/itsdropper/vantaloader/mixin/client/VantaMenuHooks")
+                                && method.equals("addMenuButton")
+                                && methodDescriptor.equals("(Ljava/lang/Object;)V")) {
+                            found[0] = true;
+                        }
+                    }
+                };
+            }
+        }, 0);
+        assertTrue(found[0], "Expected Vanta menu hook in " + target);
+    }
+
+    private static byte[] screenFixture(String internalName) {
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, internalName, null, "java/lang/Object", null);
+        MethodVisitor constructor = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        constructor.visitCode();
+        constructor.visitVarInsn(Opcodes.ALOAD, 0);
+        constructor.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        constructor.visitInsn(Opcodes.RETURN);
+        constructor.visitMaxs(1, 1);
+        constructor.visitEnd();
+        MethodVisitor init = writer.visitMethod(Opcodes.ACC_PUBLIC, "init", "()V", null, null);
+        init.visitCode();
+        init.visitInsn(Opcodes.RETURN);
+        init.visitMaxs(0, 0);
+        init.visitEnd();
+        writer.visitEnd();
+        return writer.toByteArray();
+    }
+
+    @Test
     void failsClosedWhenTargetMethodIsMissing() throws Exception {
         TransformationService transformations = new TransformationService();
         new Minecraft12111Adapter().install(transformations);
