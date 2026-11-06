@@ -167,10 +167,9 @@ public final class VantaMenuHooks {
             List<ModMenuEntry> entries = current.modMenuEntries();
             fill(graphics, 12, 12, width - 12, height - 12, 0xD9101722);
             fill(graphics, 12, 12, width - 12, 14, 0xFF55A8FF);
-            centered(graphics, font, "VantaLoader " + System.getProperty("vanta.minecraft.version", "unknown"),
-                    width / 2, 26, 0xFFFFFFFF);
-            centered(graphics, font, "Loaded " + entries.size()
-                    + (entries.size() == 1 ? " mod" : " mods"), width / 2, 43, 0xFFB7C7D9);
+            var header = current.modMenuHeader();
+            centered(graphics, font, header.title(), width / 2, 26, 0xFFFFFFFF);
+            centered(graphics, font, header.subtitle(), width / 2, 43, 0xFFB7C7D9);
 
             int visible = Math.max(0, Math.min(entries.size(), (height - 112) / 38));
             for (int i = 0; i < visible; i++) {
@@ -256,7 +255,8 @@ public final class VantaMenuHooks {
         Class<?> component = Class.forName("net.minecraft.network.chat.Component");
         Object value = component.getMethod("literal", String.class).invoke(null, text);
         for (Method method : graphics.getClass().getMethods()) {
-            if (method.getName().equals("drawCenteredString") && method.getParameterCount() == 5) {
+            if (method.getName().equals("drawCenteredString") && method.getParameterCount() == 5
+                    && method.getParameterTypes()[1].isInstance(value)) {
                 method.invoke(graphics, font, value, x, y, color);
                 return;
             }
