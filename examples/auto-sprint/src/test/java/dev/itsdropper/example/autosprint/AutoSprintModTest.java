@@ -59,4 +59,40 @@ class AutoSprintModTest {
         assertTrue(fields.contains("net/minecraft/client/Options.keyUpLnet/minecraft/client/KeyMapping;"));
         assertTrue(fields.contains("net/minecraft/client/Options.keyShiftLnet/minecraft/client/KeyMapping;"));
     }
+
+    @Test
+    void rejectsMissingAiStepInsteadOfSilentlyInstallingAnInactiveMod() {
+        byte[] fixture = fixture("otherMethod");
+        ClassTransformContext context = new ClassTransformContext(
+                "auto_sprint", "test-transform", "net.minecraft.client.player.LocalPlayer");
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                () -> new AutoSprintMod().transformLocalPlayer(context, fixture));
+    }
+
+    @Test
+    void rejectsAmbiguousDuplicateAiStepTargets() {
+        byte[] fixture = fixture("aiStep", "aiStep");
+        ClassTransformContext context = new ClassTransformContext(
+                "auto_sprint", "test-transform", "net.minecraft.client.player.LocalPlayer");
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                () -> new AutoSprintMod().transformLocalPlayer(context, fixture));
+    }
+
+    private static byte[] fixture(String... methodNames) {
+        ClassWriter fixture = new ClassWriter(0);
+        fixture.visit(Opcodes.V21, Opcodes.ACC_PUBLIC,
+                "net/minecraft/client/player/LocalPlayer", null,
+                "net/minecraft/world/entity/LivingEntity", null);
+        for (String methodName : methodNames) {
+            MethodVisitor method = fixture.visitMethod(Opcodes.ACC_PUBLIC, methodName, "()V", null, null);
+            method.visitCode();
+            method.visitInsn(Opcodes.RETURN);
+            method.visitMaxs(0, 0);
+            method.visitEnd();
+        }
+        fixture.visitEnd();
+        return fixture.toByteArray();
+    }
 }
