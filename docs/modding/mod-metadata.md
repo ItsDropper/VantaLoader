@@ -17,6 +17,7 @@ Every native VantaLoader mod is a JAR containing a UTF-8 `vanta.mod.json` file a
   "license": "MIT",
   "website": "https://example.com",
   "sources": "https://github.com/example/example-mod",
+  "mixins": ["example.mixins.json"],
   "entrypoints": {
     "main": "com.example.ExampleMod"
   },
@@ -51,6 +52,7 @@ Every native VantaLoader mod is a JAR containing a UTF-8 `vanta.mod.json` file a
 | license | No | SPDX identifier or human-readable license label, up to 128 characters. |
 | website | No | HTTP(S) project or documentation URL. |
 | sources | No | HTTP(S) source repository URL. |
+| mixins | No | Array of Mixin configuration resource paths inside the mod JAR. Paths must be safe relative `.json` paths. Files ending in `.mixins.json` are also discovered automatically. |
 | entrypoints.main | Yes | Fully qualified Java class implementing VantaMod. |
 | depends | No | Required mod IDs mapped to version constraints; missing or incompatible dependencies prevent loading. |
 | recommends | No | Optional dependencies recommended for the intended experience. |
@@ -83,7 +85,7 @@ VantaLoader invokes `onInitialize(ModContext)` after required dependencies have 
 
 ## Runtime limitations
 
-The metadata parser exposes display information and dependency intent. Icon paths are validated as safe relative JAR resources and resolved for the in-game menu API, but rendering still requires the version-specific Minecraft screen adapter. Optional dependency categories are parsed and preserved, but do not yet affect resolution. Sponge Mixin configuration loading and access wideners are not implemented by the current native transformation API.
+The metadata parser exposes display information, dependency intent, and explicit Mixin configuration paths. Mixin configs declared in `mixins` and resources named `*.mixins.json` are registered through the bundled Sponge Mixin 0.8.7 runtime. The Mixin transformer runs before native VantaLoader ASM transformers. Access wideners are not implemented. Icon paths are validated and exposed to the mod menu API; the current built-in screen still renders a placeholder accent tile rather than loading image textures. Optional dependency categories are parsed and preserved, but do not yet affect resolution.
 
 Each mod receives its own class loader. It can load its own classes and classes/resources from explicitly declared dependencies; unrelated mods are not searched. Java platform classes and the VantaLoader API are parent-first so all entrypoints share the same API type identity. This is namespace isolation, not a security boundary: Java code in a mod still runs with the operating-system user's permissions.
 
@@ -114,4 +116,4 @@ public final class ExampleMod implements VantaMod, ModMenuApi {
 }
 ~~~
 
-The loader exposes each loaded mod's display metadata, resolved icon resource, and whether it implements this API. Mods without the interface do not receive a settings button. The API avoids a hard compile-time dependency on Minecraft classes; a mod's game-version integration is responsible for returning the active game's screen object. The runtime API contract is in place; the actual Minecraft Mod Menu screen and screen-navigation integration are still in development.
+The loader exposes each loaded mod's display metadata, resolved icon resource, and whether it implements this API. Mods without the interface do not receive a settings button. The API avoids a hard compile-time dependency on Minecraft classes; a mod's game-version integration is responsible for returning the active game's screen object. On Minecraft 1.21.11, VantaLoader injects its built-in mod-list button into the title and pause screens and renders a translucent metadata panel. Screen rendering is version-specific and has not yet been verified in a live Minecraft client.
