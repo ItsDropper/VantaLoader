@@ -100,17 +100,28 @@ public final class TransformationService implements ClassFileTransformer {
         List<Registration> matching = registrations.stream()
                 .filter(registration -> runtimeTargetName(registration).equals(binaryName))
                 .toList();
-        if (matching.isEmpty()) return null;
+        boolean mixinActive = dev.itsdropper.vantaloader.mixin.VantaMixinService.isInitialized();
+        if (matching.isEmpty() && !mixinActive) return null;
 
         byte[] current = classfileBuffer.clone();
         boolean changed = false;
-        byte[] mixinTransformed = dev.itsdropper.vantaloader.mixin.VantaMixinService
-                .transform(binaryName, current);
-        if (mixinTransformed == null || mixinTransformed.length == 0) {
-            throw new IllegalStateException("Sponge Mixin returned an empty class for " + binaryName);
+        if (mixinActive) {
+            try {
+                byte[] mixinTransformed = dev.itsdropper.vantaloader.mixin.VantaMixinService
+                        .transform(binaryName, current);
+                if (mixinTransformed == null || mixinTransformed.length == 0) {
+                    throw new IllegalStateException("Sponge Mixin returned an empty class for " + binaryName);
+                }
+                if (!java.util.Arrays.equals(current, mixinTransformed)) changed = true;
+                current = mixinTransformed.clone();
+            } catch (Throwable failure) {
+                if (failure instanceof VirtualMachineError fatal) throw fatal;
+                if (failure instanceof ThreadDeath death) throw death;
+                LOGGER.log(Level.SEVERE, "Sponge Mixin transformation failed for " + binaryName, failure);
+                return new byte[]{0, 0, 0, 0};
+            }
         }
-        if (!java.util.Arrays.equals(current, mixinTransformed)) changed = true;
-        current = mixinTransformed.clone();
+        if (matching.isEmpty()) return changed ? current : null;
         for (Registration registration : matching) {
             try {
                 byte[] transformed = registration.transformer().transform(
