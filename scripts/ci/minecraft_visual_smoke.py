@@ -276,20 +276,25 @@ def main():
             wait_for_log_marker(process, log_path, "Sound engine started", min(args.timeout, 180))
             time.sleep(8)
             activate_minecraft_window()
-            # The button is deliberately anchored at the lower-right edge. OCR on the full
-            # 1280x720 screenshot routinely drops this small label, so inspect a 4x
-            # enlarged crop while retaining the untouched full-resolution screenshot.
-            main_text = screenshot_and_ocr(output / "main-menu-probe.png", (1035, 640, 1279, 719))
+            # The Mods button is inserted into the vanilla central button column.
+            # Inspect its center crop and the bottom-left version label independently.
+            main_text = screenshot_and_ocr(output / "main-menu-probe.png", (500, 380, 780, 470))
+            footer_text = ocr_image(output / "main-menu-probe.png", (0, 680, 300, 719))
             shutil.copy2(output / "main-menu-probe.png", output / "main-menu.png")
             normalized_main = re.sub(r"\s+", " ", main_text).casefold()
-            print("Main menu OCR:", re.sub(r"\s+", " ", main_text).strip())
-            if "vantaloader" not in normalized_main:
-                raise RuntimeError("The Minecraft title screen did not render the VantaLoader button; "
+            normalized_footer = re.sub(r"\s+", " ", footer_text).casefold()
+            print("Main menu button OCR:", re.sub(r"\s+", " ", main_text).strip())
+            print("Title footer OCR:", re.sub(r"\s+", " ", footer_text).strip())
+            if "mods" not in normalized_main:
+                raise RuntimeError("The Minecraft title screen did not render the Mods button; "
                                    f"OCR was {main_text!r}")
+            if "vantaloader" not in normalized_footer:
+                raise RuntimeError("The title footer did not render VantaLoader with the Minecraft version; "
+                                   f"OCR was {footer_text!r}")
 
-            # 1280x720 physical display, guiScale=2: button center is logical
-            # (580,342), therefore physical (1160,684).
-            subprocess.run(["xdotool", "mousemove", "--sync", "1160", "684"],
+            # 1280x720 physical display, guiScale=2: central Mods button is around
+            # logical (320,208), therefore physical (640,416).
+            subprocess.run(["xdotool", "mousemove", "--sync", "640", "416"],
                            check=True, timeout=10)
             time.sleep(1)
             subprocess.run(["xdotool", "click", "--clearmodifiers", "--delay", "100", "1"],
