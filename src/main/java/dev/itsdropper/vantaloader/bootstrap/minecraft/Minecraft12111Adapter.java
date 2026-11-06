@@ -74,45 +74,6 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         return writer.toByteArray();
     }
 
-    private byte[] transformTitleRender(ClassTransformContext context, byte[] originalClass) {
-        String owner = "net/minecraft/client/gui/screens/TitleScreen";
-        String descriptor = "(Lnet/minecraft/client/gui/GuiGraphics;IIF)V";
-        String runtimeMethod = context.mappings().runtimeMethodName(owner, "render", descriptor);
-        String runtimeDescriptor = context.mappings().runtimeDescriptor(descriptor);
-        ClassReader reader = new ClassReader(originalClass);
-        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-        boolean[] matched = {false};
-        ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
-            @Override
-            public MethodVisitor visitMethod(int access, String name, String methodDescriptor,
-                                             String signature, String[] exceptions) {
-                MethodVisitor delegate = super.visitMethod(access, name, methodDescriptor, signature, exceptions);
-                if (!runtimeMethod.equals(name) || !runtimeDescriptor.equals(methodDescriptor)) return delegate;
-                if (matched[0]) throw new IllegalStateException("Multiple title render methods found");
-                matched[0] = true;
-                return new MethodVisitor(Opcodes.ASM9, delegate) {
-                    @Override
-                    public void visitInsn(int opcode) {
-                        if (opcode == Opcodes.RETURN) {
-                            // Render after vanilla content so the footer remains visible.
-                            super.visitVarInsn(Opcodes.ALOAD, 0);
-                            super.visitVarInsn(Opcodes.ALOAD, 1);
-                            super.visitMethodInsn(Opcodes.INVOKESTATIC, MENU_HOOK_OWNER,
-                                    "renderTitleFooter", "(Ljava/lang/Object;Ljava/lang/Object;)V", false);
-                        }
-                        super.visitInsn(opcode);
-                    }
-                };
-            }
-        };
-        reader.accept(visitor, 0);
-        if (!matched[0]) {
-            throw new IllegalStateException("Minecraft 1.21.11 Screen render method missing: "
-                    + runtimeMethod + runtimeDescriptor);
-        }
-        return writer.toByteArray();
-    }
-
     private byte[] transformClientTick(ClassTransformContext context, byte[] originalClass) {
         String runtimeMethod = context.mappings().runtimeMethodName(
                 CLIENT_CLASS, CLIENT_TICK_METHOD, CLIENT_TICK_DESCRIPTOR);
