@@ -5,7 +5,7 @@ plugins {
 group = "dev.itsdropper.vantaloader.examples"
 version = "1.0.0"
 
-repositories { }
+repositories { mavenCentral() }
 
 dependencies {
     compileOnly(files("../../build/agent/VantaLoader-api.jar"))
