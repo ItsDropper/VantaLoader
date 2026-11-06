@@ -31,56 +31,49 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         registry.register("minecraft-1.21.11-client-tick", CLIENT_CLASS, 0, this::transformClientTick);
         registry.register("minecraft-1.21.11-title-screen", "net.minecraft.client.gui.screens.TitleScreen",
                 0, (context, bytes) -> transformScreenInit(context, bytes, "title"));
-        registry.register("minecraft-1.21.11-title-version-label", "net.minecraft.client.gui.screens.TitleScreen",
-                1, this::transformTitleScreenRender);
+        registry.register("minecraft-1.21.11-title-version-label", "net.minecraft.client.gui.GuiGraphics",
+                1, this::transformGuiGraphicsVersionLabel);
         registry.register("minecraft-1.21.11-pause-screen", "net.minecraft.client.gui.screens.PauseScreen",
                 0, (context, bytes) -> transformScreenInit(context, bytes, "pause"));
     }
 
 
     /**
-     * Rewrites the native GuiGraphics String draw call in TitleScreen.
-     *
-     * Minecraft 1.21.11 delegates parts of title rendering to private helpers;
-     * scanning only render() misses the footer call on some official client builds.
-     * The exact receiver and descriptor identify the String overload without
-     * depending on the obfuscated method name.
+     * Replaces Minecraft's own footer text at the rendering boundary.
+     * This avoids assuming which screen/helper owns the footer draw call.
      */
-    private byte[] transformTitleScreenRender(ClassTransformContext context, byte[] originalClass) {
-        String graphicsOwner = context.mappings().runtimeClassName("net.minecraft.client.gui.GuiGraphics")
-                .replace('.', '/');
-        String drawDescriptor = "(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)I";
-        String runtimeDrawDescriptor = context.mappings().runtimeDescriptor(drawDescriptor);
-
+    private byte[] transformGuiGraphicsVersionLabel(ClassTransformContext context, byte[] originalClass) {
+        String owner = "net.minecraft.client.gui.GuiGraphics";
+        String descriptor = "(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)I";
+        String runtimeName = context.mappings().runtimeMethodName(owner, "drawString", descriptor);
+        String runtimeDescriptor = context.mappings().runtimeDescriptor(descriptor);
         ClassReader reader = new ClassReader(originalClass);
         ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-        int[] replacedDrawCalls = {0};
+        int[] matches = {0};
         ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
             @Override
-            public MethodVisitor visitMethod(int access, String name, String descriptor,
+            public MethodVisitor visitMethod(int access, String name, String methodDescriptor,
                                              String signature, String[] exceptions) {
-                MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions);
+                MethodVisitor delegate = super.visitMethod(access, name, methodDescriptor, signature, exceptions);
+                if (!runtimeName.equals(name) || !runtimeDescriptor.equals(methodDescriptor)) return delegate;
+                matches[0]++;
                 return new MethodVisitor(Opcodes.ASM9, delegate) {
                     @Override
-                    public void visitMethodInsn(int opcode, String callOwner, String callName,
-                                                String callDescriptor, boolean isInterface) {
-                        if (opcode == Opcodes.INVOKEVIRTUAL && graphicsOwner.equals(callOwner)
-                                && runtimeDrawDescriptor.equals(callDescriptor)) {
-                            replacedDrawCalls[0]++;
-                            super.visitMethodInsn(Opcodes.INVOKESTATIC, MENU_HOOK_OWNER, "drawTitleVersion",
-                                    "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;III)I", false);
-                            return;
-                        }
-                        super.visitMethodInsn(opcode, callOwner, callName, callDescriptor, isInterface);
+                    public void visitCode() {
+                        super.visitCode();
+                        // Instance method locals: this=0, Font=1, String=2.
+                        super.visitVarInsn(Opcodes.ALOAD, 2);
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, MENU_HOOK_OWNER,
+                                "replaceTitleVersion", "(Ljava/lang/String;)Ljava/lang/String;", false);
+                        super.visitVarInsn(Opcodes.ASTORE, 2);
                     }
                 };
             }
         };
         reader.accept(visitor, 0);
-        if (replacedDrawCalls[0] == 0) {
-            throw new IllegalStateException("Could not locate Minecraft 1.21.11 native title version draw call"
-                    + " in any TitleScreen method: GuiGraphics=" + graphicsOwner
-                    + ", descriptor=" + runtimeDrawDescriptor);
+        if (matches[0] != 1) {
+            throw new IllegalStateException("Expected exactly one GuiGraphics.drawString(Font,String,int,int,int)"
+                    + " method, found " + matches[0] + " (" + runtimeName + runtimeDescriptor + ")");
         }
         return writer.toByteArray();
     }
