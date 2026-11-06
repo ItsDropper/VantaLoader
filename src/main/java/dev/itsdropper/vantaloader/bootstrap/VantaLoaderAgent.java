@@ -6,18 +6,22 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Minecraft JVM entry point. The launcher sets the instance directory as
- * user.dir, so the agent uses that directory's mods/ folder without adding
- * launcher-specific arguments to Minecraft's game argument list.
+ * Minecraft JVM entry point.
+ *
+ * Vanta Launcher supplies the instance directory through the documented
+ * vanta.instance.directory system property. user.dir remains a backwards-
+ * compatible fallback for other launchers and direct agent users.
  */
 public final class VantaLoaderAgent {
+    static final String INSTANCE_DIRECTORY_PROPERTY = "vanta.instance.directory";
     private static final Logger LOGGER = Logger.getLogger("VantaLoader.Agent");
 
     private VantaLoaderAgent() { }
 
     public static void premain(String agentArguments, Instrumentation instrumentation) throws Exception {
-        Path gameDirectory = Path.of(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
+        Path gameDirectory = resolveGameDirectory(
+                System.getProperty(INSTANCE_DIRECTORY_PROPERTY),
+                System.getProperty("user.dir", "."));
         Path modsDirectory = gameDirectory.resolve("mods");
 
         LOGGER.info("Attaching to Minecraft before its main class starts");
@@ -31,5 +35,14 @@ public final class VantaLoaderAgent {
             LOGGER.log(Level.SEVERE, "VantaLoader could not initialize; aborting Minecraft startup", failure);
             throw failure;
         }
+    }
+
+    static Path resolveGameDirectory(String configuredDirectory, String workingDirectory) {
+        String selected = configuredDirectory == null || configuredDirectory.isBlank()
+                ? workingDirectory : configuredDirectory;
+        if (selected == null || selected.isBlank()) {
+            throw new IllegalArgumentException("VantaLoader requires an instance directory.");
+        }
+        return Path.of(selected).toAbsolutePath().normalize();
     }
 }
