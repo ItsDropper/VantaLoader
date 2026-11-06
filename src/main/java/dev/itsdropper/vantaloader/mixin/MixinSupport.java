@@ -6,6 +6,7 @@ import org.spongepowered.asm.mixin.Mixins;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import dev.itsdropper.vantaloader.discovery.ModArtifact;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -24,15 +25,15 @@ public final class MixinSupport {
     private MixinSupport() { }
 
     public static synchronized void initialize(List<? extends ClassLoader> modLoaders,
-                                               List<Path> modJars) throws IOException {
-        if (modLoaders.size() != modJars.size()) {
-            throw new IllegalArgumentException("Each mod class loader must have exactly one JAR");
+                                               List<ModArtifact> mods) throws IOException {
+        if (modLoaders.size() != mods.size()) {
+            throw new IllegalArgumentException("Each mod class loader must have exactly one mod artifact");
         }
         for (int i = 0; i < modLoaders.size(); i++) {
-            MixinClassPath.register(modLoaders.get(i), modJars.get(i));
+            MixinClassPath.register(modLoaders.get(i), mods.get(i).path());
         }
 
-        List<ConfigSource> configs = discoverConfigs(modJars);
+        List<ConfigSource> configs = discoverConfigs(mods);
         if (!initialized) {
             MixinBootstrap.init();
             MixinEnvironment.getDefaultEnvironment().setSide(MixinEnvironment.Side.CLIENT);
@@ -68,18 +69,44 @@ public final class MixinSupport {
         LOGGER.info("Sponge Mixin active; discovered " + configs.size() + " mod configuration(s)");
     }
 
-    private static List<ConfigSource> discoverConfigs(List<Path> modJars) throws IOException {
-        List<ConfigSource> result = new ArrayList<>();
-        for (Path jar : modJars) {
-            try (JarFile archive = new JarFile(jar.toFile())) {
+    private static List<ConfigSource> discoverConfigs(List<ModArtifact> mods) throws IOException {
+        java.util.Map<String, String> discovered = new java.util.LinkedHashMap<>();
+        for (ModArtifact mod : mods) {
+            String modId = mod.descriptor().id();
+            for (String declared : mod.descriptor().mixins()) {
+                addConfig(discovered, declared, modId);
+            }
+            try (JarFile archive = new JarFile(mod.path().toFile())) {
                 archive.stream()
                         .filter(entry -> !entry.isDirectory() && entry.getName().endsWith(".mixins.json"))
-                        .map(entry -> new ConfigSource(entry.getName(), jar.getFileName().toString()))
-                        .forEach(result::add);
+                        .forEach(entry -> {
+                            try {
+                                addConfig(discovered, entry.getName(), modId);
+                            } catch (IOException exception) {
+                                throw new ConfigDiscoveryException(exception);
+                            }
+                        });
+            } catch (ConfigDiscoveryException exception) {
+                throw exception.failure;
             }
         }
-        result.sort(Comparator.comparing(ConfigSource::name).thenComparing(ConfigSource::modId));
-        return List.copyOf(result);
+        return discovered.entrySet().stream()
+                .map(entry -> new ConfigSource(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparing(ConfigSource::name).thenComparing(ConfigSource::modId))
+                .toList();
+    }
+
+    private static void addConfig(java.util.Map<String, String> discovered, String path, String modId)
+            throws IOException {
+        String previous = discovered.putIfAbsent(path, modId);
+        if (previous != null && !previous.equals(modId)) {
+            throw new IOException("Mixin config '" + path + "' is declared by both " + previous + " and " + modId);
+        }
+    }
+
+    private static final class ConfigDiscoveryException extends RuntimeException {
+        private final IOException failure;
+        private ConfigDiscoveryException(IOException failure) { this.failure = failure; }
     }
 
     private record ConfigSource(String name, String modId) { }
