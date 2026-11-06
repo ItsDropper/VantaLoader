@@ -31,8 +31,6 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         registry.register("minecraft-1.21.11-client-tick", CLIENT_CLASS, 0, this::transformClientTick);
         registry.register("minecraft-1.21.11-title-screen", "net.minecraft.client.gui.screens.TitleScreen",
                 0, (context, bytes) -> transformScreenInit(context, bytes, "title"));
-        registry.register("minecraft-1.21.11-title-footer", "net.minecraft.client.gui.screens.Screen",
-                1, this::transformTitleRender);
         registry.register("minecraft-1.21.11-pause-screen", "net.minecraft.client.gui.screens.PauseScreen",
                 0, (context, bytes) -> transformScreenInit(context, bytes, "pause"));
     }
