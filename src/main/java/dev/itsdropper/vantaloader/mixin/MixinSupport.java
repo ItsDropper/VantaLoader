@@ -17,7 +17,6 @@ import java.util.logging.Logger;
 
 /** Discovers per-mod Mixin configurations and boots the shared Mixin transformer once. */
 public final class MixinSupport {
-    public static final String BUILTIN_CLIENT_CONFIG = "vantaloader.client.mixins.json";
     private static final Logger LOGGER = Logger.getLogger("VantaLoader.Mixin");
     private static boolean initialized;
     private static final Set<String> REGISTERED_CONFIGS = new HashSet<>();
@@ -41,11 +40,8 @@ public final class MixinSupport {
             MixinEnvironment.getCurrentEnvironment().setSide(MixinEnvironment.Side.CLIENT);
             initialized = true;
         }
-        boolean builtInClientScreen = "1.21.11".equals(
-                System.getProperty("vanta.minecraft.version", "unknown"));
-        if (builtInClientScreen && REGISTERED_CONFIGS.add(BUILTIN_CLIENT_CONFIG)) {
-            Mixins.addConfiguration(BUILTIN_CLIENT_CONFIG);
-        }
+        // VantaLoader's own Minecraft UI hooks use the exact-version native adapter.
+        // Mixin remains available for third-party mods and their declared configurations.
 
         Set<String> names = new HashSet<>(REGISTERED_CONFIGS);
         for (ConfigSource config : configs) {
