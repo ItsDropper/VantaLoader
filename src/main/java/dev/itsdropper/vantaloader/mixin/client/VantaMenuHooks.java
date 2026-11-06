@@ -212,12 +212,14 @@ public final class VantaMenuHooks {
     }
 
     private static void addTitleMenuButton(Object screen) throws Exception {
-        Object realms = null, options = null, quit = null;
+        Object singleplayer = null, multiplayer = null, realms = null, options = null, quit = null;
         for (Object child : screenChildren(screen)) {
             String label = widgetLabel(child);
             if (label == null) continue;
             String value = label.toLowerCase(java.util.Locale.ROOT);
-            if (value.contains("realms")) realms = child;
+            if (value.contains("singleplayer")) singleplayer = child;
+            else if (value.contains("multiplayer")) multiplayer = child;
+            else if (value.contains("realms")) realms = child;
             else if (value.contains("options")) options = child;
             else if (value.contains("quit")) quit = child;
         }
@@ -234,6 +236,10 @@ public final class VantaMenuHooks {
         if (quit != null) setWidgetY(quit, nextY);
         int overflow = nextY + h - (numberField(screen, "height") - 24);
         if (overflow > 0) {
+            if (singleplayer != null) setWidgetY(singleplayer,
+                    widgetNumber(singleplayer, "getY") - overflow);
+            if (multiplayer != null) setWidgetY(multiplayer,
+                    widgetNumber(multiplayer, "getY") - overflow);
             setWidgetY(realms, y - overflow);
             setWidgetY(findButtonByLabel(screen, "Mods"), modsY - overflow);
             if (options != null) setWidgetY(options, nextY - overflow);
