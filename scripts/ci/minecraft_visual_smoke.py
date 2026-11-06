@@ -158,14 +158,19 @@ def screenshot_and_ocr(path):
     return result.stdout
 
 def wait_for_log_marker(process, log_path, marker, timeout):
+    def failure(reason):
+        log_text = log_path.read_text(encoding="utf-8", errors="replace") if log_path.exists() else ""
+        tail = "\\n".join(log_text.splitlines()[-120:])
+        return RuntimeError(f"{reason}; log tail ({log_path}):\\n{tail or '<log is empty>'}")
+
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if process.poll() is not None:
-            raise RuntimeError(f"Minecraft exited ({process.returncode}); inspect {log_path}")
+            raise failure(f"Minecraft exited ({process.returncode})")
         if marker in log_path.read_text(encoding="utf-8", errors="replace"):
             return
         time.sleep(1)
-    raise RuntimeError(f"Timed out waiting for Minecraft log marker {marker!r}; inspect {log_path}")
+    raise failure(f"Timed out waiting for Minecraft log marker {marker!r}")
 
 
 def activate_minecraft_window():
