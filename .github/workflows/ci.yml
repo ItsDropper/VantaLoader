@@ -55,8 +55,7 @@ jobs:
             "openbox:openbox" \
             "wmctrl:wmctrl" \
             "xdotool:xdotool" \
-            "scrot:scrot" \
-            ; do
+            "scrot:scrot"; do
             package="${item%%:*}"
             executable="${item#*:}"
             if ! command -v "$executable" >/dev/null 2>&1; then
