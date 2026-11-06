@@ -99,22 +99,12 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
                                 "onClientTick", TICK_HOOK_DESCRIPTOR, false);
                     }
 
-                    @Override
-                    public void visitInsn(int opcode) {
-                        if (opcode == Opcodes.RETURN) {
-                            super.visitVarInsn(Opcodes.ALOAD, 0);
-                            super.visitInsn(Opcodes.ICONST_0);
-                            super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOK_OWNER,
-                                    "onClientTick", TICK_HOOK_DESCRIPTOR, false);
-                        }
-                        super.visitInsn(opcode);
-                    }
                 };
             }
         };
-        // The injected calls use only the receiver and operand stack. Preserve the
-        // original StackMapTable verbatim instead of routing frames through a local
-        // variable remapper.
+        // The entry hook uses only the receiver and operand stack. Do not inject at
+        // RETURN: valid Minecraft control-flow frames can chop local 0 before a
+        // return instruction, making an injected ALOAD 0 unverifiable.
         reader.accept(visitor, 0);
         if (!matched[0]) {
             throw new IllegalStateException("Expected Minecraft 1.21.11 target missing: "
