@@ -64,8 +64,7 @@ class Minecraft12111AdapterTest {
 
     private static void assertTitleVersionHook(TransformationService transformations) throws Exception {
         byte[] transformed = transformations.transform(null, Minecraft12111AdapterTest.class.getClassLoader(),
-                "net/minecraft/client/gui/screens/TitleScreen", null, null,
-                screenFixture("net/minecraft/client/gui/screens/TitleScreen"));
+                "net/minecraft/client/gui/GuiGraphics", null, null, graphicsFixture());
         assertNotNull(transformed);
         org.objectweb.asm.ClassReader reader = new org.objectweb.asm.ClassReader(transformed);
         boolean[] found = {false};
@@ -87,7 +86,7 @@ class Minecraft12111AdapterTest {
                 };
             }
         }, 0);
-        assertTrue(found[0], "Expected original title version draw call to route through VantaLoader");
+        assertTrue(found[0], "Expected GuiGraphics native version draw method to call VantaLoader replacement");
     }
 
     private static void assertScreenHook(TransformationService transformations, String target) throws Exception {
@@ -117,6 +116,21 @@ class Minecraft12111AdapterTest {
         assertTrue(found[0], "Expected Vanta menu hook in " + target);
     }
 
+    private static byte[] graphicsFixture() {
+        String target = "net/minecraft/client/gui/GuiGraphics";
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, target, null, "java/lang/Object", null);
+        MethodVisitor draw = writer.visitMethod(Opcodes.ACC_PUBLIC, "drawString",
+                "(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)I", null, null);
+        draw.visitCode();
+        draw.visitInsn(Opcodes.ICONST_0);
+        draw.visitInsn(Opcodes.IRETURN);
+        draw.visitMaxs(0, 0);
+        draw.visitEnd();
+        writer.visitEnd();
+        return writer.toByteArray();
+    }
+
     private static byte[] screenFixture(String internalName) {
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
         writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, internalName, null, "java/lang/Object", null);
@@ -132,23 +146,6 @@ class Minecraft12111AdapterTest {
         init.visitInsn(Opcodes.RETURN);
         init.visitMaxs(0, 0);
         init.visitEnd();
-        if (internalName.endsWith("/TitleScreen")) {
-            MethodVisitor render = writer.visitMethod(Opcodes.ACC_PUBLIC, "render",
-                    "(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", null, null);
-            render.visitCode();
-            render.visitVarInsn(Opcodes.ALOAD, 1);
-            render.visitInsn(Opcodes.ACONST_NULL);
-            render.visitLdcInsn("Minecraft 1.21.11");
-            render.visitInsn(Opcodes.ICONST_0);
-            render.visitInsn(Opcodes.ICONST_0);
-            render.visitInsn(Opcodes.ICONST_0);
-            render.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "net/minecraft/client/gui/GuiGraphics",
-                    "drawString", "(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)I", false);
-            render.visitInsn(Opcodes.POP);
-            render.visitInsn(Opcodes.RETURN);
-            render.visitMaxs(0, 0);
-            render.visitEnd();
-        }
         writer.visitEnd();
         return writer.toByteArray();
     }
