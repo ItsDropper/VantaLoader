@@ -9,10 +9,6 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.*;
-import org.objectweb.asm.tree.analysis.Analyzer;
-import org.objectweb.asm.tree.analysis.BasicInterpreter;
-import org.objectweb.asm.tree.analysis.Frame;
 import java.util.Objects;
 
 /** Initial exact-version client adapter for Minecraft 1.21.11. */
@@ -80,7 +76,7 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
     }
 
     private byte[] transformTitleRender(ClassTransformContext context, byte[] originalClass) {
-        String owner = "net/minecraft/client/gui/screens/TitleScreen";
+        String owner = "net/minecraft/client/gui/screens/Screen";
         String descriptor = "(Lnet/minecraft/client/gui/GuiGraphics;IIF)V";
         String runtimeMethod = context.mappings().runtimeMethodName(owner, "render", descriptor);
         String runtimeDescriptor = context.mappings().runtimeDescriptor(descriptor);
@@ -97,22 +93,22 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
                 matched[0] = true;
                 return new MethodVisitor(Opcodes.ASM9, delegate) {
                     @Override
-                    public void visitCode() {
-                        super.visitCode();
-                        // At method entry, this and GuiGraphics are guaranteed to be valid locals.
-                        // Do not inject at RETURN: Minecraft's render method has control-flow
-                        // frames that can discard locals on some exit paths.
-                        super.visitVarInsn(Opcodes.ALOAD, 0);
-                        super.visitVarInsn(Opcodes.ALOAD, 1);
-                        super.visitMethodInsn(Opcodes.INVOKESTATIC, MENU_HOOK_OWNER,
-                                "renderTitleFooter", "(Ljava/lang/Object;Ljava/lang/Object;)V", false);
+                    public void visitInsn(int opcode) {
+                        if (opcode == Opcodes.RETURN) {
+                            // Render after vanilla content so the footer remains visible.
+                            super.visitVarInsn(Opcodes.ALOAD, 0);
+                            super.visitVarInsn(Opcodes.ALOAD, 1);
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, MENU_HOOK_OWNER,
+                                    "renderTitleFooter", "(Ljava/lang/Object;Ljava/lang/Object;)V", false);
+                        }
+                        super.visitInsn(opcode);
                     }
                 };
             }
         };
         reader.accept(visitor, 0);
         if (!matched[0]) {
-            throw new IllegalStateException("Minecraft 1.21.11 base Screen render method missing: "
+            throw new IllegalStateException("Minecraft 1.21.11 Screen render method missing: "
                     + runtimeMethod + runtimeDescriptor);
         }
         return writer.toByteArray();
