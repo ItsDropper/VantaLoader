@@ -340,24 +340,24 @@ public final class VantaMenuHooks {
         String screenName = "net.minecraft.client.gui.screens.Screen";
         String addDescriptor = "(Lnet/minecraft/client/gui/components/events/GuiEventListener;)"
                 + "Lnet/minecraft/client/gui/components/events/GuiEventListener;";
-        mappedMethod(screen.getClass(), screenName, "addRenderableWidget", addDescriptor,
+        mappedMethod(minecraftClass(screenName), screenName, "addRenderableWidget", addDescriptor,
                 1, listenerType).invoke(screen, button);
         return button;
     }
 
     private static void setWidgetY(Object widget, int y) throws Exception {
         String owner = "net.minecraft.client.gui.components.AbstractWidget";
-        mappedMethod(widget.getClass(), owner, "setY", "(I)V", 1, int.class).invoke(widget, y);
+        mappedMethod(minecraftClass(owner), owner, "setY", "(I)V", 1, int.class).invoke(widget, y);
     }
 
     private static void enableScissor(Object graphics, int left, int top, int right, int bottom) throws Exception {
         String owner = "net.minecraft.client.gui.GuiGraphics";
-        mappedMethod(graphics.getClass(), owner, "enableScissor", "(IIII)V",
+        mappedMethod(minecraftClass(owner), owner, "enableScissor", "(IIII)V",
                 4, int.class, int.class, int.class, int.class).invoke(graphics, left, top, right, bottom);
     }
 
     private static void disableScissor(Object graphics) throws Exception {
-        mappedMethod(graphics.getClass(), "net.minecraft.client.gui.GuiGraphics",
+        mappedMethod(minecraftClass("net.minecraft.client.gui.GuiGraphics"), "net.minecraft.client.gui.GuiGraphics",
                 "disableScissor", "()V", 0).invoke(graphics);
     }
 
@@ -384,7 +384,7 @@ public final class VantaMenuHooks {
     }
 
     private static void fill(Object graphics, int x1, int y1, int x2, int y2, int color) throws Exception {
-        mappedMethod(graphics.getClass(), "net.minecraft.client.gui.GuiGraphics", "fill",
+        mappedMethod(minecraftClass("net.minecraft.client.gui.GuiGraphics"), "net.minecraft.client.gui.GuiGraphics", "fill",
                 "(IIIII)V", 5, int.class, int.class, int.class, int.class, int.class)
                 .invoke(graphics, x1, y1, x2, y2, color);
     }
@@ -392,7 +392,7 @@ public final class VantaMenuHooks {
     private static void centered(Object graphics, Object font, String text, int x, int y, int color)
             throws Exception {
         Object value = literalComponent(text);
-        mappedMethod(graphics.getClass(), "net.minecraft.client.gui.GuiGraphics", "drawCenteredString",
+        mappedMethod(minecraftClass("net.minecraft.client.gui.GuiGraphics"), "net.minecraft.client.gui.GuiGraphics", "drawCenteredString",
                 "(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)V",
                 5, minecraftClass("net.minecraft.client.gui.Font"),
                 minecraftClass("net.minecraft.network.chat.Component"),
@@ -402,7 +402,7 @@ public final class VantaMenuHooks {
     private static void draw(Object graphics, Object font, String text, int x, int y, int color)
             throws Exception {
         Object value = literalComponent(text);
-        mappedMethod(graphics.getClass(), "net.minecraft.client.gui.GuiGraphics", "drawString",
+        mappedMethod(minecraftClass("net.minecraft.client.gui.GuiGraphics"), "net.minecraft.client.gui.GuiGraphics", "drawString",
                 "(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;III)V",
                 5, minecraftClass("net.minecraft.client.gui.Font"),
                 minecraftClass("net.minecraft.network.chat.Component"),
