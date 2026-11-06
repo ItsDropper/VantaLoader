@@ -19,12 +19,12 @@ public final class MixinSupport {
     public static final String BUILTIN_CLIENT_CONFIG = "vantaloader.client.mixins.json";
     private static final Logger LOGGER = Logger.getLogger("VantaLoader.Mixin");
     private static boolean initialized;
+    private static final Set<String> REGISTERED_CONFIGS = new HashSet<>();
 
     private MixinSupport() { }
 
     public static synchronized void initialize(List<? extends ClassLoader> modLoaders,
                                                List<Path> modJars) throws IOException {
-        if (initialized) throw new IllegalStateException("Mixin support has already been initialized");
         if (modLoaders.size() != modJars.size()) {
             throw new IllegalArgumentException("Each mod class loader must have exactly one JAR");
         }
@@ -33,13 +33,17 @@ public final class MixinSupport {
         }
 
         List<ConfigSource> configs = discoverConfigs(modJars);
-        MixinBootstrap.init();
-        MixinEnvironment.getDefaultEnvironment().setSide(MixinEnvironment.Side.CLIENT);
-        MixinEnvironment.getCurrentEnvironment().setSide(MixinEnvironment.Side.CLIENT);
-        Mixins.addConfiguration(BUILTIN_CLIENT_CONFIG);
+        if (!initialized) {
+            MixinBootstrap.init();
+            MixinEnvironment.getDefaultEnvironment().setSide(MixinEnvironment.Side.CLIENT);
+            MixinEnvironment.getCurrentEnvironment().setSide(MixinEnvironment.Side.CLIENT);
+            initialized = true;
+        }
+        if (REGISTERED_CONFIGS.add(BUILTIN_CLIENT_CONFIG)) {
+            Mixins.addConfiguration(BUILTIN_CLIENT_CONFIG);
+        }
 
-        Set<String> names = new HashSet<>();
-        names.add(BUILTIN_CLIENT_CONFIG);
+        Set<String> names = new HashSet<>(REGISTERED_CONFIGS);
         for (ConfigSource config : configs) {
             if (!names.add(config.name())) {
                 throw new IOException("Duplicate Mixin configuration resource: " + config.name()
@@ -47,6 +51,7 @@ public final class MixinSupport {
             }
             try {
                 Mixins.addConfiguration(config.name());
+                REGISTERED_CONFIGS.add(config.name());
                 LOGGER.info("Registered Mixin config " + config.name() + " from " + config.modId());
             } catch (Throwable failure) {
                 if (failure instanceof VirtualMachineError fatal) throw fatal;
@@ -58,8 +63,7 @@ public final class MixinSupport {
         if (!VantaMixinService.isInitialized()) {
             throw new IllegalStateException("Mixin bootstrap completed without creating its transformer");
         }
-        initialized = true;
-        LOGGER.info("Sponge Mixin initialized; registered " + (configs.size() + 1) + " configuration(s)");
+        LOGGER.info("Sponge Mixin active; discovered " + configs.size() + " mod configuration(s)");
     }
 
     private static List<ConfigSource> discoverConfigs(List<Path> modJars) throws IOException {
