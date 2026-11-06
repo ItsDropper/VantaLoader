@@ -23,7 +23,7 @@ import java.util.logging.Logger;
 /** Reflection-isolated Minecraft screen bridge; game classes never enter the public loader API. */
 public final class VantaMenuHooks {
     private static final Logger LOGGER = Logger.getLogger("VantaLoader.ModMenu");
-    private static final int ROW_HEIGHT = 38;
+    private static final int ROW_HEIGHT = 48;
     private static final int LIST_TOP = 62;
     private static final int LIST_BOTTOM_MARGIN = 54;
     private static volatile ModRuntime runtime;
@@ -294,7 +294,7 @@ public final class VantaMenuHooks {
     }
 
     static int visibleRows(int height) {
-        return Math.max(1, (height - 112) / ROW_HEIGHT);
+        return Math.max(1, (height - LIST_TOP - LIST_BOTTOM_MARGIN) / ROW_HEIGHT);
     }
 
     static int clampScrollOffset(int requested, int entryCount, int visibleRows) {
@@ -309,7 +309,7 @@ public final class VantaMenuHooks {
             Object button = buttons.get(entries.get(i).id());
             if (button == null) continue;
             int row = i - scrollOffset;
-            int y = row >= 0 && row < visible ? LIST_TOP + row * ROW_HEIGHT + 7 : -1000;
+            int y = row >= 0 && row < visible ? LIST_TOP + row * ROW_HEIGHT + 14 : -1000;
             try {
                 setWidgetY(button, y);
             } catch (Exception failure) {
@@ -336,7 +336,8 @@ public final class VantaMenuHooks {
             }
             var header = current.modMenuHeader();
             centered(graphics, font, "Mods", width / 2, 18, 0xFFFFFFFF);
-            centered(graphics, font, header.subtitle(), width / 2, 34, 0xFFA0A0A0);
+            centered(graphics, font, header.title() + "  •  " + header.subtitle(),
+                    width / 2, 34, 0xFFA0A0A0);
 
             if (entries.isEmpty()) {
                 centered(graphics, font, "No mods loaded", width / 2, 112, 0xFFB7C7D9);
@@ -348,17 +349,36 @@ public final class VantaMenuHooks {
                         ModMenuEntry entry = entries.get(index);
                         int row = index - scrollOffset;
                         int y = LIST_TOP + row * ROW_HEIGHT;
-                        draw(graphics, font, entry.name() + "  " + entry.version(), 28, y + 2, 0xFFFFFFFF);
+                        boolean hovered = mouseX >= 22 && mouseX <= width - 22
+                                && mouseY >= y && mouseY < y + ROW_HEIGHT - 3;
+                        fill(graphics, 22, y, width - 22, y + ROW_HEIGHT - 3,
+                                hovered ? 0xFF202B3A : 0xFF151B24);
+                        fill(graphics, 22, y + ROW_HEIGHT - 4, width - 22, y + ROW_HEIGHT - 3,
+                                0xFF303B4A);
+                        int reserved = entry.hasConfigScreen() ? 184 : 64;
+                        int textWidth = Math.max(12, (width - reserved) / 6);
+                        draw(graphics, font, truncate(entry.name() + "  " + entry.version(), textWidth),
+                                30, y + 5, 0xFFFFFFFF);
                         String details = entry.description() == null || entry.description().isBlank()
                                 ? "No description provided" : entry.description();
-                        draw(graphics, font, truncate(details, Math.max(12, (width - 64) / 6)),
-                                28, y + 16, 0xFFA0A0A0);
-                        fill(graphics, 24, y + 34, width - 24, y + 35, 0xFF505050);
+                        draw(graphics, font, truncate(details, textWidth), 30, y + 20, 0xFFA0A0A0);
+                        String metadata = entry.license() == null || entry.license().isBlank()
+                                ? "Native VantaLoader mod" : entry.license() + " license";
+                        if (entry.website() != null && !entry.website().isBlank()) metadata += "  •  " + entry.website();
+                        draw(graphics, font, truncate(metadata, textWidth), 30, y + 34, 0xFF8295AB);
                     }
                 } finally {
                     disableScissor(graphics);
                 }
                 if (entries.size() > visible) {
+                    int trackTop = LIST_TOP;
+                    int trackBottom = height - LIST_BOTTOM_MARGIN;
+                    int trackHeight = trackBottom - trackTop;
+                    int thumbHeight = Math.max(16, trackHeight * visible / entries.size());
+                    int maximum = Math.max(1, entries.size() - visible);
+                    int thumbTop = trackTop + (trackHeight - thumbHeight) * scrollOffset / maximum;
+                    fill(graphics, width - 8, trackTop, width - 5, trackBottom, 0xFF283241);
+                    fill(graphics, width - 8, thumbTop, width - 5, thumbTop + thumbHeight, 0xFF71869F);
                     int first = scrollOffset + 1;
                     centered(graphics, font, "Showing " + first + "–" + end + " of " + entries.size()
                                     + "  •  Scroll to browse",

@@ -99,12 +99,15 @@ jobs:
         run: gradle --no-daemon clean build
       - name: Build Hello World example mod
         run: gradle --no-daemon -p examples/hello-mod clean build
+      - name: Build Auto Sprint gameplay mod
+        run: gradle --no-daemon -p examples/auto-sprint clean build
       - name: Launch Minecraft and capture both screens
         run: |
           XCURSOR_THEME=DMZ-White XCURSOR_SIZE=24 xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX +render -noreset" \
             bash scripts/ci/run_visual_smoke.sh \
               --agent build/agent/VantaLoader-agent.jar \
               --mod examples/hello-mod/build/libs/vantaloader-hello-mod-1.0.0.jar \
+              --mod examples/auto-sprint/build/libs/vantaloader-auto-sprint-1.0.0.jar \
               --output build/visual-smoke \
               --timeout 240
       - name: Upload Minecraft screenshots and launch logs

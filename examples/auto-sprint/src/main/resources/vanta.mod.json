@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "auto_sprint",
+  "name": "Vanta Auto Sprint",
+  "version": "1.0.0",
+  "description": "Automatically sprints while moving forward, with sneak and item-use checks.",
+  "license": "MIT",
+  "website": "https://github.com/ItsDropper/VantaLoader",
+  "sources": "https://github.com/ItsDropper/VantaLoader/tree/main/examples/auto-sprint",
+  "entrypoints": {
+    "main": "dev.itsdropper.example.autosprint.AutoSprintMod"
+  },
+  "depends": {}
+}

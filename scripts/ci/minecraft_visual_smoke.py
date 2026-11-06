@@ -184,13 +184,14 @@ def activate_minecraft_window():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--agent", type=Path, required=True)
-    parser.add_argument("--mod", type=Path, required=True)
+    parser.add_argument("--mod", type=Path, action="append", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout", type=int, default=180)
     args = parser.parse_args()
-    agent, mod = args.agent.resolve(), args.mod.resolve()
-    if not agent.is_file() or not mod.is_file():
-        raise FileNotFoundError(f"Agent or example mod JAR missing: {agent}, {mod}")
+    agent = args.agent.resolve()
+    mods = [path.resolve() for path in args.mod]
+    if not agent.is_file() or any(not mod.is_file() for mod in mods):
+        raise FileNotFoundError(f"Agent or example mod JAR missing: {agent}, {mods}")
 
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -201,7 +202,8 @@ def main():
     game_dir = output / "instance"
     mods_dir = game_dir / "mods"
     mods_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(mod, mods_dir / "hello-world.jar")
+    for mod in mods:
+        shutil.copy2(mod, mods_dir / mod.name)
     (game_dir / "options.txt").write_text(
         "fullscreen:false\nguiScale:2\nmaxFps:60\nrenderDistance:2\nsimulationDistance:5\nnarrator:0\n",
         encoding="utf-8"
@@ -268,7 +270,7 @@ def main():
             subprocess.run(["xdotool", "click", "--clearmodifiers", "--delay", "100", "1"],
                            check=True, timeout=10)
             wait_for_log_marker(process, log_path, "VantaLoader menu button activated", 15)
-            wait_for_log_marker(process, log_path, "VantaLoader mod menu rendered; entries=1", 30)
+            wait_for_log_marker(process, log_path, "VantaLoader mod menu rendered; entries=2", 30)
             subprocess.run(["xdotool", "mousemove", "--sync", "20", "20"],
                            check=True, timeout=10)
             time.sleep(1)
@@ -278,11 +280,12 @@ def main():
 
         logs = log_path.read_text(encoding="utf-8", errors="replace")
         required = ("Sponge Mixin active", "Initialized hello_world 1.0.0",
+                    "Initialized auto_sprint 1.0.0", "Auto Sprint transformer registered",
                     "All VantaLoader mods initialized successfully")
         missing = [marker for marker in required if marker not in logs]
         if missing:
             raise RuntimeError("Missing loader log markers: " + ", ".join(missing))
-        print(f"Captured Minecraft {VERSION} title and mod-menu screenshots with hello_world loaded.")
+        print(f"Captured Minecraft {VERSION} title and mod-menu screenshots with {len(mods)} mods loaded.")
         return 0
     finally:
         if process is not None and process.poll() is None:
