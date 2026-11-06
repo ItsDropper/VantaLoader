@@ -278,13 +278,14 @@ def main():
             activate_minecraft_window()
             # The Mods button is inserted into the vanilla central button column.
             # Inspect its center crop and the bottom-left version label independently.
-            main_text = screenshot_and_ocr(output / "main-menu-probe.png", (520, 394, 760, 438))
-            main_text_line = ocr_image(output / "main-menu-probe.png", (520, 394, 760, 438), psm=7)
-            footer_text = ocr_image(output / "main-menu-probe.png", (0, 680, 300, 719), psm=7)
+            subprocess.run(["scrot", str(output / "main-menu-probe.png")], check=True, timeout=15)
+            # OCR only the actual Mods glyphs, not the textured button background.
+            main_text = ocr_image(output / "main-menu-probe.png", (600, 426, 680, 453), psm=7)
+            footer_text = ocr_image(output / "main-menu-probe.png", (0, 695, 250, 719), psm=7)
             shutil.copy2(output / "main-menu-probe.png", output / "main-menu.png")
-            normalized_main = re.sub(r"\s+", " ", main_text + " " + main_text_line).casefold()
-            normalized_footer = re.sub(r"\s+", " ", footer_text).casefold()
-            print("Main menu button OCR:", re.sub(r"\s+", " ", main_text + " | " + main_text_line).strip())
+            normalized_main = re.sub(r"\\s+", " ", main_text).casefold()
+            normalized_footer = re.sub(r"\\s+", " ", footer_text).casefold()
+            print("Main menu button OCR:", re.sub(r"\\s+", " ", main_text).strip())
             print("Title footer OCR:", re.sub(r"\s+", " ", footer_text).strip())
             if "mods" not in normalized_main:
                 raise RuntimeError("The Minecraft title screen did not render the Mods button; "
@@ -298,7 +299,7 @@ def main():
 
             # 1280x720 physical display, guiScale=2: central Mods button is around
             # logical (320,208), therefore physical (640,416).
-            subprocess.run(["xdotool", "mousemove", "--sync", "640", "416"],
+            subprocess.run(["xdotool", "mousemove", "--sync", "640", "440"],
                            check=True, timeout=10)
             time.sleep(1)
             subprocess.run(["xdotool", "click", "--clearmodifiers", "--delay", "100", "1"],
