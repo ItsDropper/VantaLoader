@@ -170,6 +170,15 @@ public final class VantaMenuHooks {
         }
     }
 
+    public static void renderTitleFooter(Object screen) {
+        try {
+            int height = numberField(screen, "height");
+            Object graphics = null;
+        } catch (Throwable failure) {
+            LOGGER.log(Level.FINE, "Could not render VantaLoader title footer", failure);
+        }
+    }
+
     public static void initialize(Object screen) {
         ModRuntime current = runtime;
         if (current == null) return;
