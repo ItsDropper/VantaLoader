@@ -55,7 +55,7 @@ class Minecraft12111AdapterTest {
     }
 
     @Test
-    void injectsTitleAndPauseScreenMenuHooks() {
+    void injectsTitleAndPauseScreenMenuHooks() throws Exception {
         TransformationService transformations = new TransformationService();
         new Minecraft12111Adapter().install(transformations);
         assertScreenHook(transformations, "net/minecraft/client/gui/screens/TitleScreen");
