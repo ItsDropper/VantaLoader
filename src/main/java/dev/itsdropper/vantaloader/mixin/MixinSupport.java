@@ -35,6 +35,7 @@ public final class MixinSupport {
 
         List<ConfigSource> configs = discoverConfigs(mods);
         if (!initialized) {
+            System.setProperty("mixin.side", "CLIENT");
             MixinBootstrap.init();
             MixinEnvironment.getDefaultEnvironment().setSide(MixinEnvironment.Side.CLIENT);
             MixinEnvironment.getCurrentEnvironment().setSide(MixinEnvironment.Side.CLIENT);
