@@ -11,6 +11,7 @@ dependencies {
     compileOnly(files("../../build/agent/VantaLoader-api.jar"))
     compileOnly("org.ow2.asm:asm:9.8")
     testImplementation("org.ow2.asm:asm:9.8")
+    testRuntimeOnly(files("../../build/agent/VantaLoader-api.jar"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
