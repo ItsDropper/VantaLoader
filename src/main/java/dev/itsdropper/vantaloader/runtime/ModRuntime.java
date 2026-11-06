@@ -2,6 +2,7 @@ package dev.itsdropper.vantaloader.runtime;
 
 import dev.itsdropper.vantaloader.api.VantaMod;
 import dev.itsdropper.vantaloader.api.MinecraftCapabilities;
+import dev.itsdropper.vantaloader.api.MinecraftCapability;
 import dev.itsdropper.vantaloader.bootstrap.MinecraftHooks;
 import dev.itsdropper.vantaloader.discovery.ModArtifact;
 import dev.itsdropper.vantaloader.transformation.TransformationService;
