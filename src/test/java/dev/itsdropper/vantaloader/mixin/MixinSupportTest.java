@@ -50,7 +50,7 @@ class MixinSupportTest {
 
     @Test
     void rejectsBackslashesInMixinResourcePaths() throws Exception {
-        Path jar = createModJar("backslash.jar", "nested\\\\escape.mixins.json");
+        Path jar = createModJar("backslash.jar", "nested\\escape.mixins.json");
         ModArtifact artifact = artifact("backslash", jar, List.of("nested\\\\escape.mixins.json"));
 
         assertThrows(IOException.class,
