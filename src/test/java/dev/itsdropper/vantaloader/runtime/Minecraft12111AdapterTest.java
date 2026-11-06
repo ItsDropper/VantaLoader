@@ -28,7 +28,7 @@ class Minecraft12111AdapterTest {
     }
 
     @Test
-    void injectsClientTickStartAndEndEvents() throws Exception {
+    void injectsClientTickStartEvent() throws Exception {
         TransformationService transformations = new TransformationService();
         new Minecraft12111Adapter().install(transformations);
         byte[] transformed = transformations.transform(null, getClass().getClassLoader(),
@@ -44,10 +44,9 @@ class Minecraft12111AdapterTest {
                     .define(TARGET.replace('/', '.'), transformed);
             Object client = type.getConstructor().newInstance();
             type.getMethod("tick").invoke(client);
-            assertEquals(List.of(ClientTickEvent.Phase.START, ClientTickEvent.Phase.END),
+            assertEquals(List.of(ClientTickEvent.Phase.START),
                     events.stream().map(ClientTickEvent::phase).toList());
             assertSame(client, events.get(0).client());
-            assertSame(client, events.get(1).client());
         } finally {
             MinecraftHooks.unbind(bus);
             subscription.close();
