@@ -5,7 +5,7 @@
 VantaLoader has moved from repository scaffolding into its first executable native-mod runtime. It discovers mod JARs, validates metadata, resolves dependencies, loads entrypoints, and manages initialization and shutdown.
 
 > [!WARNING]
-> **Pre-alpha runtime.** CI now launches Minecraft 1.21.11 with the Java agent, initializes two native mods, and verifies the title screen and in-game Mods menu. The first gameplay example, Auto Sprint, is built and its bytecode transformation is unit-tested; the visual smoke test does not enter a world, so actual player movement behavior still needs in-game validation. Mixin interoperability and broad gameplay-mod compatibility are not available.
+> **Pre-alpha runtime.** CI now launches Minecraft 1.21.11 with the Java agent, initializes two native mods, and verifies the title screen and in-game Mods menu. The first gameplay example, Auto Sprint, is built and its bytecode transformation is unit-tested; the visual smoke test does not enter a world, so actual player movement behavior still needs in-game validation. An experimental SpongePowered Mixin service/bootstrap and per-mod config discovery are integrated, but third-party Mixin mod compatibility has not yet been verified. Broad gameplay-mod compatibility is not claimed.
 
 ## Implemented
 
@@ -46,7 +46,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 | Minecraft class/member mappings | Official class, method, and field mapping lookup by exact named JVM descriptor; version adapters remain incomplete |
 | Native class transformation API | ASM-backed pipeline and Auto Sprint injection tested on fixtures; player-world execution unverified |
 | VantaTransform planning, validation and reports | In progress |
-| SpongePowered Mixin adapter | Planned |
+| SpongePowered Mixin adapter | Experimental service/bootstrap and config registration implemented; third-party mod verification pending |
 | Resource reload | Not implemented |
 | Vanta Client integration | Planned |
 
@@ -155,7 +155,7 @@ public final class ExampleMod implements VantaMod {
 }
 ~~~
 
-The entrypoint needs a public no-argument constructor. Mods initialize after their declared dependencies and shut down in reverse order. `ModContext` exposes the game directory, per-mod config directory, loader version, Minecraft version, client environment, logger, and transformation registry. The launcher supplies the Minecraft version and client environment before agent startup. `ModContext.minecraftCapabilities()` exposes an immutable snapshot of verified facilities; mods must query it rather than guessing support from a version string. Lifecycle events, resource reload, and Mixin interoperability remain unavailable until implemented and tested. See the [native mod quickstart](docs/modding/getting-started.md) for a complete Gradle setup and an ASM transformation example.
+The entrypoint needs a public no-argument constructor. Mods initialize after their declared dependencies and shut down in reverse order. `ModContext` exposes the game directory, per-mod config directory, loader version, Minecraft version, client environment, logger, and transformation registry. The launcher supplies the Minecraft version and client environment before agent startup. `ModContext.minecraftCapabilities()` exposes an immutable snapshot of verified facilities; mods must query it rather than guessing support from a version string. The client lifecycle API is version-adapter-specific; resource reload is not implemented. An experimental Mixin service/bootstrap and config registration path is present, but third-party Mixin compatibility remains unverified. See the [native mod quickstart](docs/modding/getting-started.md) for a complete Gradle setup and an ASM transformation example.
 
 ### Native class transformations
 
@@ -192,7 +192,7 @@ The current agent reports class transformation support only after installing Ins
 
 ## Architecture
 
-VantaLoader owns its native runtime; it is not a renamed Fabric Loader distribution. The first integration milestone is a Java agent that initializes native entrypoints before Minecraft's main class. It installs an exact-target JVM transformation service before native mod initialization. The bundled ASM backend is exercised against real compiled fixture classes, and the API includes resource-based hierarchy resolution for frame computation. CI verifies a real Minecraft 1.21.11 process launch, native mod initialization, title-screen integration, and Mods-menu rendering. The Auto Sprint transformer is tested against a fixture class and registered in that process, but the visual smoke test does not enter a world or execute the player tick hook. Mixin interoperability is not implemented.
+VantaLoader owns its native runtime; it is not a renamed Fabric Loader distribution. The first integration milestone is a Java agent that initializes native entrypoints before Minecraft's main class. It installs an exact-target JVM transformation service before native mod initialization. The bundled ASM backend is exercised against real compiled fixture classes, and the API includes resource-based hierarchy resolution for frame computation. CI verifies a real Minecraft 1.21.11 process launch, native mod initialization, title-screen integration, and Mods-menu rendering. The Auto Sprint transformer is tested against a fixture class and registered in that process, but the visual smoke test does not enter a world or execute the player tick hook. An experimental Mixin service/bootstrap and per-mod config registration path is implemented; third-party Mixin mod compatibility remains unverified.
 
 SpongePowered Mixin is intended to be supported through an interoperability adapter where practical. Native VantaLoader transformation APIs will not require mod developers to depend on Mixin-specific types.
 
