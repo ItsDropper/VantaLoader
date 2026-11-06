@@ -62,7 +62,7 @@ class Minecraft12111AdapterTest {
         assertScreenHook(transformations, "net/minecraft/client/gui/screens/PauseScreen");
     }
 
-    private static void assertScreenHook(TransformationService transformations, String target) {
+    private static void assertScreenHook(TransformationService transformations, String target) throws Exception {
         byte[] transformed = transformations.transform(null, Minecraft12111AdapterTest.class.getClassLoader(),
                 target, null, null, screenFixture(target));
         assertNotNull(transformed);
