@@ -148,7 +148,7 @@ public final class AutoSprintMod implements VantaMod {
             throw new IllegalStateException("Expected exactly one mapped LocalPlayer.aiStep()V method, found "
                     + matches[0] + " in " + runtimeTarget);
         }
-        context.logger().fine("Applied Auto Sprint to " + runtimeTarget + "." + tickName);
+        this.context.logger().fine("Applied Auto Sprint to " + runtimeTarget + "." + tickName);
         return writer.toByteArray();
     }
 
