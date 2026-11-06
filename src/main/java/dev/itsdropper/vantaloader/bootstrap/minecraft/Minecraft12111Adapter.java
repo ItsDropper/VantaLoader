@@ -40,7 +40,7 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         String runtimeMethod = context.mappings().runtimeMethodName(owner, "init", "()V");
         String runtimeDescriptor = context.mappings().runtimeDescriptor("()V");
         ClassReader reader = new ClassReader(originalClass);
-        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
         boolean[] matched = {false};
         ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
             @Override
