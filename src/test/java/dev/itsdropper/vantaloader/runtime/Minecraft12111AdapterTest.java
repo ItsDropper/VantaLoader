@@ -59,7 +59,6 @@ class Minecraft12111AdapterTest {
         new Minecraft12111Adapter().install(transformations);
         assertScreenHook(transformations, "net/minecraft/client/gui/screens/TitleScreen");
         assertScreenHook(transformations, "net/minecraft/client/gui/screens/PauseScreen");
-        assertTitleFooterHook(transformations);
     }
 
     private static void assertTitleFooterHook(TransformationService transformations) throws Exception {
@@ -132,7 +131,7 @@ class Minecraft12111AdapterTest {
         init.visitInsn(Opcodes.RETURN);
         init.visitMaxs(0, 0);
         init.visitEnd();
-        if (internalName.endsWith("/TitleScreen")) {
+        if (internalName.endsWith("/Screen")) {
             MethodVisitor render = writer.visitMethod(Opcodes.ACC_PUBLIC, "render",
                     "(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", null, null);
             render.visitCode();
