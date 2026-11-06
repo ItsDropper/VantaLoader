@@ -79,7 +79,7 @@ public final class ModRuntime implements AutoCloseable {
             if (minecraftCapabilities.supports(MinecraftCapability.CLASS_TRANSFORMATIONS)) {
                 dev.itsdropper.vantaloader.mixin.MixinSupport.initialize(
                         new ArrayList<>(classLoaders),
-                        orderedMods.stream().map(ModArtifact::path).toList());
+                        orderedMods);
             }
 
             for (ModArtifact artifact : orderedMods) {
