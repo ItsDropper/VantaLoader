@@ -1,7 +1,6 @@
 package dev.itsdropper.example.autosprint;
 
 import dev.itsdropper.vantaloader.api.ClassTransformContext;
-import dev.itsdropper.vantaloader.api.MinecraftMappingView;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -29,8 +28,7 @@ class AutoSprintModTest {
         fixture.visitEnd();
 
         ClassTransformContext context = new ClassTransformContext(
-                "auto_sprint", "test-transform", "net.minecraft.client.player.LocalPlayer",
-                MinecraftMappingView.identity());
+                "auto_sprint", "test-transform", "net.minecraft.client.player.LocalPlayer");
         byte[] transformed = new AutoSprintMod().transformLocalPlayer(context, fixture.toByteArray());
 
         List<String> calls = new ArrayList<>();
