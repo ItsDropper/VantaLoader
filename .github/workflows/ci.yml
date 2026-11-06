@@ -1,11 +1,13 @@
-name: Build
+name: Build and visual smoke test
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
   build:
     name: Build and test
@@ -24,3 +26,55 @@ jobs:
       - name: Build proof example mod
         working-directory: examples/proof-mod
         run: gradle --no-daemon clean build
+
+  minecraft-visual-smoke:
+    name: Minecraft title and mod-menu screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.14"
+      - name: Install headless graphics and screenshot tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xdotool scrot tesseract-ocr \
+            libgl1-mesa-dri libglx-mesa0 libxrandr2 libxinerama1 \
+            libxcursor1 libxi6 libxrender1 libxtst6 libxkbcommon0 \
+            libopenal1 libasound2t64
+      - name: Cache Mojang client libraries and assets
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/vantaloader/minecraft/1.21.11
+          key: minecraft-1.21.11-linux-assets-v1
+      - name: Build VantaLoader agent
+        run: gradle --no-daemon clean build
+      - name: Build Hello World example mod
+        run: gradle --no-daemon -p examples/hello-mod clean build
+      - name: Launch Minecraft and capture both screens
+        run: |
+          xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX +render -noreset" \
+            python3 scripts/ci/minecraft_visual_smoke.py \
+              --agent build/agent/VantaLoader-agent.jar \
+              --mod examples/hello-mod/build/libs/vantaloader-hello-mod-1.0.0.jar \
+              --output build/visual-smoke \
+              --timeout 240
+      - name: Upload Minecraft screenshots and launch logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vantaloader-minecraft-visual-smoke
+          path: |
+            build/visual-smoke/main-menu.png
+            build/visual-smoke/mod-menu.png
+            build/visual-smoke/main-menu-probe.png
+            build/visual-smoke/mod-menu-probe.png
+            build/visual-smoke/launch-command.txt
+            build/visual-smoke/instance/logs/visual-smoke.log
+          if-no-files-found: warn
+          retention-days: 14
