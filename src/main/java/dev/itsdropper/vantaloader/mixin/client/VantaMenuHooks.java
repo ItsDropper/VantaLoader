@@ -170,10 +170,13 @@ public final class VantaMenuHooks {
         }
     }
 
-    public static void renderTitleFooter(Object screen) {
+    public static void renderTitleFooter(Object screen, Object graphics) {
         try {
             int height = numberField(screen, "height");
-            Object graphics = null;
+            Object font = objectField(screen, "font");
+            String version = System.getProperty("vanta.minecraft.version", "unknown");
+            fill(graphics, 0, height - 14, 176, height, 0x80000000);
+            draw(graphics, font, "VantaLoader (" + version + ")", 2, height - 11, 0xFFFFFFFF);
         } catch (Throwable failure) {
             LOGGER.log(Level.FINE, "Could not render VantaLoader title footer", failure);
         }
