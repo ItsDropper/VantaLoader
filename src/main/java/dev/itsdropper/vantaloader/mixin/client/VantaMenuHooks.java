@@ -56,6 +56,7 @@ public final class VantaMenuHooks {
         try {
             parentScreen = parent;
             Class<?> screenType = generatedScreenClass();
+            Class<?> componentType = minecraftClass("net.minecraft.network.chat.Component");
             Object title = literalComponent("VantaLoader");
             Object screen = screenType.getConstructor(componentType).newInstance(title);
             setMinecraftScreen(screen);
