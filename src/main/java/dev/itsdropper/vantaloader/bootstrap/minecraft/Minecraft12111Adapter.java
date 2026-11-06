@@ -143,6 +143,16 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
                                 "onClientTick", TICK_HOOK_DESCRIPTOR, false);
                     }
 
+                    @Override
+                    public void visitInsn(int opcode) {
+                        if (opcode == Opcodes.RETURN) {
+                            // No local-variable access here: Minecraft may chop local 0
+                            // from a StackMapTable frame before a return instruction.
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOK_OWNER,
+                                    "onClientTickEnd", "()V", false);
+                        }
+                        super.visitInsn(opcode);
+                    }
                 };
             }
         };
