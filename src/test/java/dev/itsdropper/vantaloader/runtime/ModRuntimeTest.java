@@ -104,7 +104,7 @@ class ModRuntimeTest {
         assertEquals(List.of("init:alpha", "init:beta", "stop", "stop"), RuntimeEvents.EVENTS);
     }
 
-    @Test void rollsBackEveryConstructedModWhenInitializationFails() throws Exception {
+    @Test void rollsBackOnlySuccessfullyInitializedModsWhenInitializationFails() throws Exception {
         RuntimeEvents.EVENTS.clear();
         RuntimeEvents.failInitializeMod = "beta";
         RuntimeEvents.failShutdown = false;
@@ -117,10 +117,11 @@ class ModRuntimeTest {
         IllegalStateException failure = assertThrows(IllegalStateException.class,
                 () -> runtime.start(List.of(alpha, beta)));
         assertEquals("simulated initialization failure", failure.getMessage());
-        assertEquals(List.of("init:alpha", "init:beta", "stop", "stop"), RuntimeEvents.EVENTS);
+        assertEquals(List.of("init:alpha", "init:beta", "stop"), RuntimeEvents.EVENTS,
+                "A mod whose initialization failed must not receive onShutdown");
         assertThrows(IllegalStateException.class, () -> runtime.start(List.of(alpha, beta)));
         runtime.close();
-        assertEquals(4, RuntimeEvents.EVENTS.size());
+        assertEquals(3, RuntimeEvents.EVENTS.size());
     }
 
     @Test void continuesShutdownAndClosesRuntimeWhenAModThrowsAnError() throws Exception {
