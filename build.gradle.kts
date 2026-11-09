@@ -12,7 +12,7 @@ dependencies {
     implementation("net.fabricmc:sponge-mixin:0.17.5+mixin.0.8.7")
     // Shared bytecode toolkit exposed to native mods through the agent classpath.
     implementation("org.ow2.asm:asm:9.8")
-    implementation("org.ow2.asm:asm-tree:9.8")
+    implementation("org.ow2.asm:asm-tree:9.11.1")
     implementation("org.ow2.asm:asm-commons:9.8")
     implementation("org.ow2.asm:asm-util:9.8")
     implementation("org.ow2.asm:asm-analysis:9.8")
