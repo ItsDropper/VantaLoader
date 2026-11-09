@@ -15,7 +15,7 @@ dependencies {
     implementation("org.ow2.asm:asm-tree:9.8")
     implementation("org.ow2.asm:asm-commons:9.8")
     implementation("org.ow2.asm:asm-util:9.8")
-    implementation("org.ow2.asm:asm-analysis:9.8")
+    implementation("org.ow2.asm:asm-analysis:9.11.1")
     testImplementation(platform("org.junit:junit-bom:5.12.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
