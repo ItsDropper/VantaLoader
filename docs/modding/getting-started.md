@@ -133,4 +133,4 @@ The example target is illustrative, not a verified Minecraft class. Use Mojang-m
 
 ## Current compatibility boundary
 
-The loader currently provides native entrypoints, dependency ordering, isolated mod class loaders, and an ASM-backed exact-target transformation pipeline tested against fixture classes. It does not yet provide Minecraft lifecycle events, automatic bytecode remapping, Mixin interoperability, Fabric/Forge APIs, or a verified in-game hook. It is not yet a general-purpose replacement for established Minecraft loaders.
+The loader currently provides native entrypoints, dependency ordering, isolated mod class loaders, and an ASM-backed exact-target transformation pipeline. The exact Minecraft 1.21.11 adapter exposes client tick START/END events and title/pause-screen hooks, all fixture-tested but not yet verified in a live world. An experimental SpongePowered Mixin service and per-mod configuration registration path is present; third-party Mixin compatibility remains unverified. Automatic bytecode remapping and Fabric/Forge APIs are not provided. VantaLoader is not yet a general-purpose replacement for established Minecraft loaders.
