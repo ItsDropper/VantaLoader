@@ -11,6 +11,9 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.junit.jupiter.api.Test;
+import org.objectweb.asm.util.CheckClassAdapter;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
@@ -67,6 +70,10 @@ class Minecraft12111AdapterTest {
         byte[] transformed = transformations.transform(null, Minecraft12111AdapterTest.class.getClassLoader(),
                 "net/minecraft/client/gui/GuiGraphics", null, null, graphicsFixture());
         assertNotNull(transformed);
+        StringWriter diagnostics = new StringWriter();
+        CheckClassAdapter.verify(new org.objectweb.asm.ClassReader(transformed),
+                Minecraft12111AdapterTest.class.getClassLoader(), false, new PrintWriter(diagnostics));
+        assertTrue(diagnostics.toString().isBlank(), diagnostics.toString());
         org.objectweb.asm.ClassReader reader = new org.objectweb.asm.ClassReader(transformed);
         boolean[] found = {false};
         reader.accept(new org.objectweb.asm.ClassVisitor(Opcodes.ASM9) {
@@ -143,6 +150,11 @@ class Minecraft12111AdapterTest {
         constructor.visitEnd();
         MethodVisitor init = writer.visitMethod(Opcodes.ACC_PUBLIC, "init", "()V", null, null);
         init.visitCode();
+        Label branch = new Label();
+        init.visitInsn(Opcodes.ICONST_0);
+        init.visitJumpInsn(Opcodes.IFEQ, branch);
+        init.visitInsn(Opcodes.NOP);
+        init.visitLabel(branch);
         init.visitInsn(Opcodes.RETURN);
         init.visitMaxs(0, 0);
         init.visitEnd();

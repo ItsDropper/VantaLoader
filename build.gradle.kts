@@ -6,16 +6,17 @@ plugins {
 }
 group = "dev.itsdropper.vantaloader"
 version = providers.gradleProperty("vantaVersion").orElse("0.1.0-SNAPSHOT").get()
+val asmVersion = "9.8"
 repositories { mavenCentral() }
 dependencies {
     implementation("com.google.code.gson:gson:2.13.2")
     implementation("net.fabricmc:sponge-mixin:0.17.5+mixin.0.8.7")
     // Shared bytecode toolkit exposed to native mods through the agent classpath.
-    implementation("org.ow2.asm:asm:9.8")
-    implementation("org.ow2.asm:asm-tree:9.8")
-    implementation("org.ow2.asm:asm-commons:9.8")
-    implementation("org.ow2.asm:asm-util:9.8")
-    implementation("org.ow2.asm:asm-analysis:9.8")
+    implementation("org.ow2.asm:asm:$asmVersion")
+    implementation("org.ow2.asm:asm-tree:$asmVersion")
+    implementation("org.ow2.asm:asm-commons:$asmVersion")
+    implementation("org.ow2.asm:asm-util:$asmVersion")
+    implementation("org.ow2.asm:asm-analysis:$asmVersion")
     testImplementation(platform("org.junit:junit-bom:5.12.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -69,7 +70,7 @@ val agentJar by tasks.registering(Jar::class) {
         )
         // Mixin detects ASM's minor version from package manifest metadata.
         // A shaded agent JAR must retain the ASM package version explicitly.
-        attributes(mapOf("Implementation-Version" to "9.8"), "org/objectweb/asm/")
+        attributes(mapOf("Implementation-Version" to asmVersion), "org/objectweb/asm/")
     }
 }
 
@@ -120,7 +121,7 @@ val verifyAgentJar by tasks.registering {
                 == "dev.itsdropper.vantaloader.bootstrap.VantaLoaderAgent") {
                 "VantaLoader agent JAR is missing its Premain-Class manifest entry"
             }
-            check(jar.manifest.entries["org/objectweb/asm/"]?.getValue("Implementation-Version") == "9.8") {
+            check(jar.manifest.entries["org/objectweb/asm/"]?.getValue("Implementation-Version") == asmVersion) {
                 "VantaLoader agent JAR must preserve ASM's package implementation version for Mixin compatibility checks"
             }
             check(jar.getEntry("dev/itsdropper/vantaloader/bootstrap/VantaLoaderAgent.class") != null) {
@@ -128,6 +129,18 @@ val verifyAgentJar by tasks.registering {
             }
             check(jar.getEntry("com/google/gson/JsonParser.class") != null) {
                 "Gson runtime dependency is missing from the self-contained agent JAR"
+            }
+            check(jar.getEntry("org/objectweb/asm/ClassReader.class") != null) {
+                "ASM core is missing from the self-contained agent JAR"
+            }
+            check(jar.getEntry("org/objectweb/asm/tree/ClassNode.class") != null) {
+                "ASM tree is missing from the self-contained agent JAR"
+            }
+            check(jar.getEntry("org/spongepowered/asm/launch/MixinBootstrap.class") != null) {
+                "SpongePowered Mixin runtime is missing from the self-contained agent JAR"
+            }
+            check(jar.getEntry("META-INF/services/org.spongepowered.asm.service.IMixinService") != null) {
+                "VantaLoader Mixin service registration is missing from the self-contained agent JAR"
             }
         }
     }

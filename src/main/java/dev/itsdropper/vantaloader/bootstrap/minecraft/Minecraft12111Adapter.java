@@ -84,7 +84,10 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         String runtimeMethod = context.mappings().runtimeMethodName(owner, "init", "()V");
         String runtimeDescriptor = context.mappings().runtimeDescriptor("()V");
         ClassReader reader = new ClassReader(originalClass);
-        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        // This injection is stack-neutral and introduces no control flow or locals.
+        // Preserve Minecraft's existing StackMapTable instead of asking ASM to resolve
+        // game classes through its own class loader while the agent is transforming them.
+        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
         boolean[] matched = {false};
         ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
             @Override

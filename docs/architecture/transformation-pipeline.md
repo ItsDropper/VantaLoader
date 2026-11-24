@@ -4,7 +4,7 @@
 
 **Status: JVM transformation backend implemented; first exact-version game hook fixture-tested**
 
-VantaLoader bundles ASM 9.11.1 (core, tree, commons, util, and analysis) in its self-contained agent. A fixture integration test transforms, verifies, defines, and invokes a compiled class. The exact-version Minecraft 1.21.11 adapter also injects client tick START/END dispatch into a fixture class matching the target. This is not yet proof of a successful real Minecraft launch.
+VantaLoader bundles ASM 9.8 (core, tree, commons, util, and analysis) in its self-contained agent. A fixture integration test transforms, verifies, defines, and invokes a compiled class. The exact-version Minecraft 1.21.11 adapter also injects client tick START/END dispatch into a fixture class matching the target. This is not yet proof of a successful real Minecraft launch.
 
 ## Native transformation API
 
@@ -22,6 +22,7 @@ The JVM agent installs the transformer before native mod initialization. Mods re
 ## Validation and failure behavior
 
 - Every non-empty transformation result is parsed by ASM and must retain the target class identity.
+- SpongePowered Mixin output passes through the same class-file parsing and target-identity validation before it is returned to the JVM.
 - Malformed class files, empty results, and changed class identities fail closed.
 - A failed required transformation is logged with mod ID, transformation ID, and target class; the transformer returns deliberately invalid class bytes so the JVM cannot silently continue with an unpatched target.
 - ASM parsing is not a substitute for full JVM verification or correct stack-map-frame computation.

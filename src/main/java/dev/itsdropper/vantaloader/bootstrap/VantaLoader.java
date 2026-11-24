@@ -70,13 +70,18 @@ public final class VantaLoader {
             verifiedCapabilities.add(MinecraftCapability.OFFICIAL_MOJANG_MAPPINGS);
         }
         if (instrumentation != null) {
-            MinecraftAdapter adapter = MinecraftAdapterRegistry.find(minecraftVersion).orElse(null);
-            if (adapter != null) {
-                adapter.install(transformations);
-                verifiedCapabilities.add(MinecraftCapability.CLIENT_LIFECYCLE_EVENTS);
-                LOGGER.info("Installed exact Minecraft adapter: " + adapter.minecraftVersion());
+            if (mappings == null) {
+                LOGGER.warning("Skipping Minecraft adapter installation for " + minecraftVersion
+                        + ": official Mojang mappings are required to resolve its named targets");
             } else {
-                LOGGER.info("No exact Minecraft adapter is available for " + minecraftVersion);
+                MinecraftAdapter adapter = MinecraftAdapterRegistry.find(minecraftVersion).orElse(null);
+                if (adapter != null) {
+                    adapter.install(transformations);
+                    verifiedCapabilities.add(MinecraftCapability.CLIENT_LIFECYCLE_EVENTS);
+                    LOGGER.info("Installed exact Minecraft adapter: " + adapter.minecraftVersion());
+                } else {
+                    LOGGER.info("No exact Minecraft adapter is available for " + minecraftVersion);
+                }
             }
             instrumentation.addTransformer(transformations, false);
             verifiedCapabilities.add(MinecraftCapability.CLASS_TRANSFORMATIONS);

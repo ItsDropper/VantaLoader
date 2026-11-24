@@ -22,8 +22,8 @@ repositories {
 
 dependencies {
     compileOnly(files("libs/VantaLoader-api.jar"))
-    compileOnly("org.ow2.asm:asm:9.11.1")
-    compileOnly("org.ow2.asm:asm-commons:9.11.1")
+    compileOnly("org.ow2.asm:asm:9.8")
+    compileOnly("org.ow2.asm:asm-commons:9.8")
 }
 
 java {
@@ -89,11 +89,11 @@ context.events().subscribe(ProfileLoaded.class, 0, event ->
 context.events().publish(new ProfileLoaded("default"));
 ```
 
-This is a native mod-to-mod communication API, not a Minecraft event hook. It does not currently expose game ticks, input, rendering, resource reload, or other Minecraft lifecycle events.
+This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter separately exposes client tick START/END events when the launcher supplies the matching official mappings. Other game hooks, input, rendering APIs, and resource reload are not yet part of the stable native API.
 
 ## ASM transformation example
 
-The agent bundles ASM 9.11.1 and exposes it to mods at runtime. This example replaces a string constant while preserving the method's existing stack shape and frames:
+The agent bundles ASM 9.8 and exposes it to mods at runtime. This example replaces a string constant while preserving the method's existing stack shape and frames:
 
 ```java
 context.transformations().register(
