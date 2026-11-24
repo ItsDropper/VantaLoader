@@ -20,16 +20,27 @@ final class ModKeyBindingRegistry implements KeyBindingRegistry {
     private final ConcurrentMap<String, Registration> registrations = new ConcurrentHashMap<>();
     private final AtomicBoolean closed = new AtomicBoolean();
     private final EventSubscription inputSubscription;
+    private final boolean available;
 
-    ModKeyBindingRegistry(dev.itsdropper.vantaloader.api.EventBus events) {
-        inputSubscription = Objects.requireNonNull(events, "events")
-                .subscribe(KeyInputEvent.class, EventPriority.NORMAL, this::onInput);
+    ModKeyBindingRegistry(dev.itsdropper.vantaloader.api.EventBus events, boolean available) {
+        this.available = available;
+        this.inputSubscription = available
+                ? Objects.requireNonNull(events, "events")
+                    .subscribe(KeyInputEvent.class, EventPriority.NORMAL, this::onInput)
+                : () -> { };
+    }
+
+    @Override
+    public boolean isAvailable() {
+        return available && !closed.get();
     }
 
     @Override
     public KeyBindingRegistration register(KeyBinding binding) {
         Objects.requireNonNull(binding, "binding");
         ensureOpen();
+        if (!available) throw new UnsupportedOperationException(
+                "The active Minecraft adapter does not provide keyboard input events");
         Registration registration = new Registration(binding);
         Registration existing = registrations.putIfAbsent(binding.id(), registration);
         if (existing != null) {
@@ -46,6 +57,7 @@ final class ModKeyBindingRegistry implements KeyBindingRegistry {
     public Optional<KeyBindingRegistration> find(String id) {
         Objects.requireNonNull(id, "id");
         ensureOpen();
+        if (!available) return Optional.empty();
         return Optional.ofNullable(registrations.get(id));
     }
 
