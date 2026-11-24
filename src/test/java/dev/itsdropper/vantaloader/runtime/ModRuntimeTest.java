@@ -19,6 +19,33 @@ import static org.junit.jupiter.api.Assertions.*;
 class ModRuntimeTest {
     @TempDir Path temporaryDirectory;
 
+    @Test void exposesKeyBindingsAndClosesThemWithTheirOwningMod() throws Exception {
+        RuntimeEvents.EVENTS.clear();
+        RuntimeEvents.keyBindingRegistration = null;
+        Path jar = temporaryDirectory.resolve("keybinding-fixture.jar");
+        try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
+        var fixture = artifact(jar, "keybinding_fixture", RuntimeTestEntrypoint.class.getName());
+        ModRuntime runtime = new ModRuntime(temporaryDirectory.resolve("keybinding-game"),
+                new TransformationService(),
+                MinecraftCapabilities.of(MinecraftCapability.KEYBOARD_INPUT_EVENTS));
+        runtime.start(List.of(fixture));
+
+        assertNotNull(RuntimeEvents.keyBindingRegistration);
+        assertFalse(RuntimeEvents.keyBindingRegistration.isClosed());
+        MinecraftHooks.onKeyInput(new Object(), 1L, 65, 30,
+                dev.itsdropper.vantaloader.api.KeyInputEvent.PRESS, 0);
+        assertTrue(RuntimeEvents.keyBindingRegistration.isPressed());
+        MinecraftHooks.onKeyInput(new Object(), 1L, 65, 30,
+                dev.itsdropper.vantaloader.api.KeyInputEvent.RELEASE, 0);
+        assertFalse(RuntimeEvents.keyBindingRegistration.isPressed());
+
+        runtime.stop();
+
+        assertTrue(RuntimeEvents.keyBindingRegistration.isClosed());
+        assertEquals(List.of("init:keybinding_fixture", "key:PRESSED", "key:RELEASED", "stop"),
+                RuntimeEvents.EVENTS);
+    }
+
     @Test void rollsBackServicesRegisteredByAModWhoseInitializationFails() throws Exception {
         RuntimeEvents.EVENTS.clear();
         RuntimeEvents.failInitializeMod = "service_provider";
