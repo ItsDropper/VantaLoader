@@ -42,7 +42,7 @@ jobs:
           for executable in Xvfb xdotool javac java; do command -v "$executable"; done
           javac scripts/ci/ScreenCapture.java
       - name: Cache Minecraft client, libraries and assets
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/vantaloader/minecraft/1.21.11
           key: minecraft-1.21.11-linux-assets-v1
