@@ -2,8 +2,6 @@ package dev.itsdropper.vantaloader.mixin;
 
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.MixinEnvironment;
-import org.spongepowered.asm.mixin.Mixins;
-import org.spongepowered.asm.service.MixinService;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -36,13 +34,6 @@ public final class MixinSupport {
         List<ConfigSource> configs = discoverConfigs(mods);
         if (!initialized) {
             System.setProperty("mixin.side", "CLIENT");
-            // The plain javaagent has no launch-wrapper phase provider. Bootstrap
-            // Mixin's service first, then select DEFAULT before MixinBootstrap
-            // creates its transformer; otherwise configs register in DEFAULT
-            // while the transformer remains in PREINIT and rejects the mismatch.
-            MixinService.boot();
-            MixinService.getService().prepare();
-            MixinEnvironment.init(MixinEnvironment.Phase.DEFAULT);
             MixinBootstrap.init();
             MixinEnvironment.getDefaultEnvironment().setSide(MixinEnvironment.Side.CLIENT);
             MixinEnvironment.getCurrentEnvironment().setSide(MixinEnvironment.Side.CLIENT);
@@ -58,7 +49,10 @@ public final class MixinSupport {
                         + " (also declared by " + config.modId() + ")");
             }
             try {
-                Mixins.addConfiguration(config.name());
+                // The agent has no launch-wrapper phase provider, so Mixin remains
+                // in PREINIT. Register each config against that exact active
+                // environment instead of Mixins.addConfiguration's DEFAULT fallback.
+                MixinEnvironment.getCurrentEnvironment().addConfiguration(config.name());
                 REGISTERED_CONFIGS.add(config.name());
                 LOGGER.info("Registered Mixin config " + config.name() + " from " + config.modId());
             } catch (Throwable failure) {
