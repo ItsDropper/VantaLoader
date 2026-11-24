@@ -1,6 +1,7 @@
 package dev.itsdropper.vantaloader.bootstrap;
 
 import dev.itsdropper.vantaloader.api.ClientTickEvent;
+import dev.itsdropper.vantaloader.api.KeyInputEvent;
 import dev.itsdropper.vantaloader.api.EventBus;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
@@ -12,6 +13,8 @@ public final class MinecraftHooks {
     private static final Logger LOGGER = Logger.getLogger("VantaLoader.GameHooks");
     private static final AtomicReference<EventBus> EVENT_BUS = new AtomicReference<>();
     private static final AtomicReference<Object> ACTIVE_CLIENT = new AtomicReference<>();
+    private static final java.util.concurrent.atomic.AtomicBoolean KEYBOARD_INPUT_OBSERVED =
+            new java.util.concurrent.atomic.AtomicBoolean();
     private static final java.util.concurrent.atomic.AtomicBoolean PLAYER_TICK_OBSERVED =
             new java.util.concurrent.atomic.AtomicBoolean();
     private MinecraftHooks() { }
@@ -41,6 +44,24 @@ public final class MinecraftHooks {
         if (client != null) publishClientTick(client, ClientTickEvent.Phase.END);
     }
 
+
+    /** Called by the exact-version keyboard adapter before vanilla input processing. */
+    public static void onKeyInput(Object keyboardHandler, long windowHandle, int keyCode,
+                                 int scanCode, int action, int modifiers) {
+        if (KEYBOARD_INPUT_OBSERVED.compareAndSet(false, true)) {
+            LOGGER.info("VantaLoader integration probe: keyboard input observed");
+        }
+        EventBus eventBus = EVENT_BUS.get();
+        if (eventBus == null) return;
+        try {
+            eventBus.publish(new KeyInputEvent(
+                    keyboardHandler, windowHandle, keyCode, scanCode, action, modifiers));
+        } catch (Throwable failure) {
+            if (failure instanceof VirtualMachineError fatal) throw fatal;
+            if (failure instanceof ThreadDeath death) throw death;
+            LOGGER.log(Level.SEVERE, "One or more VantaLoader keyboard input listeners failed", failure);
+        }
+    }
 
     /** Internal CI/runtime probe called from LocalPlayer.aiStep after mod transformations compose. */
     public static void onLocalPlayerTick() {
