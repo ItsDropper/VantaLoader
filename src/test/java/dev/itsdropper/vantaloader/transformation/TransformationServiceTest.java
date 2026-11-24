@@ -226,6 +226,28 @@ class TransformationServiceTest {
         assertEquals(List.of("first", "broken"), invoked);
     }
 
+    @Test
+    void reportsCrossModSharedTargetsInDeterministicContributionOrder() {
+        TransformationService service = new TransformationService();
+        service.forMod("zeta").register("later", "example.Target", 10, (context, bytes) -> bytes);
+        service.forMod("alpha").register("first", "example.Target", -5, (context, bytes) -> bytes);
+        service.forMod("alpha").register("same-mod", "example.Target", 0, (context, bytes) -> bytes);
+        service.forMod("solo").register("only", "example.Other", 0, (context, bytes) -> bytes);
+
+        var conflicts = service.potentialConflicts();
+        assertEquals(1, conflicts.size());
+        assertEquals("example.Target", conflicts.get(0).runtimeTargetClassName());
+        assertEquals(List.of(
+                new dev.itsdropper.vantaloader.transformation.TransformationConflict.Contribution(
+                        "alpha", "first", -5),
+                new dev.itsdropper.vantaloader.transformation.TransformationConflict.Contribution(
+                        "alpha", "same-mod", 0),
+                new dev.itsdropper.vantaloader.transformation.TransformationConflict.Contribution(
+                        "zeta", "later", 10)), conflicts.get(0).contributions());
+        assertThrows(UnsupportedOperationException.class,
+                () -> conflicts.get(0).contributions().clear());
+    }
+
     private static byte[] replaceStringConstant(byte[] original, String before, String after) {
         ClassReader reader = new ClassReader(original);
         ClassWriter writer = new ClassWriter(reader, 0);

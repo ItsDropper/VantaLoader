@@ -36,7 +36,7 @@ class HierarchyClassWriterTest {
 
     @Test
     void preservesAssignableTypesAndUnknownClassFallback() {
-        assertEquals(internal(Alpha.class), writer.commonSuperClass(internal(Base.class), internal(Alpha.class)));
+        assertEquals(internal(Base.class), writer.commonSuperClass(internal(Base.class), internal(Alpha.class)));
         assertEquals("java/lang/Object", writer.commonSuperClass("missing/First", "missing/Second"));
     }
 
