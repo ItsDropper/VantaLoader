@@ -5,7 +5,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 /** A serial, daemon-backed executor whose lifetime is bounded by one mod. */
 final class ModTaskService implements ModTasks {
- private final ExecutorService executor; private volatile boolean closed;
+ private final ExecutorService executor; private final java.util.Set<Future<?>> pending=java.util.concurrent.ConcurrentHashMap.newKeySet(); private volatile boolean closed;
  ModTaskService(String modId,ClassLoader loader){
   AtomicInteger sequence=new AtomicInteger();
   executor=Executors.newSingleThreadExecutor(task->{Thread thread=new Thread(()->{
@@ -16,11 +16,14 @@ final class ModTaskService implements ModTasks {
  @Override public Future<?> execute(Runnable task){return submit(Executors.callable(Objects.requireNonNull(task,"task")));}
  @Override public <T>Future<T> submit(Callable<T> task){
   Objects.requireNonNull(task,"task");if(closed)throw new IllegalStateException("Mod task scope is closed");
-  try{return executor.submit(task);}catch(RejectedExecutionException ex){throw new IllegalStateException("Mod task scope is closed",ex);}
+  FutureTask<T> future=new FutureTask<>(task){@Override protected void done(){pending.remove(this);}};
+  pending.add(future);
+  if(closed){future.cancel(true);throw new IllegalStateException("Mod task scope is closed");}
+  try{executor.execute(future);return future;}catch(RejectedExecutionException ex){pending.remove(future);throw new IllegalStateException("Mod task scope is closed",ex);}
  }
  @Override public boolean isClosed(){return closed;}
  @Override public void close(){
-  if(closed)return;closed=true;executor.shutdownNow();
+  if(closed)return;closed=true;pending.forEach(future->future.cancel(true));executor.shutdownNow();
   try{if(!executor.awaitTermination(5,TimeUnit.SECONDS))throw new IllegalStateException("Mod tasks did not stop within 5 seconds");}
   catch(InterruptedException ex){Thread.currentThread().interrupt();throw new IllegalStateException("Interrupted while stopping mod tasks",ex);}
  }
