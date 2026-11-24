@@ -105,6 +105,15 @@ val verifyAgentJar by tasks.registering {
             check(jar.getEntry("dev/itsdropper/vantaloader/api/ModMenuApi.class") != null) {
                 "Standalone mod API JAR is missing ModMenuApi"
             }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ResourceReloadRegistry.class") != null) {
+                "Standalone mod API JAR is missing ResourceReloadRegistry"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ResourceReloadPlan.class") != null) {
+                "Standalone mod API JAR is missing ResourceReloadPlan"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ResourceReloadReport.class") != null) {
+                "Standalone mod API JAR is missing ResourceReloadReport"
+            }
             check(jar.getEntry("dev/itsdropper/vantaloader/api/ModMenuEntry.class") != null) {
                 "Standalone mod API JAR is missing ModMenuEntry"
             }

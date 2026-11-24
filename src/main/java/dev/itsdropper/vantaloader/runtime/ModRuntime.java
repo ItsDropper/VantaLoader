@@ -103,6 +103,7 @@ public final class ModRuntime implements AutoCloseable {
                     initialized.add(mod);
                 } catch (Exception | Error failure) {
                     eventScope.close();
+                    mod.resourceScope().close();
                     throw failure;
                 }
                 LOGGER.info("Initialized " + mod.id() + " " + artifact.descriptor().version());
@@ -197,6 +198,7 @@ public final class ModRuntime implements AutoCloseable {
 
     private void rollback(Throwable original) {
         MinecraftHooks.unbind(eventBus);
+        closeResourceReloadService(original);
         Error fatalFailure = null;
         try {
             for (int i = initialized.size() - 1; i >= 0; i--) {

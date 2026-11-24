@@ -58,13 +58,13 @@ Milestones describe intended work, not promises or release dates. A milestone is
 
 ## Stage 4 — Reload-aware development
 
-- [ ] Implement resource reload support.
-- [ ] Define ownership and cleanup for reloadable components.
-- [ ] Add a development file watcher and reload report.
-- [ ] Classify transformation changes as reloadable or restart-required.
-- [ ] Test failure and rollback behavior.
+- [x] Implement recursive file watching for mod-registered resource directories and a transactional prepare/commit/rollback reload contract.
+- [x] Scope reload registrations to the owning mod and remove them on shutdown or startup rollback; stop the watcher before unloading mod class loaders.
+- [x] Add a development file watcher, coalesced change batches, and bounded reload diagnostics.
+- [x] Report mod JAR changes as restart-required; never hot-swap loaded classes, Mixin configs, or transformation registrations.
+- [x] Test successful reload, preparation failure, commit failure rollback, registration cleanup, and restart-required detection.
 
-**Exit criteria:** supported resources/components reload without restarting; unsupported class changes are rejected clearly.
+**Exit criteria:** registered mod-owned resources reload transactionally without restarting; mod JAR changes are reported as restart-required. Minecraft resource packs and arbitrary game assets are outside this stage.
 
 ## Stage 5 — Vanta ecosystem integration
 

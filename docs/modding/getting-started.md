@@ -89,7 +89,25 @@ context.events().subscribe(ProfileLoaded.class, 0, event ->
 context.events().publish(new ProfileLoaded("default"));
 ```
 
-This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter separately exposes client tick START/END events when the launcher supplies the matching official mappings. Other game hooks, input, rendering APIs, and resource reload are not yet part of the stable native API.
+This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter separately exposes client tick START/END events when the launcher supplies the matching official mappings. Other game hooks, input and rendering APIs are not yet part of the stable native API. The resource API reloads explicitly registered mod-owned files; it does not reload Minecraft resource packs or arbitrary game assets.
+
+## Resource reloads
+
+Mods can watch a directory inside the game directory. A file change prepares replacement state first; VantaLoader prepares every affected registration before committing any of them. If preparation or commit fails, rollback runs in reverse order. Each plan must restore the state that was active before preparation/commit. Callbacks run on a dedicated daemon worker with the owning mod's context class loader; keep expensive work off Minecraft's render/tick thread.
+
+```java
+Path resources = context.configDirectory().resolve("resources");
+context.resources().register("language-files", resources, reload -> {
+    Map<String, String> replacement = loadTranslations(reload.directory());
+    Map<String, String> previous = currentTranslations;
+    return new ResourceReloadPlan() {
+        @Override public void commit() { currentTranslations = replacement; }
+        @Override public void rollback() { currentTranslations = previous; }
+    };
+});
+```
+
+The loader watches registered resource directories recursively. Changes to JARs in the instance `mods/` directory are reported as restart-required; Java classes, Mixin configurations, and transformation registrations are never hot-swapped. Loader integrations can inspect `ModRuntime.resourceReloadReport()` for completed/failed reloads and restart-required paths. Registrations are removed when their mod shuts down or startup rolls back.
 
 ## ASM transformation example
 
