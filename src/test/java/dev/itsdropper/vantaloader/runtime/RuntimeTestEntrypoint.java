@@ -2,6 +2,7 @@ package dev.itsdropper.vantaloader.runtime;
 
 import dev.itsdropper.vantaloader.api.ModContext;
 import dev.itsdropper.vantaloader.api.VantaMod;
+import dev.itsdropper.vantaloader.api.KeyBinding;
 
 public final class RuntimeTestEntrypoint implements VantaMod {
     public RuntimeTestEntrypoint() { }
@@ -10,6 +11,11 @@ public final class RuntimeTestEntrypoint implements VantaMod {
     public void onInitialize(ModContext context) {
         RuntimeEvents.EVENTS.add("init:" + context.modId());
         RuntimeEvents.lastCapabilities = context.minecraftCapabilities();
+        if (context.modId().equals("keybinding_fixture")) {
+            RuntimeEvents.keyBindingRegistration = context.keyBindings().register(
+                    new KeyBinding("test", "Test binding", 65, 0,
+                            action -> RuntimeEvents.EVENTS.add("key:" + action.name())));
+        }
         if (context.modId().equals("service_provider")) {
             RuntimeEvents.providerServices = context.services();
             RuntimeEvents.serviceRegistration = context.services().register(
