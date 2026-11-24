@@ -17,6 +17,6 @@ public final class ConfigKey<T> {
  public static ConfigKey<Double> decimal(String id,double value){return decimal(id,value,-Double.MAX_VALUE,Double.MAX_VALUE);}
  public static ConfigKey<Double> decimal(String id,double value,double min,double max){if(!Double.isFinite(min)||!Double.isFinite(max)||min>max)throw new IllegalArgumentException("Finite bounds required");return new ConfigKey<>(id,Type.DOUBLE,Double.class,value,v->Double.isFinite(v)&&v>=min&&v<=max);}
  public static <E extends Enum<E>> ConfigKey<E> enumeration(String id,Class<E> type,E value){return new ConfigKey<>(id,Type.ENUM,type,value,v->true);}
- public String id(){return id;} public Type type(){return type;} public T defaultValue(){return defaultValue;} Class<T> javaType(){return javaType;}
+ public String id(){return id;} public Type type(){return type;} public T defaultValue(){return defaultValue;} public Class<T> javaType(){return javaType;}
  public void validate(T value){if(!javaType.isInstance(value)||!validator.test(value))throw new IllegalArgumentException("Invalid value for config key '"+id+"': "+value);}
 }
