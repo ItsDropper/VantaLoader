@@ -56,8 +56,12 @@ class TransformationServiceTest {
         String target = Type.getInternalName(BytecodeFixture.class).replace("/", ".");
         service.forMod("example").register("target", target, 0, (context, bytes) -> bytes);
 
-        assertNull(service.transform(null, null, "example/Other", null, null, fixtureBytes()));
-        assertNull(service.transform(null, null, "example/BytecodeFixture$Nested", null, null, fixtureBytes()));
+        String otherClass = Type.getInternalName(OtherBytecodeFixture.class);
+        assertNull(service.transform(null, null, otherClass, null, null,
+                fixtureBytes(OtherBytecodeFixture.class)));
+        String nestedClass = Type.getInternalName(BytecodeFixture.Nested.class);
+        assertNull(service.transform(null, null, nestedClass, null, null,
+                fixtureBytes(BytecodeFixture.Nested.class)));
     }
 
     @Test
@@ -223,8 +227,12 @@ class TransformationServiceTest {
     public static final class HierarchyRight extends HierarchyBase { }
 
     private static byte[] fixtureBytes() throws Exception {
-        String internalName = Type.getInternalName(BytecodeFixture.class);
-        try (InputStream input = BytecodeFixture.class.getResourceAsStream("/" + internalName + ".class")) {
+        return fixtureBytes(BytecodeFixture.class);
+    }
+
+    private static byte[] fixtureBytes(Class<?> fixtureType) throws Exception {
+        String internalName = Type.getInternalName(fixtureType);
+        try (InputStream input = fixtureType.getResourceAsStream("/" + internalName + ".class")) {
             assertNotNull(input);
             return input.readAllBytes();
         }
@@ -232,7 +240,10 @@ class TransformationServiceTest {
 
     public static final class BytecodeFixture {
         public String value() { return "before"; }
+        public static final class Nested { }
     }
+
+    public static final class OtherBytecodeFixture { }
 
     private static final class IsolatedClassLoader extends ClassLoader {
         private IsolatedClassLoader(ClassLoader parent) { super(parent); }
