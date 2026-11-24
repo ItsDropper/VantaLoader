@@ -19,6 +19,28 @@ import static org.junit.jupiter.api.Assertions.*;
 class ModRuntimeTest {
     @TempDir Path temporaryDirectory;
 
+    @Test void rollsBackServicesRegisteredByAModWhoseInitializationFails() throws Exception {
+        RuntimeEvents.EVENTS.clear();
+        RuntimeEvents.failInitializeMod = "service_provider";
+        RuntimeEvents.serviceRegistration = null;
+        RuntimeEvents.providerServices = null;
+        Path jar = temporaryDirectory.resolve("service-rollback-fixture.jar");
+        try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
+        var provider = artifact(jar, "service_provider", RuntimeTestEntrypoint.class.getName());
+        ModRuntime runtime = new ModRuntime(temporaryDirectory.resolve("service-rollback-game"));
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class,
+                () -> runtime.start(List.of(provider)));
+
+        assertEquals("simulated initialization failure", failure.getMessage());
+        assertNotNull(RuntimeEvents.serviceRegistration);
+        assertTrue(RuntimeEvents.serviceRegistration.isClosed());
+        assertThrows(IllegalStateException.class,
+                () -> RuntimeEvents.providerServices.find(RuntimeEvents.TEST_SERVICE));
+        assertEquals(List.of("init:service_provider"), RuntimeEvents.EVENTS);
+        runtime.close();
+    }
+
     @Test void exposesTypedServicesBetweenModsAndRemovesThemWhenProviderStops() throws Exception {
         RuntimeEvents.EVENTS.clear();
         RuntimeEvents.serviceRegistration = null;
