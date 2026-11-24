@@ -1,11 +1,17 @@
 package dev.itsdropper.vantaloader.runtime;
 
 import dev.itsdropper.vantaloader.api.ClientTickEvent;
+import dev.itsdropper.vantaloader.api.KeyInputEvent;
 import dev.itsdropper.vantaloader.api.EventSubscription;
 import dev.itsdropper.vantaloader.bootstrap.MinecraftHooks;
 import dev.itsdropper.vantaloader.bootstrap.minecraft.Minecraft12111Adapter;
 import dev.itsdropper.vantaloader.bootstrap.minecraft.MinecraftAdapterRegistry;
 import dev.itsdropper.vantaloader.transformation.TransformationService;
+import dev.itsdropper.vantaloader.mapping.MinecraftMappings;
+import org.junit.jupiter.api.io.TempDir;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicReference;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Label;
@@ -16,6 +22,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class Minecraft12111AdapterTest {
+    @TempDir Path temporaryDirectory;
     private static final String TARGET = "net/minecraft/client/Minecraft";
 
     @Test
@@ -25,6 +32,50 @@ class Minecraft12111AdapterTest {
         assertTrue(MinecraftAdapterRegistry.find("1.8.9").isEmpty());
         assertTrue(MinecraftAdapterRegistry.find("unknown").isEmpty());
         assertTrue(MinecraftAdapterRegistry.find(null).isEmpty());
+    }
+
+    @Test
+    void injectsMappedKeyboardInputAndPublishesTypedVmaEvent() throws Exception {
+        Path mappingsFile = temporaryDirectory.resolve("client.txt");
+        Files.writeString(mappingsFile, """
+                net.minecraft.client.KeyboardHandler -> b:
+                    1:1:void keyPress(long,int,int,int,int) -> a
+                """);
+        MinecraftMappings mappings = MinecraftMappings.read(mappingsFile);
+        TransformationService transformations = new TransformationService(mappings);
+        new Minecraft12111Adapter().install(transformations);
+
+        byte[] transformed = transformations.transform(getClass().getClassLoader(),
+                "b", null, null, keyboardHandlerFixture());
+        assertNotNull(transformed);
+
+        ModEventBus bus = new ModEventBus();
+        AtomicReference<KeyInputEvent> received = new AtomicReference<>();
+        EventSubscription subscription = bus.subscribe(KeyInputEvent.class, 0, received::set);
+        MinecraftHooks.bind(bus);
+        try {
+            Class<?> handlerType = new IsolatedClassLoader(getClass().getClassLoader())
+                    .define("b", transformed);
+            Object handler = handlerType.getConstructor().newInstance();
+
+            handlerType.getMethod("a", long.class, int.class, int.class, int.class, int.class)
+                    .invoke(handler, 0x1234L, 65, 30, KeyInputEvent.PRESS, 3);
+
+            KeyInputEvent event = received.get();
+            assertNotNull(event);
+            assertSame(handler, event.keyboardHandler());
+            assertEquals(0x1234L, event.windowHandle());
+            assertEquals(65, event.keyCode());
+            assertEquals(30, event.scanCode());
+            assertEquals(KeyInputEvent.PRESS, event.action());
+            assertEquals(3, event.modifiers());
+            assertTrue(event.pressed());
+            assertFalse(event.released());
+            assertFalse(event.repeated());
+        } finally {
+            MinecraftHooks.unbind(bus);
+            subscription.close();
+        }
     }
 
     @Test
@@ -169,6 +220,26 @@ class Minecraft12111AdapterTest {
         byte[] result = transformations.transform(null, getClass().getClassLoader(),
                 TARGET, null, null, fixture(false));
         assertArrayEquals(new byte[]{0, 0, 0, 0}, result);
+    }
+
+    private static byte[] keyboardHandlerFixture() {
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "b", null, "java/lang/Object", null);
+        MethodVisitor constructor = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        constructor.visitCode();
+        constructor.visitVarInsn(Opcodes.ALOAD, 0);
+        constructor.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        constructor.visitInsn(Opcodes.RETURN);
+        constructor.visitMaxs(1, 1);
+        constructor.visitEnd();
+
+        MethodVisitor keyPress = writer.visitMethod(Opcodes.ACC_PUBLIC, "a", "(JIIII)V", null, null);
+        keyPress.visitCode();
+        keyPress.visitInsn(Opcodes.RETURN);
+        keyPress.visitMaxs(0, 7);
+        keyPress.visitEnd();
+        writer.visitEnd();
+        return writer.toByteArray();
     }
 
     private static byte[] fixture(boolean includeTick) {
