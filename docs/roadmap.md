@@ -47,7 +47,7 @@ Milestones describe intended work, not promises or release dates. A milestone is
 - [x] Bundle ASM and test transformed fixture class loading.
 - [x] Download and validate official client mappings in Vanta Launcher; parse class mappings and dispatch named class targets to obfuscated runtime classes.
 - [x] Parse official method/field mappings and resolve member names using exact named JVM descriptors.
-- [ ] Add version-specific target adapters, hierarchy-aware frame computation, and conflict reports.
+- [x] Add deterministic cross-mod shared-target diagnostics; hierarchy-aware frame computation is implemented through resource-only `HierarchyClassWriter` and covered by dedicated hierarchy tests. Additional version adapters remain pending exact-version runtime evidence.
 - [x] Implement an experimental SpongePowered Mixin service/bootstrap, mod-container classpath, and per-mod configuration discovery/registration.
 - [ ] Verify third-party Mixin mods against real Minecraft targets and publish an explicit compatibility matrix.
 - [x] Verify ordered transformations from multiple mods targeting the same real LocalPlayer class in a real singleplayer world; cover later-transform failure with fail-closed tests.

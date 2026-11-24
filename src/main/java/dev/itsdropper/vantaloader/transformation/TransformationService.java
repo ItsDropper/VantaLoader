@@ -183,6 +183,26 @@ public final class TransformationService implements ClassFileTransformer {
         }, 0);
     }
 
+    /**
+     * Returns deterministic diagnostics for targets modified by multiple mods.
+     * These are potential conflicts, not proof of incompatible bytecode: ordered
+     * composition is supported and the report deliberately does not guess semantics.
+     */
+    public List<TransformationConflict> potentialConflicts() {
+        java.util.Map<String, List<TransformationConflict.Contribution>> byTarget = new java.util.TreeMap<>();
+        for (Registration registration : registrations) {
+            String runtimeTarget = runtimeTargetName(registration);
+            byTarget.computeIfAbsent(runtimeTarget, ignored -> new java.util.ArrayList<>())
+                    .add(new TransformationConflict.Contribution(
+                            registration.modId(), registration.id(), registration.priority()));
+        }
+        return byTarget.entrySet().stream()
+                .filter(entry -> entry.getValue().stream().map(TransformationConflict.Contribution::modId)
+                        .distinct().count() > 1)
+                .map(entry -> new TransformationConflict(entry.getKey(), entry.getValue()))
+                .toList();
+    }
+
     public int registrationCount() {
         return registrations.size();
     }
