@@ -21,6 +21,7 @@ Act as the senior software engineer responsible for delivering complete, product
 ## Autonomous execution
 - Do not stop after producing a plan or identifying problems.
 - Work through implementation, debugging, and validation in substantial batches.
+- After every commit, immediately continue with the next incomplete task; do not stop or report back until the active phase's acceptance criteria are complete.
 - Use parallel investigation only when work is genuinely independent and the overhead is justified.
 - Prefer targeted searches and concise findings over repository-wide dumps.
 - Continue until the requested task is complete or a concrete blocker prevents further progress.

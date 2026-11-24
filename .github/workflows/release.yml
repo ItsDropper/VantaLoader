@@ -1,10 +1,17 @@
-name: Release
+name: Manual Release
 
 on:
-  push:
-    branches: [main]
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without the leading v (for example 0.2.0 or 0.2.0-rc.1)"
+        required: true
+        type: string
+      prerelease:
+        description: "Mark this release as a pre-release"
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -28,28 +35,32 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "8.14"
-      - name: Resolve human-readable release identity
+      - name: Validate release version
         id: release_meta
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
         shell: bash
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            version="${GITHUB_REF_NAME#v}"
-            tag="$GITHUB_REF_NAME"
-            name="VantaLoader $version"
-          else
-            short_sha="${GITHUB_SHA:0:7}"
-            date_utc="$(date -u +'%Y.%m.%d')"
-            version="0.1.0-nightly.${date_utc//./}.$short_sha"
-            tag="nightly-0.1.0-${date_utc//./}-$short_sha"
-            name="VantaLoader 0.1.0 Nightly - $date_utc ($short_sha)"
+          set -euo pipefail
+          version="$RELEASE_VERSION"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
+            echo "::error::Version must be valid SemVer without a leading v (for example 0.2.0 or 0.2.0-rc.1)."
+            exit 1
           fi
-          echo "tag_name=$tag" >> "$GITHUB_OUTPUT"
-          echo "release_name=$name" >> "$GITHUB_OUTPUT"
+          tag="v$version"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::Tag $tag already exists. Choose a new version."
+            exit 1
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag_name=$tag" >> "$GITHUB_OUTPUT"
+          echo "release_name=VantaLoader $version" >> "$GITHUB_OUTPUT"
       - name: Build and test
         run: gradle --no-daemon clean build -PvantaVersion="${{ steps.release_meta.outputs.version }}"
-      - name: Generate SHA-256 checksum
+      - name: Generate SHA-256 checksums
+        shell: bash
         run: |
+          set -euo pipefail
           cd build/agent
           sha256sum VantaLoader-agent.jar > VantaLoader-agent.jar.sha256
           sha256sum VantaLoader-api.jar > VantaLoader-api.jar.sha256
@@ -57,10 +68,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.release_meta.outputs.tag_name }}
+          target_commitish: ${{ github.sha }}
           name: ${{ steps.release_meta.outputs.release_name }}
           generate_release_notes: true
-          prerelease: ${{ github.ref == 'refs/heads/main' || contains(github.ref_name, '-') }}
-          make_latest: false
+          prerelease: ${{ inputs.prerelease }}
+          make_latest: ${{ inputs.prerelease && 'false' || 'true' }}
           files: |
             build/agent/VantaLoader-agent.jar
             build/agent/VantaLoader-agent.jar.sha256
