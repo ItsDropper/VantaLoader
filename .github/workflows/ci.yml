@@ -32,7 +32,7 @@ jobs:
         run: gradle --no-daemon -p examples/runtime-probe clean build
 
   minecraft-visual-smoke:
-    name: Minecraft title and mod-menu screenshots
+    name: Minecraft in-world integration smoke test
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
