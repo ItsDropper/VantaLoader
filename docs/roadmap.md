@@ -39,8 +39,8 @@ Milestones describe intended work, not promises or release dates. A milestone is
 
 - [x] Define the initial version identity boundary: parse legacy/modern release strings and weekly snapshots without imposing a false global ordering; expose it through a binary-compatible default ModContext method.
 - [x] Define the mod-facing Minecraft capability contract and conservative runtime reporting.
-- [x] Implement exact-version adapter selection and a fixture-tested Minecraft 1.21.11 client tick adapter; real-game verification remains pending.
-- [x] Implement typed client tick START/END event dispatch in the 1.21.11 fixture adapter; real-game hook verification remains open.
+- [x] Implement exact-version adapter selection and verify the Minecraft 1.21.11 client tick adapter against the real client in CI.
+- [x] Implement typed client tick START/END event dispatch and assert both phases from a native probe mod in the real Minecraft 1.21.11 runtime.
 - [x] Specify native transformation contracts.
 - [x] Implement deterministic exact-target dispatch and transformation ordering.
 - [x] Implement and test both legacy Java 8 and Java 9+ Instrumentation transformer callback signatures.
@@ -49,7 +49,8 @@ Milestones describe intended work, not promises or release dates. A milestone is
 - [x] Parse official method/field mappings and resolve member names using exact named JVM descriptors.
 - [ ] Add version-specific target adapters, hierarchy-aware frame computation, and conflict reports.
 - [x] Implement an experimental SpongePowered Mixin service/bootstrap, mod-container classpath, and per-mod configuration discovery/registration.\n- [ ] Verify third-party Mixin mods against real Minecraft targets and publish an explicit compatibility matrix.
-- [ ] Verify behavior against real Minecraft targets.
+- [x] Verify ordered transformations from multiple mods targeting the same real Minecraft client class; cover later-transform failure with fail-closed tests.
+- [x] Verify Auto Sprint behavior in an actual Minecraft world (maintainer gameplay test); keep CI's runtime probe focused on tick events and transformation composition.
 
 **Exit criteria:** a native test mod changes a verified in-game behavior, and transformation failures are diagnosable.
 

@@ -255,6 +255,8 @@ def main():
             # Assert the real widget lifecycle through runtime instrumentation, not OCR
             # of a small anti-aliased button label.
             wait_for_log_marker(process, log_path, "VantaLoader Mods button registered at ", 30)
+            wait_for_log_marker(process, log_path, "VantaLoader integration probe: client tick START observed", 30)
+            wait_for_log_marker(process, log_path, "VantaLoader integration probe: client tick END observed", 30)
             logs = log_path.read_text(encoding="utf-8", errors="replace")
             match = re.search(r"VantaLoader Mods button registered at (\d+),(\d+),(\d+),(\d+)", logs)
             if not match:
@@ -276,7 +278,7 @@ def main():
             subprocess.run(["xdotool", "click", "--clearmodifiers", "--delay", "100", "1"],
                            check=True, timeout=10)
             wait_for_log_marker(process, log_path, "VantaLoader menu button activated", 15)
-            wait_for_log_marker(process, log_path, "VantaLoader mod menu rendered; entries=2", 30)
+            wait_for_log_marker(process, log_path, "VantaLoader mod menu rendered; entries=3", 30)
             subprocess.run(["xdotool", "mousemove", "--sync", "20", "20"],
                            check=True, timeout=10)
             time.sleep(1)
@@ -287,12 +289,21 @@ def main():
 
         logs = log_path.read_text(encoding="utf-8", errors="replace")
         required = ("Sponge Mixin active", "Initialized hello_world 1.0.0",
-                    "Initialized auto_sprint 1.0.0", "Auto Sprint transformer registered",
+                    "Initialized auto_sprint 1.0.0", "Initialized runtime_probe 1.0.0",
+                    "Auto Sprint transformer registered", "Runtime integration probe registered",
+                    "Registered transformation runtime_probe:runtime-probe-client-compose",
+                    "VantaLoader integration probe: client tick START observed",
+                    "VantaLoader integration probe: client tick END observed",
                     "All VantaLoader mods initialized successfully")
         missing = [marker for marker in required if marker not in logs]
         if missing:
             raise RuntimeError("Missing loader log markers: " + ", ".join(missing))
-        print(f"Captured Minecraft {VERSION} title and mod-menu screenshots with {len(mods)} mods loaded.")
+        logs = log_path.read_text(encoding="utf-8", errors="replace")
+        start_index = logs.index("VantaLoader integration probe: client tick START observed")
+        end_index = logs.index("VantaLoader integration probe: client tick END observed")
+        if start_index >= end_index:
+            raise RuntimeError("Client tick END was observed before START")
+        print(f"Captured Minecraft {VERSION} title and mod-menu screenshots; runtime tick START/END verified with {len(mods)} mods loaded.")
         return 0
     finally:
         if process is not None and process.poll() is None:

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "runtime_probe",
+  "name": "VantaLoader Runtime Probe",
+  "version": "1.0.0",
+  "description": "Verifies real Minecraft client tick events and composed class transformations.",
+  "license": "MIT",
+  "website": "https://github.com/ItsDropper/VantaLoader",
+  "sources": "https://github.com/ItsDropper/VantaLoader/tree/main/examples/runtime-probe",
+  "entrypoints": {
+    "main": "dev.itsdropper.example.runtimeprobe.RuntimeProbeMod"
+  },
+  "depends": {}
+}

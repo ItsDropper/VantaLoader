@@ -177,6 +177,75 @@ class TransformationServiceTest {
     }
 
 
+
+    @Test
+    void composesBytecodeChangesFromMultipleModsOnTheSameTarget() throws Exception {
+        TransformationService service = new TransformationService();
+        String internalName = Type.getInternalName(BytecodeFixture.class);
+        String target = internalName.replace("/", ".");
+        service.forMod("first_mod").register("first-change", target, 0,
+                (context, bytes) -> replaceStringConstant(bytes, "before", "middle"));
+        service.forMod("second_mod").register("second-change", target, 10,
+                (context, bytes) -> replaceStringConstant(bytes, "middle", "after"));
+
+        byte[] transformed = service.transform(null, getClass().getClassLoader(), internalName,
+                null, null, fixtureBytes());
+        assertNotNull(transformed);
+        StringWriter diagnostics = new StringWriter();
+        CheckClassAdapter.verify(new ClassReader(transformed), getClass().getClassLoader(), false,
+                new PrintWriter(diagnostics));
+        assertTrue(diagnostics.toString().isBlank(), diagnostics.toString());
+
+        IsolatedClassLoader isolated = new IsolatedClassLoader(getClass().getClassLoader());
+        Class<?> type = isolated.define(target, transformed);
+        assertEquals("after", type.getMethod("value").invoke(type.getConstructor().newInstance()));
+    }
+
+    @Test
+    void aLaterTransformationFailureRejectsTheWholeComposition() throws Exception {
+        TransformationService service = new TransformationService();
+        String internalName = Type.getInternalName(BytecodeFixture.class);
+        String target = internalName.replace("/", ".");
+        List<String> invoked = new ArrayList<>();
+        service.forMod("first_mod").register("first-change", target, 0, (context, bytes) -> {
+            invoked.add("first");
+            return replaceStringConstant(bytes, "before", "middle");
+        });
+        service.forMod("broken_mod").register("broken-change", target, 10, (context, bytes) -> {
+            invoked.add("broken");
+            throw new IllegalStateException("intentional integration failure");
+        });
+        service.forMod("last_mod").register("must-not-run", target, 20, (context, bytes) -> {
+            invoked.add("last");
+            return bytes;
+        });
+
+        byte[] result = service.transform(null, getClass().getClassLoader(), internalName,
+                null, null, fixtureBytes());
+        assertArrayEquals(new byte[]{0, 0, 0, 0}, result);
+        assertEquals(List.of("first", "broken"), invoked);
+    }
+
+    private static byte[] replaceStringConstant(byte[] original, String before, String after) {
+        ClassReader reader = new ClassReader(original);
+        ClassWriter writer = new ClassWriter(reader, 0);
+        ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String descriptor,
+                                             String signature, String[] exceptions) {
+                MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions);
+                if (!"value".equals(name) || !"()Ljava/lang/String;".equals(descriptor)) return delegate;
+                return new MethodVisitor(Opcodes.ASM9, delegate) {
+                    @Override public void visitLdcInsn(Object value) {
+                        super.visitLdcInsn(before.equals(value) ? after : value);
+                    }
+                };
+            }
+        };
+        reader.accept(visitor, 0);
+        return writer.toByteArray();
+    }
+
     @Test
     void resolvesNamedMinecraftTargetsToObfuscatedRuntimeClasses() throws Exception {
         Path mappingFile = temporaryDirectory.resolve("client_mappings.txt");

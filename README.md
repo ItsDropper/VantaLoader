@@ -5,7 +5,7 @@
 VantaLoader has moved from repository scaffolding into its first executable native-mod runtime. It discovers mod JARs, validates metadata, resolves dependencies, loads entrypoints, and manages initialization and shutdown.
 
 > [!WARNING]
-> **Pre-alpha runtime.** CI now launches Minecraft 1.21.11 with the Java agent, initializes two native mods, and verifies the title screen and in-game Mods menu. The first gameplay example, Auto Sprint, is built and its bytecode transformation is unit-tested; the visual smoke test does not enter a world, so actual player movement behavior still needs in-game validation. An experimental SpongePowered Mixin service/bootstrap and per-mod config discovery are integrated, but third-party Mixin mod compatibility has not yet been verified. Broad gameplay-mod compatibility is not claimed.
+> **Pre-alpha runtime.** CI now launches Minecraft 1.21.11 with the Java agent, initializes three native mods, verifies the title screen and in-game Mods menu, observes client tick START/END events, and composes multiple transformations on the Minecraft client class. The first gameplay example, Auto Sprint, has been manually verified in a real game by the maintainer. CI also verifies client tick START/END delivery against the launched client and composes a second mod-owned transformation onto the same Minecraft client class. An experimental SpongePowered Mixin service/bootstrap and per-mod config discovery are integrated, but third-party Mixin mod compatibility has not yet been verified. Broad gameplay-mod compatibility is not claimed.
 
 ## Implemented
 
@@ -24,7 +24,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - A standalone [Auto Sprint gameplay mod](examples/auto-sprint/README.md) using official 1.21.11 mappings and the native transformation API.
 - A self-contained Minecraft Java-agent artifact with Gson and ASM 9.8 bundled and manifest/content verification.
 - A standalone `VantaLoader-api.jar` for compiling native mods without depending on implementation classes.
-- An ASM integration test that transforms, verifies, defines, and invokes a compiled fixture class.
+- ASM integration tests that transform, verify, define, and invoke fixture classes, including ordered composition from multiple mods targeting the same class and fail-closed behavior when a later patch fails.
 - A Java Instrumentation transformation backend with mod-scoped registration, deterministic priority ordering, defensive byte-array handling, and failure diagnostics.
 - An API-level ASM `HierarchyClassWriter` that resolves common supertypes from class-file resources without defining game classes, including interface ancestry and multidimensional array merges.
 - Official Mojang client class-mapping parsing and named-class-to-obfuscated-runtime target dispatch, with launcher-managed SHA-1-verified mapping downloads.
