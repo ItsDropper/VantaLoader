@@ -9,6 +9,7 @@ repositories { mavenCentral() }
 
 dependencies {
     compileOnly(files("../../build/agent/VantaLoader-api.jar"))
+    compileOnly(files("../../build/agent/VantaLoader-agent.jar"))
     compileOnly("org.ow2.asm:asm:9.8")
 }
 
