@@ -78,6 +78,7 @@ public final class VantaLoader {
                 if (adapter != null) {
                     adapter.install(transformations);
                     verifiedCapabilities.add(MinecraftCapability.CLIENT_LIFECYCLE_EVENTS);
+                    verifiedCapabilities.add(MinecraftCapability.KEYBOARD_INPUT_EVENTS);
                     LOGGER.info("Installed exact Minecraft adapter: " + adapter.minecraftVersion());
                 } else {
                     LOGGER.info("No exact Minecraft adapter is available for " + minecraftVersion);
