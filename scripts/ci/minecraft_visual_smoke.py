@@ -294,8 +294,18 @@ def main():
             subprocess.run(["xdotool", "click", "--clearmodifiers", "1"], check=True, timeout=10)
             time.sleep(3)
             subprocess.run(["java", "-cp", str(Path(__file__).resolve().parent), "ScreenCapture",
-                            str(output / "world-select-probe.png")], check=True, timeout=15)
-            print("Opened Minecraft singleplayer world selection screen.")
+                            str(output / "create-world-probe.png")], check=True, timeout=15)
+            print("Opened Minecraft world creation screen.")
+
+            # Create a fresh singleplayer world and require a LocalPlayer.aiStep callback.
+            subprocess.run(["xdotool", "mousemove", "--sync", "482", "688"], check=True, timeout=10)
+            subprocess.run(["xdotool", "click", "--clearmodifiers", "1"], check=True, timeout=10)
+            wait_for_log_marker(process, log_path,
+                                "VantaLoader gameplay probe: local player tick observed", 180)
+            time.sleep(3)
+            subprocess.run(["java", "-cp", str(Path(__file__).resolve().parent), "ScreenCapture",
+                            str(output / "in-world.png")], check=True, timeout=15)
+            print("Singleplayer world loaded; LocalPlayer.aiStep runtime probe observed.")
 
         logs = log_path.read_text(encoding="utf-8", errors="replace")
         required = ("Sponge Mixin active", "Initialized hello_world 1.0.0",
@@ -304,6 +314,7 @@ def main():
                     "Registered transformation runtime_probe:runtime-probe-client-compose",
                     "VantaLoader integration probe: client tick START observed",
                     "VantaLoader integration probe: client tick END observed",
+                    "VantaLoader gameplay probe: local player tick observed",
                     "All VantaLoader mods initialized successfully")
         missing = [marker for marker in required if marker not in logs]
         if missing:
@@ -313,7 +324,7 @@ def main():
         end_index = logs.index("VantaLoader integration probe: client tick END observed")
         if start_index >= end_index:
             raise RuntimeError("Client tick END was observed before START")
-        print(f"Captured Minecraft {VERSION} title and mod-menu screenshots; runtime tick START/END verified with {len(mods)} mods loaded.")
+        print(f"Captured Minecraft {VERSION} title, mod-menu, and in-world screenshots; client tick phases and LocalPlayer.aiStep verified with {len(mods)} mods loaded.")
         return 0
     finally:
         if process is not None and process.poll() is None:

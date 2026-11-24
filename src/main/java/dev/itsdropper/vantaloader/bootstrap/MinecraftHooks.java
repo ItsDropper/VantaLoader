@@ -12,6 +12,8 @@ public final class MinecraftHooks {
     private static final Logger LOGGER = Logger.getLogger("VantaLoader.GameHooks");
     private static final AtomicReference<EventBus> EVENT_BUS = new AtomicReference<>();
     private static final AtomicReference<Object> ACTIVE_CLIENT = new AtomicReference<>();
+    private static final java.util.concurrent.atomic.AtomicBoolean PLAYER_TICK_OBSERVED =
+            new java.util.concurrent.atomic.AtomicBoolean();
     private MinecraftHooks() { }
 
     public static void bind(EventBus eventBus) {
@@ -37,6 +39,14 @@ public final class MinecraftHooks {
     public static void onClientTickEnd() {
         Object client = ACTIVE_CLIENT.getAndSet(null);
         if (client != null) publishClientTick(client, ClientTickEvent.Phase.END);
+    }
+
+
+    /** Internal CI/runtime probe called from LocalPlayer.aiStep after mod transformations compose. */
+    public static void onLocalPlayerTick() {
+        if (PLAYER_TICK_OBSERVED.compareAndSet(false, true)) {
+            LOGGER.info("VantaLoader gameplay probe: local player tick observed");
+        }
     }
 
     private static void publishClientTick(Object client, ClientTickEvent.Phase phase) {

@@ -4,6 +4,7 @@ import dev.itsdropper.vantaloader.api.ClassTransformContext;
 import dev.itsdropper.vantaloader.api.ClientTickEvent;
 import dev.itsdropper.vantaloader.api.ModContext;
 import dev.itsdropper.vantaloader.api.VantaMod;
+import dev.itsdropper.vantaloader.bootstrap.MinecraftHooks;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -13,12 +14,12 @@ import org.objectweb.asm.Opcodes;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * CI integration probe: observes actual Minecraft tick callbacks and composes
- * a second mod-owned transformation onto the loader's Minecraft client patch.
+ * CI integration probe: observes actual Minecraft client tick callbacks and
+ * composes a second mod-owned LocalPlayer transformation after Auto Sprint.
  */
 public final class RuntimeProbeMod implements VantaMod {
-    private static final String CLIENT = "net.minecraft.client.Minecraft";
-    private static final String MARKER_METHOD = "vantaLoaderRuntimeProbeMarker";
+    private static final String LOCAL_PLAYER = "net.minecraft.client.player.LocalPlayer";
+    private static final String HOOK_OWNER = org.objectweb.asm.Type.getInternalName(MinecraftHooks.class);
     private final AtomicBoolean startObserved = new AtomicBoolean();
     private final AtomicBoolean endObserved = new AtomicBoolean();
 
@@ -33,43 +34,44 @@ public final class RuntimeProbeMod implements VantaMod {
                 context.logger().info("VantaLoader integration probe: client tick END observed");
             }
         });
-        context.transformations().register("runtime-probe-client-compose", CLIENT, 100,
-                this::addCompositionMarker);
+        context.transformations().register("runtime-probe-local-player-tick", LOCAL_PLAYER, 200,
+                this::instrumentLocalPlayerTick);
         context.logger().info("Runtime integration probe registered");
     }
 
-    private byte[] addCompositionMarker(ClassTransformContext context, byte[] original) {
-        String runtimeName = context.mappings().runtimeClassName(CLIENT).replace('.', '/');
+    private byte[] instrumentLocalPlayerTick(ClassTransformContext context, byte[] original) {
+        String runtimeName = context.mappings().runtimeClassName(LOCAL_PLAYER).replace('.', '/');
+        String tickName = context.mappings().runtimeMethodName(LOCAL_PLAYER, "aiStep", "()V");
+        String tickDescriptor = context.mappings().runtimeDescriptor("()V");
         ClassReader reader = new ClassReader(original);
         if (!runtimeName.equals(reader.getClassName())) {
             throw new IllegalStateException("Runtime probe received unexpected class " + reader.getClassName());
         }
-        boolean[] exists = {false};
-        ClassWriter writer = new ClassWriter(reader, 0);
+        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        int[] matches = {0};
         ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
             @Override
             public MethodVisitor visitMethod(int access, String name, String descriptor,
                                              String signature, String[] exceptions) {
-                if (MARKER_METHOD.equals(name) && "()V".equals(descriptor)) exists[0] = true;
-                return super.visitMethod(access, name, descriptor, signature, exceptions);
+                MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions);
+                if (!tickName.equals(name) || !tickDescriptor.equals(descriptor)) return delegate;
+                matches[0]++;
+                return new MethodVisitor(Opcodes.ASM9, delegate) {
+                    @Override
+                    public void visitCode() {
+                        super.visitCode();
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOK_OWNER,
+                                "onLocalPlayerTick", "()V", false);
+                    }
+                };
             }
         };
         reader.accept(visitor, 0);
-        if (exists[0]) throw new IllegalStateException("Runtime probe marker method already exists");
-        MethodVisitor marker = writer.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
-                MARKER_METHOD, "()V", null, null);
-        marker.visitCode();
-        marker.visitInsn(Opcodes.RETURN);
-        marker.visitMaxs(0, 0);
-        marker.visitEnd();
-        contextTargetVerified(context);
-        return writer.toByteArray();
-    }
-
-    private static void contextTargetVerified(ClassTransformContext context) {
-        if (!CLIENT.equals(context.targetClassName())) {
-            throw new IllegalStateException("Runtime probe transformation target metadata mismatch");
+        if (matches[0] != 1) {
+            throw new IllegalStateException("Expected exactly one mapped LocalPlayer.aiStep()V method, found "
+                    + matches[0] + " in " + runtimeName);
         }
+        return writer.toByteArray();
     }
 
     @Override

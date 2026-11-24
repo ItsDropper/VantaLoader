@@ -125,7 +125,8 @@ jobs:
             build/visual-smoke/mod-menu.png
             build/visual-smoke/main-menu-probe.png
             build/visual-smoke/mod-menu-probe.png
-            build/visual-smoke/world-select-probe.png
+            build/visual-smoke/create-world-probe.png
+            build/visual-smoke/in-world.png
             build/visual-smoke/launch-command.txt
             build/visual-smoke/instance/logs/visual-smoke.log
           if-no-files-found: warn
