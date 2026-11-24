@@ -100,8 +100,11 @@ public final class TransformationService implements ClassFileTransformer {
         List<Registration> matching = registrations.stream()
                 .filter(registration -> runtimeTargetName(registration).equals(binaryName))
                 .toList();
+        boolean minecraftClass = mappings != null
+                && mappings.toNamedClassName(binaryName).startsWith("net.minecraft.");
         boolean mixinActive = dev.itsdropper.vantaloader.mixin.VantaMixinService.isInitialized()
-                && shouldApplyMixin(binaryName);
+                && shouldApplyMixin(binaryName)
+                && (minecraftClass || dev.itsdropper.vantaloader.mixin.VantaMixinService.isMixinTarget(binaryName));
         if (matching.isEmpty() && !mixinActive) return null;
 
         byte[] current = classfileBuffer.clone();
@@ -167,7 +170,8 @@ public final class TransformationService implements ClassFileTransformer {
      * Mixin must not transform its own implementation, JDK classes, or the
      * loader bootstrap that owns the transformer. Doing so re-enters Mixin while
      * it is defining its service/transformer classes and can cause class circularity.
-     * Game classes and third-party mod classes remain eligible.
+     * Game classes bootstrap config selection; after selection, only declared mixin targets
+     * (including third-party mod classes) enter the Mixin transformer.
      */
     static boolean shouldApplyMixin(String binaryName) {
         return binaryName != null

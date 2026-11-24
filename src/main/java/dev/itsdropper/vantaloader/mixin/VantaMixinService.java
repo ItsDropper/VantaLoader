@@ -158,5 +158,21 @@ public final class VantaMixinService extends MixinServiceAbstract
         return active.transformClass(MixinEnvironment.getDefaultEnvironment(), binaryName, original);
     }
 
+    /**
+     * Mixin exposes the prepared target set for each registered configuration.
+     * Use it to avoid feeding unrelated JVM/application classes through the
+     * Mixin transformer; the first mapped Minecraft class prepares the configs.
+     */
+    public static boolean isMixinTarget(String binaryName) {
+        if (binaryName == null) return false;
+        for (org.spongepowered.asm.mixin.transformer.Config config
+                : org.spongepowered.asm.mixin.Mixins.getConfigs()) {
+            if (config.getConfig() != null && config.getConfig().getTargets().contains(binaryName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean isInitialized() { return transformer != null; }
 }
