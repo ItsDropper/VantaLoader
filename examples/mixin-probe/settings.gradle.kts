@@ -1,1 +1,1 @@
-rootProject.name = "VantaLoader-Mixin-Probe"
+rootProject.name = "vantaloader-mixin-probe"
