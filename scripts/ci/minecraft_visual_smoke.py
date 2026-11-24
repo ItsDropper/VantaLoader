@@ -373,7 +373,7 @@ def write_evidence_report(output: Path, exit_code: int, error: str | None) -> No
         "tests": tests
     }
     report_path = output / "game-test-evidence.json"
-    report_path.write_text(json.dumps(report, indent=2) + "\\n", encoding="utf-8")
+    report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"In-game evidence report written to {report_path}")
 
 if __name__ == "__main__":
