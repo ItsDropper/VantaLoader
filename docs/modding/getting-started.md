@@ -95,6 +95,18 @@ context.events().publish(new ProfileLoaded("default"));
 
 This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter separately exposes client tick START/END events when the launcher supplies the matching official mappings. Other game hooks, input, command registration, rendering, and networking APIs are not yet stable or advertised as implemented. The resource API reloads explicitly registered mod-owned files; it does not reload Minecraft resource packs or arbitrary game assets.
 
+## Client keyboard input
+
+The exact Minecraft 1.21.11 adapter publishes raw key input through the typed event bus. Events run on Minecraft's input thread; keep callbacks short and dispatch expensive work through `context.tasks()`. The current event reports raw GLFW-compatible values and does not yet provide user-remappable keybinding settings.
+
+```java
+context.events().subscribe(KeyInputEvent.class, EventPriority.NORMAL, event -> {
+    if (event.pressed() && event.keyCode() == 82) {
+        context.logger().info("The R key was pressed");
+    }
+});
+```
+
 ## Inter-mod services
 
 A mod can publish a typed service for dependent mods without using global static registries. Use a service key whose namespace is the provider's mod ID:
