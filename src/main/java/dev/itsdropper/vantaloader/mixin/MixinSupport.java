@@ -3,6 +3,7 @@ package dev.itsdropper.vantaloader.mixin;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
+import org.spongepowered.asm.service.MixinService;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -35,6 +36,13 @@ public final class MixinSupport {
         List<ConfigSource> configs = discoverConfigs(mods);
         if (!initialized) {
             System.setProperty("mixin.side", "CLIENT");
+            // The plain javaagent has no launch-wrapper phase provider. Bootstrap
+            // Mixin's service first, then select DEFAULT before MixinBootstrap
+            // creates its transformer; otherwise configs register in DEFAULT
+            // while the transformer remains in PREINIT and rejects the mismatch.
+            MixinService.boot();
+            MixinService.getService().prepare();
+            MixinEnvironment.init(MixinEnvironment.Phase.DEFAULT);
             MixinBootstrap.init();
             MixinEnvironment.getDefaultEnvironment().setSide(MixinEnvironment.Side.CLIENT);
             MixinEnvironment.getCurrentEnvironment().setSide(MixinEnvironment.Side.CLIENT);

@@ -155,7 +155,7 @@ public final class VantaMixinService extends MixinServiceAbstract
         // Mixins.addConfiguration. The agent has no launch-wrapper phase provider
         // to advance PREINIT to DEFAULT, so explicitly transform with that same
         // environment instead of silently skipping every mod-owned config.
-        return active.transformClass(MixinEnvironment.getDefaultEnvironment(), binaryName, original);
+        return active.transformClass(MixinEnvironment.getCurrentEnvironment(), binaryName, original);
     }
 
     /**
