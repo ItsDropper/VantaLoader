@@ -35,15 +35,17 @@ class ModServiceRegistryTest {
     void rejectsDuplicateIdsAndMismatchedServiceTypes() {
         ModServiceRegistry registry = new ModServiceRegistry();
         var provider = registry.createScope("provider");
+        var duplicateProvider = registry.createScope("provider");
         var consumer = registry.createScope("consumer");
         provider.register(GREETER, () -> { });
 
         assertThrows(IllegalStateException.class,
-                () -> consumer.register(GREETER, () -> { }));
+                () -> duplicateProvider.register(GREETER, () -> { }));
         assertThrows(IllegalStateException.class,
                 () -> consumer.find(ServiceKey.of("provider:greeter", String.class)));
 
         provider.close();
+        duplicateProvider.close();
         consumer.close();
     }
 
