@@ -37,6 +37,11 @@ final class ModServiceRegistry {
                         + "' is not an instance of " + key.serviceType().getName());
             }
             ensureOpen();
+            String namespace = key.id().substring(0, key.id().indexOf(':'));
+            if (!namespace.equals(ownerId)) {
+                throw new IllegalArgumentException("Mod '" + ownerId
+                        + "' may only register services in its own namespace; got '" + key.id() + "'");
+            }
             Registration<T> registration = new Registration<>(this, key, service);
             Registration<?> existing = services.putIfAbsent(key.id(), registration);
             if (existing != null) {
