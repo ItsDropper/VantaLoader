@@ -114,11 +114,11 @@ public final class ModRuntime implements AutoCloseable {
                     invokeInitialize(mod, artifact, eventScope);
                     initialized.add(mod);
                 } catch (Exception | Error failure) {
+                    mod.keyBindings().close();
                     eventScope.close();
                     mod.resourceScope().close();
                     mod.tasks().close();
                     mod.serviceScope().close();
-                    mod.keyBindings().close();
                     throw failure;
                 }
                 LOGGER.info("Initialized " + mod.id() + " " + artifact.descriptor().version());
@@ -252,11 +252,11 @@ public final class ModRuntime implements AutoCloseable {
                     "Shutdown failed for mod '" + mod.id() + "'", failure));
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
+            mod.keyBindings().close();
             mod.eventScope().close();
             mod.resourceScope().close();
             mod.tasks().close();
             mod.serviceScope().close();
-            mod.keyBindings().close();
         }
     }
 
