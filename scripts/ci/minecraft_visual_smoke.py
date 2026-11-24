@@ -308,14 +308,14 @@ def main():
             print("Singleplayer world loaded; LocalPlayer.aiStep runtime probe observed.")
 
         logs = log_path.read_text(encoding="utf-8", errors="replace")
-        required = ("Sponge Mixin active", "Initialized hello_world 1.0.0",
-                    "Initialized auto_sprint 1.0.0", "Initialized runtime_probe 1.0.0",
-                    "Auto Sprint transformer registered", "Runtime integration probe registered",
-                    "Registered transformation runtime_probe:runtime-probe-local-player-tick",
-                    "VantaLoader integration probe: client tick START observed",
-                    "VantaLoader integration probe: client tick END observed",
-                    "VantaLoader gameplay probe: local player tick observed",
-                    "All VantaLoader mods initialized successfully")
+        manifest_path = Path(__file__).with_name("game-tests.json")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest.get("schema_version") != 1 or manifest.get("minecraft_version") != VERSION:
+            raise RuntimeError("Unsupported or mismatched in-game test manifest")
+        required = tuple(dict.fromkeys(
+            marker for test in manifest.get("tests", [])
+            for marker in test.get("required_log_markers", [])
+        ))
         missing = [marker for marker in required if marker not in logs]
         if missing:
             raise RuntimeError("Missing loader log markers: " + ", ".join(missing))
@@ -335,9 +335,59 @@ def main():
                 process.kill()
                 process.wait(timeout=10)
 
+def write_evidence_report(output: Path, exit_code: int, error: str | None) -> None:
+    """Persist machine-readable proof even when an in-game assertion fails."""
+    output.mkdir(parents=True, exist_ok=True)
+    manifest = json.loads((Path(__file__).with_name("game-tests.json")).read_text(encoding="utf-8"))
+    log_path = output / "instance" / "logs" / "visual-smoke.log"
+    log_text = log_path.read_text(encoding="utf-8", errors="replace") if log_path.is_file() else ""
+    tests = []
+    for test in manifest.get("tests", []):
+        missing = [marker for marker in test.get("required_log_markers", []) if marker not in log_text]
+        screenshots = []
+        for filename in test.get("screenshots", []):
+            path = output / filename
+            item = {"file": filename, "exists": path.is_file()}
+            if path.is_file():
+                item["size_bytes"] = path.stat().st_size
+                item["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+            screenshots.append(item)
+        missing_screenshots = [item["file"] for item in screenshots if not item["exists"]]
+        tests.append({
+            "id": test["id"], "description": test.get("description", ""),
+            "passed": not missing and not missing_screenshots,
+            "missing_log_markers": missing, "screenshots": screenshots
+        })
+    report = {
+        "schema_version": 1, "suite": "VantaLoader in-game integration",
+        "minecraft_version": manifest.get("minecraft_version"),
+        "status": "passed" if exit_code == 0 and all(test["passed"] for test in tests) else "failed",
+        "exit_code": exit_code, "error": error,
+        "commit": os.environ.get("GITHUB_SHA"), "run_id": os.environ.get("GITHUB_RUN_ID"),
+        "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+        "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "log": {"file": str(log_path.relative_to(output)) if log_path.is_file() else None,
+                "exists": log_path.is_file(),
+                "sha256": hashlib.sha256(log_path.read_bytes()).hexdigest() if log_path.is_file() else None,
+                "tail": log_text.splitlines()[-200:]},
+        "tests": tests
+    }
+    report_path = output / "game-test-evidence.json"
+    report_path.write_text(json.dumps(report, indent=2) + "\\n", encoding="utf-8")
+    print(f"In-game evidence report written to {report_path}")
+
 if __name__ == "__main__":
+    output_parser = argparse.ArgumentParser(add_help=False)
+    output_parser.add_argument("--output", type=Path, required=True)
+    parsed, _ = output_parser.parse_known_args()
+    exit_code = 0
+    failure = None
     try:
-        raise SystemExit(main())
+        exit_code = main()
     except Exception as error:
-        print("VantaLoader visual smoke test failed: " + str(error), file=sys.stderr)
+        exit_code = 1
+        failure = f"{type(error).__name__}: {error}"
+        print("VantaLoader in-game tests failed: " + failure, file=sys.stderr)
         raise
+    finally:
+        write_evidence_report(parsed.output.resolve(), exit_code, failure)

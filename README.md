@@ -219,3 +219,12 @@ VantaLoader is not a sandbox for untrusted Java code. A mod runs with the permis
 ## License
 
 MIT. Third-party dependencies remain subject to their respective licenses.
+
+## Automated in-game tests
+
+The dedicated **In-game integration tests** workflow launches a real Minecraft 1.21.11 client in a virtual display and runs the scenarios declared in `scripts/ci/game-tests.json`. It runs independently from the build/unit-test workflow on pushes to `main`, pull requests, and manual dispatch.
+
+Each run uploads a 30-day proof artifact containing the full Minecraft log, screenshots, launch command, and `game-test-evidence.json`. The JSON report records each scenario's required runtime log markers, screenshot SHA-256 hashes, commit SHA, workflow run ID, and pass/fail result. Evidence is uploaded even when the game or an assertion fails.
+
+To add an in-game assertion, add a test entry to `scripts/ci/game-tests.json` with a unique ID, required runtime log markers, and optional screenshot filenames. Emit markers only after the real behavior has occurred. The workflow fails if a required marker or screenshot is missing.
+

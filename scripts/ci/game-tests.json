@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "minecraft_version": "1.21.11",
+  "tests": [
+    {"id":"loader-startup","description":"Native loader and test mods initialize.","required_log_markers":["Sponge Mixin active","Initialized hello_world 1.0.0","Initialized auto_sprint 1.0.0","Initialized runtime_probe 1.0.0","All VantaLoader mods initialized successfully"]},
+    {"id":"title-screen-and-mod-menu","description":"The in-game mod menu opens and renders loaded mod entries.","required_log_markers":["VantaLoader Mods button registered at ","VantaLoader menu button activated","VantaLoader mod menu rendered; entries=3"],"screenshots":["main-menu.png","mod-menu.png"]},
+    {"id":"client-tick-events","description":"Both client tick event phases are delivered.","required_log_markers":["VantaLoader integration probe: client tick START observed","VantaLoader integration probe: client tick END observed"]},
+    {"id":"composed-local-player-transformations","description":"Auto Sprint and the probe both transform LocalPlayer, and the composed class executes in-world.","required_log_markers":["Auto Sprint transformer registered","Registered transformation runtime_probe:runtime-probe-local-player-tick","VantaLoader gameplay probe: local player tick observed"],"screenshots":["in-world.png"]}
+  ]
+}
