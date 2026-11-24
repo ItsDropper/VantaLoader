@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "mixin_probe",
+  "name": "VantaLoader Third-Party Mixin Probe",
+  "version": "1.0.0",
+  "description": "An isolated example of a third-party mod registering and executing a SpongePowered Mixin.",
+  "license": "MIT",
+  "website": "https://github.com/ItsDropper/VantaLoader",
+  "sources": "https://github.com/ItsDropper/VantaLoader/tree/main/examples/mixin-probe",
+  "entrypoints": {
+    "main": "dev.itsdropper.example.mixinprobe.MixinProbeMod"
+  },
+  "mixins": ["mixins/vanta-mixin-probe.mixins.json"],
+  "depends": {}
+}

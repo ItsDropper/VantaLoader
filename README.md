@@ -5,7 +5,7 @@
 VantaLoader has moved from repository scaffolding into its first executable native-mod runtime. It discovers mod JARs, validates metadata, resolves dependencies, loads entrypoints, and manages initialization and shutdown.
 
 > [!WARNING]
-> **Pre-alpha runtime.** CI now launches Minecraft 1.21.11 with the Java agent, initializes three native mods, verifies the title screen and in-game Mods menu, observes client tick START/END events, and composes Auto Sprint with a second transformation on the real LocalPlayer class. The first gameplay example, Auto Sprint, has been manually verified in a real game by the maintainer. CI creates a fresh singleplayer world, verifies client tick START/END delivery, and composes a second mod-owned transformation after Auto Sprint on the real LocalPlayer class. The smoke artifact includes an in-world screenshot and runtime log. An experimental SpongePowered Mixin service/bootstrap and per-mod config discovery are integrated, but third-party Mixin mod compatibility has not yet been verified. Broad gameplay-mod compatibility is not claimed.
+> **Pre-alpha runtime.** CI now launches Minecraft 1.21.11 with the Java agent, initializes three native mods, verifies the title screen and in-game Mods menu, observes client tick START/END events, and composes Auto Sprint with a second transformation on the real LocalPlayer class. The first gameplay example, Auto Sprint, has been manually verified in a real game by the maintainer. CI creates a fresh singleplayer world, verifies client tick START/END delivery, and composes a second mod-owned transformation after Auto Sprint on the real LocalPlayer class. The smoke artifact includes an in-world screenshot and runtime log. An experimental SpongePowered Mixin service/bootstrap and per-mod config discovery are integrated. In-game CI now loads a separately packaged Mixin probe mod and verifies its injection executes against the real Minecraft title screen. This is a narrow interoperability proof, not a broad third-party mod compatibility claim.
 
 ## Implemented
 
@@ -22,6 +22,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - Initialization rollback, failure-tolerant reverse shutdown, and startup diagnostics.
 - A buildable [Hello World example mod](examples/hello-mod/README.md).
 - A standalone [Auto Sprint gameplay mod](examples/auto-sprint/README.md) using official 1.21.11 mappings and the native transformation API.
+- A separately packaged [Mixin interoperability probe](examples/mixin-probe/README.md) used by in-game CI to verify third-party Mixin config discovery and real title-screen injection.
 - A self-contained Minecraft Java-agent artifact with Gson and ASM 9.8 bundled and manifest/content verification.
 - A standalone `VantaLoader-api.jar` for compiling native mods without depending on implementation classes.
 - ASM integration tests that transform, verify, define, and invoke fixture classes, including ordered composition from multiple mods targeting the same class and fail-closed behavior when a later patch fails.
@@ -46,7 +47,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 | Minecraft class/member mappings | Official class, method, and field mapping lookup by exact named JVM descriptor; version adapters remain incomplete |
 | Native class transformation API | ASM-backed pipeline and Auto Sprint injection tested on fixtures; player-world execution unverified |
 | VantaTransform planning, validation and reports | In progress |
-| SpongePowered Mixin adapter | Experimental service/bootstrap and config registration implemented; third-party mod verification pending |
+| SpongePowered Mixin adapter | Experimental; separate third-party-style mod config and real title-screen injection verified in CI; broad compatibility unverified |
 | Resource reload | Not implemented |
 | Vanta Client integration | Planned |
 

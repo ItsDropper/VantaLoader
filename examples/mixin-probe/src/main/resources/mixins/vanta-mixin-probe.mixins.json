@@ -1,0 +1,10 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.itsdropper.example.mixinprobe.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["TitleScreenMixin"],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

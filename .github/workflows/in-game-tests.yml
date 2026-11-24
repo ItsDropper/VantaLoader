@@ -52,9 +52,10 @@ jobs:
           gradle --no-daemon -p examples/hello-mod clean build
           gradle --no-daemon -p examples/auto-sprint clean build
           gradle --no-daemon -p examples/runtime-probe clean build
+          gradle --no-daemon -p examples/mixin-probe clean build
       - name: Run Minecraft in-game test suite
         run: |
-          XCURSOR_THEME=DMZ-White XCURSOR_SIZE=24 xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX +render -noreset" bash scripts/ci/run_visual_smoke.sh --agent build/agent/VantaLoader-agent.jar --mod examples/hello-mod/build/libs/vantaloader-hello-mod-1.0.0.jar --mod examples/auto-sprint/build/libs/vantaloader-auto-sprint-1.0.0.jar --mod examples/runtime-probe/build/libs/vantaloader-runtime-probe-1.0.0.jar --output build/visual-smoke --timeout 240
+          XCURSOR_THEME=DMZ-White XCURSOR_SIZE=24 xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX +render -noreset" bash scripts/ci/run_visual_smoke.sh --agent build/agent/VantaLoader-agent.jar --mod examples/hello-mod/build/libs/vantaloader-hello-mod-1.0.0.jar --mod examples/auto-sprint/build/libs/vantaloader-auto-sprint-1.0.0.jar --mod examples/runtime-probe/build/libs/vantaloader-runtime-probe-1.0.0.jar --mod examples/mixin-probe/build/libs/vantaloader-mixin-probe-1.0.0.jar --output build/visual-smoke --timeout 240
       - name: Upload in-game proof (screenshots, logs and machine-readable results)
         if: always()
         uses: actions/upload-artifact@v4
