@@ -12,7 +12,7 @@ The included Gradle plugin configures Java compilation against the standalone Va
 ## Core entrypoint and context
 
 - `VantaMod`: main mod lifecycle (`onInitialize`, `onShutdown`).
-- `ModContext`: mod identity, loader/game versions, environment, game/config paths, logger, capability snapshot, events, typed config, resource reload registrations, and advanced transformation registration.
+- `ModContext`: mod identity, loader/game versions, environment, game/config paths, logger, capability snapshot, typed events, typed configuration, resource reload registrations, mod-scoped key bindings, typed inter-mod services, and advanced transformation registration.
 - `VantaModApi`: API semantic version and required-capability validation.
 - `MinecraftVersion`, `MinecraftCapabilities`, `MinecraftCapability`: explicit version identity and conservative runtime capability negotiation.
 
