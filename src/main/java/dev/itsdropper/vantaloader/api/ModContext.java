@@ -29,6 +29,11 @@ public interface ModContext {
     Logger logger();
     TransformationRegistry transformations();
     EventBus events();
+
+    /** Typed services exported by and discovered between native mods. */
+    default ModServices services() {
+        throw new UnsupportedOperationException("Inter-mod services are not available in this runtime");
+    }
     default ModTasks tasks() { throw new UnsupportedOperationException("Mod task scheduling is not available in this runtime"); }
     default ModConfig config() { throw new UnsupportedOperationException("Persistent VMA config is not available in this runtime"); }
 
