@@ -1,6 +1,6 @@
 package dev.itsdropper.vantaloader.runtime;
 
-import org.junit.jupiter.api.Test;
+import dev.itsdropper.vantaloader.api.EventPriority;\nimport org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
