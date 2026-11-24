@@ -1,6 +1,7 @@
 package dev.itsdropper.vantaloader.runtime;
 
 import dev.itsdropper.vantaloader.api.ResourceReloadListener;
+import dev.itsdropper.vantaloader.api.ResourceReloadPlan;
 import dev.itsdropper.vantaloader.api.ResourceReloadRegistry;
 import dev.itsdropper.vantaloader.api.ResourceReloadSubscription;
 
@@ -25,13 +26,18 @@ final class ModResourceReloadScope implements ResourceReloadRegistry, AutoClosea
     @Override public synchronized ResourceReloadSubscription register(
             String id, Path directory, ResourceReloadListener listener) {
         if (closed) throw new IllegalStateException("Resource reload scope is closed");
-        ResourceReloadSubscription subscription = service.register(modId, id, directory, context -> {
-            Thread thread = Thread.currentThread();
-            ClassLoader previous = thread.getContextClassLoader();
-            thread.setContextClassLoader(classLoader);
-            try { return listener.prepare(context); }
-            finally { thread.setContextClassLoader(previous); }
-        });
+        ResourceReloadSubscription subscription = service.register(modId, id, directory, context ->
+                withContext(() -> {
+                    ResourceReloadPlan delegate = listener.prepare(context);
+                    return new ResourceReloadPlan() {
+                        @Override public void commit() throws Exception {
+                            withContext(() -> { delegate.commit(); return null; });
+                        }
+                        @Override public void rollback() throws Exception {
+                            withContext(() -> { delegate.rollback(); return null; });
+                        }
+                    };
+                }));
         owned.add(subscription);
         return () -> {
             synchronized (ModResourceReloadScope.this) {
@@ -39,6 +45,14 @@ final class ModResourceReloadScope implements ResourceReloadRegistry, AutoClosea
                 owned.remove(subscription);
             }
         };
+    }
+
+    private <T> T withContext(java.util.concurrent.Callable<T> action) throws Exception {
+        Thread thread = Thread.currentThread();
+        ClassLoader previous = thread.getContextClassLoader();
+        thread.setContextClassLoader(classLoader);
+        try { return action.call(); }
+        finally { thread.setContextClassLoader(previous); }
     }
 
     @Override public synchronized void close() {

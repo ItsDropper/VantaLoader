@@ -13,9 +13,11 @@ public final class RuntimeTestEntrypoint implements VantaMod {
         if (context.modId().equals("resource_fixture")) {
             context.resources().register("runtime-test",
                     context.configDirectory().resolve("resources"), reload -> {
-                        RuntimeEvents.lastReloadClassLoader = Thread.currentThread().getContextClassLoader();
                         return new dev.itsdropper.vantaloader.api.ResourceReloadPlan() {
-                            @Override public void commit() { RuntimeEvents.resourceReloads.incrementAndGet(); }
+                            @Override public void commit() {
+                                RuntimeEvents.lastReloadClassLoader = Thread.currentThread().getContextClassLoader();
+                                RuntimeEvents.resourceReloads.incrementAndGet();
+                            }
                             @Override public void rollback() { RuntimeEvents.resourceReloads.decrementAndGet(); }
                         };
                     });
