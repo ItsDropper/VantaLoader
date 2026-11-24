@@ -311,7 +311,7 @@ def main():
         required = ("Sponge Mixin active", "Initialized hello_world 1.0.0",
                     "Initialized auto_sprint 1.0.0", "Initialized runtime_probe 1.0.0",
                     "Auto Sprint transformer registered", "Runtime integration probe registered",
-                    "Registered transformation runtime_probe:runtime-probe-client-compose",
+                    "Registered transformation runtime_probe:runtime-probe-local-player-tick",
                     "VantaLoader integration probe: client tick START observed",
                     "VantaLoader integration probe: client tick END observed",
                     "VantaLoader gameplay probe: local player tick observed",
