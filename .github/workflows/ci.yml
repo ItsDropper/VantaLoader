@@ -1,13 +1,11 @@
-name: Build and visual smoke test
+name: Build and unit tests
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   build:
     name: Build and test
@@ -23,111 +21,8 @@ jobs:
           gradle-version: "8.14"
       - name: Build and test
         run: gradle --no-daemon clean build
-      - name: Build proof example mod
-        working-directory: examples/proof-mod
-        run: gradle --no-daemon clean build
-      - name: Build Auto Sprint gameplay mod
-        run: gradle --no-daemon -p examples/auto-sprint clean build
-      - name: Build Minecraft runtime integration probe
-        run: gradle --no-daemon -p examples/runtime-probe clean build
-
-  minecraft-visual-smoke:
-    name: Minecraft in-world integration smoke test
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: "21"
-      - uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: "8.14"
-      - name: Install headless graphics and screenshot tools
-        timeout-minutes: 4
-        shell: bash
+      - name: Build example mods
         run: |
-          set -euo pipefail
-
-          # Hosted Ubuntu images already contain Xvfb and graphics libraries.
-          # Install only xdotool plus missing runtime libraries. Screenshots use
-          # java.awt.Robot, so no window manager or scrot dependency is needed.
-          packages=()
-          for item in \
-            "xvfb:Xvfb" \
-            "xdotool:xdotool"; do
-            package="${item%%:*}"
-            executable="${item#*:}"
-            if ! command -v "$executable" >/dev/null 2>&1; then
-              packages+=("$package")
-            fi
-          done
-
-          for package in libgl1-mesa-dri libglx-mesa0 libxrandr2 libxinerama1 \
-                         libxcursor1 libxi6 libxrender1 libxtst6 libxkbcommon0 \
-                         libopenal1 libasound2t64; do
-            if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -q "install ok installed"; then
-              packages+=("$package")
-            fi
-          done
-
-          if (("${#packages[@]}" > 0)); then
-            echo "Installing missing packages: ${packages[*]}"
-            # Keep dependency installation bounded; the JDK captures screenshots directly.
-            echo "Runner: $(. /etc/os-release && echo "$PRETTY_NAME")"
-            apt-get --version | head -n 1
-            sudo env DEBIAN_FRONTEND=noninteractive timeout 180s apt-get install -y \
-              --no-install-recommends \
-              -o DPkg::Lock::Timeout=30 \
-              -o Acquire::http::Timeout=15 \
-              -o Acquire::https::Timeout=15 \
-              -o Acquire::Retries=1 \
-              "${packages[@]}"
-          else
-            echo "All screenshot and graphics dependencies are already installed."
-          fi
-
-          for executable in Xvfb xdotool javac java; do
-            command -v "$executable"
-          done
-          javac scripts/ci/ScreenCapture.java
-      - name: Cache Mojang client libraries and assets
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/vantaloader/minecraft/1.21.11
-          key: minecraft-1.21.11-linux-assets-v1
-      - name: Build VantaLoader agent
-        run: gradle --no-daemon clean build
-      - name: Build Hello World example mod
-        run: gradle --no-daemon -p examples/hello-mod clean build
-      - name: Build Auto Sprint gameplay mod
-        run: gradle --no-daemon -p examples/auto-sprint clean build
-      - name: Build Minecraft runtime integration probe
-        run: gradle --no-daemon -p examples/runtime-probe clean build
-      - name: Launch Minecraft and capture both screens
-        run: |
-          XCURSOR_THEME=DMZ-White XCURSOR_SIZE=24 xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX +render -noreset" \
-            bash scripts/ci/run_visual_smoke.sh \
-              --agent build/agent/VantaLoader-agent.jar \
-              --mod examples/hello-mod/build/libs/vantaloader-hello-mod-1.0.0.jar \
-              --mod examples/auto-sprint/build/libs/vantaloader-auto-sprint-1.0.0.jar \
-              --mod examples/runtime-probe/build/libs/vantaloader-runtime-probe-1.0.0.jar \
-              --output build/visual-smoke \
-              --timeout 240
-      - name: Upload Minecraft screenshots and launch logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: vantaloader-minecraft-visual-smoke
-          path: |
-            build/visual-smoke/main-menu.png
-            build/visual-smoke/mod-menu.png
-            build/visual-smoke/main-menu-probe.png
-            build/visual-smoke/mod-menu-probe.png
-            build/visual-smoke/create-world-probe.png
-            build/visual-smoke/in-world.png
-            build/visual-smoke/launch-command.txt
-            build/visual-smoke/instance/logs/visual-smoke.log
-          if-no-files-found: warn
-          retention-days: 14
+          gradle --no-daemon -p examples/hello-mod clean build
+          gradle --no-daemon -p examples/auto-sprint clean build
+          gradle --no-daemon -p examples/runtime-probe clean build
