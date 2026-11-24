@@ -93,7 +93,7 @@ context.events().subscribe(ProfileLoaded.class, 0, event ->
 context.events().publish(new ProfileLoaded("default"));
 ```
 
-This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter separately exposes client tick START/END and raw keyboard input events when the launcher supplies the matching official mappings. A remappable keybinding registry, command registration, rendering, and networking APIs are not yet implemented. The resource API reloads explicitly registered mod-owned files; it does not reload Minecraft resource packs or arbitrary game assets.
+This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter separately exposes client tick START/END and raw keyboard input events when the launcher supplies the matching official mappings. User-remappable keybinding settings, command registration, rendering, and networking APIs are not yet implemented. The resource API reloads explicitly registered mod-owned files; it does not reload Minecraft resource packs or arbitrary game assets.
 
 ## Client keyboard input
 
