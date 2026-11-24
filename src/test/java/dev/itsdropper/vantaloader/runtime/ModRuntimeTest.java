@@ -60,6 +60,32 @@ class ModRuntimeTest {
         }
     }
 
+    @Test void modContextResourceReloadsRunWithOwningClassLoaderAndStopOnShutdown() throws Exception {
+        RuntimeEvents.resourceReloads.set(0);
+        RuntimeEvents.lastReloadClassLoader = null;
+        Path jar = temporaryDirectory.resolve("resource-runtime-fixture.jar");
+        try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
+        var fixture = artifact(jar, "resource_fixture", RuntimeTestEntrypoint.class.getName());
+        Path game = temporaryDirectory.resolve("resource-runtime-game");
+        ModRuntime runtime = new ModRuntime(game);
+        runtime.start(List.of(fixture));
+
+        Path resources = game.resolve("config/vantaloader/resource_fixture/resources");
+        Files.writeString(resources.resolve("first.json"), "{}");
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(4);
+        while (RuntimeEvents.resourceReloads.get() == 0 && System.nanoTime() < deadline) Thread.sleep(20);
+
+        assertEquals(1, RuntimeEvents.resourceReloads.get());
+        assertNotNull(RuntimeEvents.lastReloadClassLoader);
+        assertNotSame(RuntimeTestEntrypoint.class.getClassLoader(), RuntimeEvents.lastReloadClassLoader);
+
+        runtime.stop();
+        Files.writeString(resources.resolve("after-stop.json"), "{}");
+        Thread.sleep(250);
+        assertEquals(1, RuntimeEvents.resourceReloads.get(),
+                "The runtime must stop reload callbacks before closing the mod class loader");
+    }
+
     @Test void rejectsDuplicateIdsBeforeConstructingAnyMods() throws Exception {
         RuntimeEvents.EVENTS.clear();
         RuntimeEvents.failInitializeMod = null;

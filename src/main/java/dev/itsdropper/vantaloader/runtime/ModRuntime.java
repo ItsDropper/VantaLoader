@@ -212,7 +212,6 @@ public final class ModRuntime implements AutoCloseable {
             }
         } finally {
             initialized.clear();
-            closeResourceReloadService(original);
             closeLoaders(fatalFailure == null ? original : fatalFailure);
             closed = true;
         }

@@ -11,5 +11,7 @@ final class RuntimeEvents {
     static boolean failFatalShutdown;
     static String failInitializeMod;
     static MinecraftCapabilities lastCapabilities;
+    static final java.util.concurrent.atomic.AtomicInteger resourceReloads = new java.util.concurrent.atomic.AtomicInteger();
+    static volatile ClassLoader lastReloadClassLoader;
     private RuntimeEvents() { }
 }
