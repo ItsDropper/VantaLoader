@@ -16,6 +16,10 @@ import java.util.Objects;
 public final class Minecraft12111Adapter implements MinecraftAdapter {
     public static final String VERSION = "1.21.11";
     public static final String CLIENT_CLASS = "net.minecraft.client.Minecraft";
+    public static final String KEYBOARD_HANDLER_CLASS = "net.minecraft.client.KeyboardHandler";
+    private static final String KEY_PRESS_METHOD = "keyPress";
+    private static final String KEY_PRESS_DESCRIPTOR = "(JIIII)V";
+    private static final String KEY_INPUT_HOOK_DESCRIPTOR = "(Ljava/lang/Object;JIIII)V";
     private static final String CLIENT_TICK_METHOD = "tick";
     private static final String CLIENT_TICK_DESCRIPTOR = "()V";
     private static final String HOOK_OWNER = Type.getInternalName(MinecraftHooks.class);
@@ -30,6 +34,8 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         System.setProperty("vanta.minecraft.version", VERSION);
         var registry = Objects.requireNonNull(transformations, "transformations").forMod("vantaloader");
         registry.register("minecraft-1.21.11-client-tick", CLIENT_CLASS, 0, this::transformClientTick);
+        registry.register("minecraft-1.21.11-keyboard-input", KEYBOARD_HANDLER_CLASS,
+                0, this::transformKeyboardInput);
         registry.register("minecraft-1.21.11-title-screen", "net.minecraft.client.gui.screens.TitleScreen",
                 0, (context, bytes) -> transformScreenInit(context, bytes, "title"));
         registry.register("minecraft-1.21.11-title-version-label", "net.minecraft.client.gui.GuiGraphics",
@@ -119,6 +125,49 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         if (!matched[0]) {
             throw new IllegalStateException("Expected Minecraft 1.21.11 " + screenKind
                     + " screen init method missing: " + runtimeMethod + runtimeDescriptor);
+        }
+        return writer.toByteArray();
+    }
+
+    private byte[] transformKeyboardInput(ClassTransformContext context, byte[] originalClass) {
+        String runtimeMethod = context.mappings().runtimeMethodName(
+                KEYBOARD_HANDLER_CLASS, KEY_PRESS_METHOD, KEY_PRESS_DESCRIPTOR);
+        String runtimeDescriptor = context.mappings().runtimeDescriptor(KEY_PRESS_DESCRIPTOR);
+        ClassReader reader = new ClassReader(originalClass);
+        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        boolean[] matched = {false};
+
+        ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String descriptor,
+                                             String signature, String[] exceptions) {
+                MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions);
+                if (!runtimeMethod.equals(name) || !runtimeDescriptor.equals(descriptor)) return delegate;
+                if (matched[0]) throw new IllegalStateException("Multiple matching keyboard input methods found");
+                if ((access & Opcodes.ACC_STATIC) != 0) {
+                    throw new IllegalStateException("Minecraft KeyboardHandler.keyPress must be an instance method");
+                }
+                matched[0] = true;
+                return new MethodVisitor(Opcodes.ASM9, delegate) {
+                    @Override
+                    public void visitCode() {
+                        super.visitCode();
+                        super.visitVarInsn(Opcodes.ALOAD, 0);
+                        super.visitVarInsn(Opcodes.LLOAD, 1);
+                        super.visitVarInsn(Opcodes.ILOAD, 3);
+                        super.visitVarInsn(Opcodes.ILOAD, 4);
+                        super.visitVarInsn(Opcodes.ILOAD, 5);
+                        super.visitVarInsn(Opcodes.ILOAD, 6);
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOK_OWNER,
+                                "onKeyInput", KEY_INPUT_HOOK_DESCRIPTOR, false);
+                    }
+                };
+            }
+        };
+        reader.accept(visitor, 0);
+        if (!matched[0]) {
+            throw new IllegalStateException("Expected Minecraft 1.21.11 KeyboardHandler.keyPress"
+                    + KEY_PRESS_DESCRIPTOR + " method missing: " + runtimeMethod + runtimeDescriptor);
         }
         return writer.toByteArray();
     }
