@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "vma_showcase",
+  "name": "VMA Showcase",
+  "version": "1.0.0",
+  "description": "Demonstrates VMA typed configuration and client events without raw ASM.",
+  "license": "MIT",
+  "website": "https://github.com/ItsDropper/VantaLoader",
+  "sources": "https://github.com/ItsDropper/VantaLoader/tree/main/examples/vma-showcase",
+  "entrypoints": { "main": "dev.itsdropper.example.vmashowcase.VmaShowcaseMod" },
+  "depends": {}
+}
