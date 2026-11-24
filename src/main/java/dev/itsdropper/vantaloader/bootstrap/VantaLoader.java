@@ -96,6 +96,12 @@ public final class VantaLoader {
         ModRuntime runtime = new ModRuntime(gameDirectory, transformations, capabilities, mappings);
         try {
             runtime.start(ordered);
+            for (var conflict : transformations.potentialConflicts()) {
+                LOGGER.warning("Potential cross-mod transformation conflict on "
+                        + conflict.runtimeTargetClassName() + "; ordered contributions="
+                        + conflict.contributions()
+                        + ". Shared targets are composed; semantic compatibility cannot be inferred automatically.");
+            }
             dev.itsdropper.vantaloader.mixin.client.VantaMenuHooks.bind(runtime, mappings);
             LOGGER.info("All VantaLoader mods initialized successfully");
         } catch (Exception failure) {

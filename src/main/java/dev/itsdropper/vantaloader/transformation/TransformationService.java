@@ -129,6 +129,7 @@ public final class TransformationService implements ClassFileTransformer {
             }
         }
         if (matching.isEmpty()) return changed ? current : null;
+        List<String> appliedContributions = new java.util.ArrayList<>();
         for (Registration registration : matching) {
             try {
                 byte[] transformed = registration.transformer().transform(
@@ -142,12 +143,14 @@ public final class TransformationService implements ClassFileTransformer {
                 validateClassFile(transformed, binaryName);
                 if (!java.util.Arrays.equals(current, transformed)) changed = true;
                 current = transformed.clone();
+                appliedContributions.add(registration.modId() + ":" + registration.id());
             } catch (Throwable failure) {
                 // Do not convert VM-fatal conditions into an ordinary mod failure.
                 if (failure instanceof VirtualMachineError fatal) throw fatal;
                 if (failure instanceof ThreadDeath death) throw death;
                 LOGGER.log(Level.SEVERE, "Transformation failed: " + registration.modId()
-                        + ":" + registration.id() + " targeting " + binaryName, failure);
+                        + ":" + registration.id() + " targeting " + binaryName
+                        + "; previously applied contributions=" + appliedContributions, failure);
                 // Instrumentation normally treats a thrown transformer exception as
                 // "no transformation" and continues with the original class bytes. Return
                 // an invalid class file instead so a broken required patch cannot silently

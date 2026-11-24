@@ -195,8 +195,9 @@ def main():
     args = parser.parse_args()
     agent = args.agent.resolve()
     mods = [path.resolve() for path in args.mod]
-    if not agent.is_file() or any(not mod.is_file() for mod in mods):
-        raise FileNotFoundError(f"Agent or example mod JAR missing: {agent}, {mods}")
+    missing_artifacts = [path for path in [agent, *mods] if not path.is_file()]
+    if missing_artifacts:
+        raise FileNotFoundError("Missing launch artifacts: " + ", ".join(map(str, missing_artifacts)))
 
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
