@@ -23,7 +23,7 @@ final class ModTaskService implements ModTasks {
  }
  @Override public boolean isClosed(){return closed;}
  @Override public void close(){
-  if(closed)return;closed=true;pending.forEach(future->future.cancel(true));executor.shutdownNow();
+  if(closed)return;closed=true;java.util.List.copyOf(pending).forEach(future->future.cancel(true));executor.shutdownNow();
   try{if(!executor.awaitTermination(5,TimeUnit.SECONDS))throw new IllegalStateException("Mod tasks did not stop within 5 seconds");}
   catch(InterruptedException ex){Thread.currentThread().interrupt();throw new IllegalStateException("Interrupted while stopping mod tasks",ex);}
  }
