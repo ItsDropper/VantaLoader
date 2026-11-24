@@ -29,4 +29,11 @@ public interface ModContext {
     Logger logger();
     TransformationRegistry transformations();
     EventBus events();
+
+    /** Mod-owned file resources that can be transactionally reloaded without redefining classes. */
+    default ResourceReloadRegistry resources() {
+        return (id, directory, listener) -> {
+            throw new UnsupportedOperationException("Resource reload is not available in this runtime");
+        };
+    }
 }

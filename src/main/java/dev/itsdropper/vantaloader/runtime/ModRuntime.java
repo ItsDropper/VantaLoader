@@ -37,6 +37,8 @@ public final class ModRuntime implements AutoCloseable {
     private final List<LoadedMod> initialized = new ArrayList<>();
     private final List<ModClassLoader> classLoaders = new ArrayList<>();
     private final ModEventBus eventBus = new ModEventBus();
+    private ResourceReloadService resourceReloadService;
+    private dev.itsdropper.vantaloader.api.ResourceReloadReport lastReloadReport;
     private boolean started;
     private boolean closed;
 
@@ -67,6 +69,7 @@ public final class ModRuntime implements AutoCloseable {
         validateOrderedMods(orderedMods);
         Files.createDirectories(configDirectory);
         try {
+            resourceReloadService = new ResourceReloadService(gameDirectory);
             Map<String, ModClassLoader> loadersById = new java.util.LinkedHashMap<>();
             for (ModArtifact artifact : orderedMods) {
                 String id = artifact.descriptor().id();
@@ -152,7 +155,8 @@ public final class ModRuntime implements AutoCloseable {
             Path modConfigDirectory = configDirectory.resolve(artifact.descriptor().id());
             Files.createDirectories(modConfigDirectory);
             mod.instance().onInitialize(new DefaultModContext(artifact.descriptor(), gameDirectory,
-                    modConfigDirectory, transformationService, eventScope, minecraftCapabilities));
+                    modConfigDirectory, transformationService, eventScope, minecraftCapabilities,
+                    mod.resourceScope()));
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
         }
@@ -170,7 +174,8 @@ public final class ModRuntime implements AutoCloseable {
                         + "' does not implement VantaMod");
             }
             VantaMod instance = (VantaMod) type.getConstructor().newInstance();
-            return new LoadedMod(id, instance, loader, eventScope, artifact.descriptor());
+            return new LoadedMod(id, instance, loader, eventScope,
+                    new ModResourceReloadScope(id, loader, resourceReloadService), artifact.descriptor());
         } catch (InvocationTargetException exception) {
             Throwable cause = exception.getCause() == null ? exception : exception.getCause();
             throw new IllegalStateException("Constructor for mod '" + id + "' failed: "
@@ -205,6 +210,7 @@ public final class ModRuntime implements AutoCloseable {
             }
         } finally {
             initialized.clear();
+            closeResourceReloadService(original);
             closeLoaders(fatalFailure == null ? original : fatalFailure);
             closed = true;
         }
@@ -227,12 +233,14 @@ public final class ModRuntime implements AutoCloseable {
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
             mod.eventScope().close();
+            mod.resourceScope().close();
         }
     }
 
     public void stop() throws Exception {
         if (closed) return;
         MinecraftHooks.unbind(eventBus);
+        closeResourceReloadService(null);
         Exception aggregate = null;
         Error fatalFailure = null;
         try {
@@ -254,6 +262,7 @@ public final class ModRuntime implements AutoCloseable {
                             "Shutdown failed for mod '" + mod.id() + "'", failure));
                 } finally {
                     mod.eventScope().close();
+                    mod.resourceScope().close();
                 }
             }
         } finally {
@@ -268,6 +277,13 @@ public final class ModRuntime implements AutoCloseable {
         if (aggregate != null) throw aggregate;
     }
 
+    private void closeResourceReloadService(Throwable original) {
+        if (resourceReloadService == null) return;
+        lastReloadReport = resourceReloadService.report();
+        resourceReloadService.close();
+        resourceReloadService = null;
+    }
+
     private void closeLoaders(Throwable original) {
         for (int i = classLoaders.size() - 1; i >= 0; i--) {
             try { classLoaders.get(i).close(); }
@@ -280,6 +296,13 @@ public final class ModRuntime implements AutoCloseable {
     }
 
     @Override public void close() throws Exception { stop(); }
+
+    /** Latest reload results and class-change restart requirements. */
+    public dev.itsdropper.vantaloader.api.ResourceReloadReport resourceReloadReport() {
+        if (resourceReloadService != null) return resourceReloadService.report();
+        if (lastReloadReport != null) return lastReloadReport;
+        return new dev.itsdropper.vantaloader.api.ResourceReloadReport(List.of(), List.of(), java.time.Instant.now());
+    }
 
     /** Runtime-derived title and loaded-mod count for the in-game mod screen header. */
     public dev.itsdropper.vantaloader.api.ModMenuHeader modMenuHeader() {
@@ -320,7 +343,7 @@ public final class ModRuntime implements AutoCloseable {
     }
 
     private record LoadedMod(String id, VantaMod instance, ModClassLoader classLoader,
-                             ModEventBus.Scope eventScope,
+                             ModEventBus.Scope eventScope, ModResourceReloadScope resourceScope,
                              dev.itsdropper.vantaloader.metadata.ModDescriptor descriptor) { }
 
     /** Child-first for mod implementation classes, with explicit dependency visibility. */
