@@ -16,7 +16,7 @@ final class RuntimeEvents {
     static MinecraftCapabilities lastCapabilities;
     static final java.util.concurrent.atomic.AtomicInteger resourceReloads = new java.util.concurrent.atomic.AtomicInteger();
     static volatile ClassLoader lastReloadClassLoader;
-    static final ServiceKey<Runnable> TEST_SERVICE = ServiceKey.of("test:greeter", Runnable.class);
+    static final ServiceKey<Runnable> TEST_SERVICE = ServiceKey.of("service_provider:greeter", Runnable.class);
     static volatile ServiceRegistration serviceRegistration;
     static volatile ModServices providerServices;
     private RuntimeEvents() { }
