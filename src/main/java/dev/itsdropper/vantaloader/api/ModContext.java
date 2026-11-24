@@ -29,6 +29,7 @@ public interface ModContext {
     Logger logger();
     TransformationRegistry transformations();
     EventBus events();
+    default ModConfig config() { throw new UnsupportedOperationException("Persistent VMA config is not available in this runtime"); }
 
     /** Mod-owned file resources that can be transactionally reloaded without redefining classes. */
     default ResourceReloadRegistry resources() {

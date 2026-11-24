@@ -66,14 +66,16 @@ Milestones describe intended work, not promises or release dates. A milestone is
 
 **Exit criteria:** registered mod-owned resources reload transactionally without restarting; mod JAR changes are reported as restart-required. Minecraft resource packs and arbitrary game assets are outside this stage.
 
-## Stage 5 — Vanta ecosystem integration
+## Stage 5 — Vanta Mod API (VMA)
 
-- [ ] Port a small, isolated Vanta Client feature as the first-party reference integration.
-- [ ] Expand the port after the public API is stable enough.
+- [x] Establish VMA around lifecycle, typed events, capabilities, transformations, accessors, Mod Menu, and resource reload.
+- [x] Add isolated persistent typed configuration with validation, atomic persistence, and reload semantics.
+- [ ] Add game-facing commands, keybindings, player/world state, registries, rendering, and networking, each backed by verified version adapters.
+- [ ] Add first-party Vanta Client reference integration after the relevant game APIs exist.
 - [ ] Provide developer documentation, templates, and Gradle tooling.
 - [ ] Add compatibility tests for external mods.
 
-**Exit criteria:** Vanta Client has a reproducible native integration path and third-party developers can build a basic mod from documented contracts.
+**Exit criteria:** third-party developers can build useful native mods without writing ASM for ordinary supported features; every advertised game-facing subsystem has a real implementation and in-game test.
 
 ## Stage 6 — Distribution and ecosystem
 

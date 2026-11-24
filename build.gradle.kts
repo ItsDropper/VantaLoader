@@ -102,6 +102,12 @@ val verifyAgentJar by tasks.registering {
             check(jar.getEntry("dev/itsdropper/vantaloader/api/ModContext.class") != null) {
                 "Standalone mod API JAR is missing ModContext"
             }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ConfigKey.class") != null) {
+                "Standalone mod API JAR is missing ConfigKey"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ModConfig.class") != null) {
+                "Standalone mod API JAR is missing ModConfig"
+            }
             check(jar.getEntry("dev/itsdropper/vantaloader/api/ModMenuApi.class") != null) {
                 "Standalone mod API JAR is missing ModMenuApi"
             }

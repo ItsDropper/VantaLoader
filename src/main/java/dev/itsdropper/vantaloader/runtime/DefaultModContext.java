@@ -20,11 +20,13 @@ final class DefaultModContext implements ModContext {
     private final EventBus events;
     private final MinecraftCapabilities minecraftCapabilities;
     private final dev.itsdropper.vantaloader.api.ResourceReloadRegistry resources;
+    private final dev.itsdropper.vantaloader.api.ModConfig config;
 
     DefaultModContext(ModDescriptor descriptor, Path gameDirectory, Path configDirectory,
                       TransformationService transformationService, EventBus events,
                       MinecraftCapabilities minecraftCapabilities,
-                      dev.itsdropper.vantaloader.api.ResourceReloadRegistry resources) {
+                      dev.itsdropper.vantaloader.api.ResourceReloadRegistry resources,
+                      dev.itsdropper.vantaloader.api.ModConfig config) {
         this.descriptor = descriptor;
         this.gameDirectory = gameDirectory;
         this.configDirectory = configDirectory;
@@ -33,6 +35,7 @@ final class DefaultModContext implements ModContext {
         this.events = java.util.Objects.requireNonNull(events, "events");
         this.minecraftCapabilities = java.util.Objects.requireNonNull(minecraftCapabilities, "minecraftCapabilities");
         this.resources = java.util.Objects.requireNonNull(resources, "resources");
+        this.config = java.util.Objects.requireNonNull(config, "config");
     }
     @Override public String modId() { return descriptor.id(); }
     @Override public String modVersion() { return descriptor.version().toString(); }
@@ -50,4 +53,5 @@ final class DefaultModContext implements ModContext {
     @Override public TransformationRegistry transformations() { return transformations; }
     @Override public EventBus events() { return events; }
     @Override public dev.itsdropper.vantaloader.api.ResourceReloadRegistry resources() { return resources; }
+    @Override public dev.itsdropper.vantaloader.api.ModConfig config() { return config; }
 }

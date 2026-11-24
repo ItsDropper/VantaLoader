@@ -157,7 +157,7 @@ public final class ModRuntime implements AutoCloseable {
             Files.createDirectories(modConfigDirectory);
             mod.instance().onInitialize(new DefaultModContext(artifact.descriptor(), gameDirectory,
                     modConfigDirectory, transformationService, eventScope, minecraftCapabilities,
-                    mod.resourceScope()));
+                    mod.resourceScope(), new JsonModConfig(modConfigDirectory.resolve("vma-config.json"))));
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
         }
