@@ -1,6 +1,7 @@
 package dev.itsdropper.vantaloader.bootstrap.minecraft;
 
 import dev.itsdropper.vantaloader.api.ClassTransformContext;
+import dev.itsdropper.vantaloader.api.HierarchyClassWriter;
 import dev.itsdropper.vantaloader.bootstrap.MinecraftHooks;
 import dev.itsdropper.vantaloader.transformation.TransformationService;
 import org.objectweb.asm.ClassReader;
@@ -84,10 +85,12 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         String runtimeMethod = context.mappings().runtimeMethodName(owner, "init", "()V");
         String runtimeDescriptor = context.mappings().runtimeDescriptor("()V");
         ClassReader reader = new ClassReader(originalClass);
-        // This injection is stack-neutral and introduces no control flow or locals.
-        // Preserve Minecraft's existing StackMapTable instead of asking ASM to resolve
-        // game classes through its own class loader while the agent is transforming them.
-        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        // The receiver can be absent from a valid StackMapTable frame at a return.
+        // Recompute frames with resource-only hierarchy lookup so the injected ALOAD 0
+        // remains verifiable without defining Minecraft classes during transformation.
+        ClassWriter writer = new HierarchyClassWriter(reader,
+                ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS,
+                Minecraft12111Adapter.class.getClassLoader());
         boolean[] matched = {false};
         ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
             @Override

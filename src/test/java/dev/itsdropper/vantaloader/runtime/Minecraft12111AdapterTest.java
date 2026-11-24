@@ -91,8 +91,11 @@ class Minecraft12111AdapterTest {
     }
 
     private static void assertScreenHook(TransformationService transformations, String target) throws Exception {
+        byte[] original = screenFixture(target);
+        new IsolatedClassLoader(Minecraft12111AdapterTest.class.getClassLoader())
+                .define(target.replace('/', '.'), original);
         byte[] transformed = transformations.transform(null, Minecraft12111AdapterTest.class.getClassLoader(),
-                target, null, null, screenFixture(target));
+                target, null, null, original);
         assertNotNull(transformed);
         IsolatedClassLoader verificationLoader = new IsolatedClassLoader(
                 Minecraft12111AdapterTest.class.getClassLoader());
@@ -135,7 +138,7 @@ class Minecraft12111AdapterTest {
     }
 
     private static byte[] screenFixture(String internalName) {
-        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        ClassWriter writer = new ClassWriter(0);
         writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, internalName, null, "java/lang/Object", null);
         MethodVisitor constructor = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
         constructor.visitCode();
@@ -149,10 +152,11 @@ class Minecraft12111AdapterTest {
         Label branch = new Label();
         init.visitInsn(Opcodes.ICONST_0);
         init.visitJumpInsn(Opcodes.IFEQ, branch);
-        init.visitInsn(Opcodes.NOP);
-        init.visitLabel(branch);
         init.visitInsn(Opcodes.RETURN);
-        init.visitMaxs(0, 0);
+        init.visitLabel(branch);
+        init.visitFrame(Opcodes.F_CHOP, 1, null, 0, null);
+        init.visitInsn(Opcodes.RETURN);
+        init.visitMaxs(1, 1);
         init.visitEnd();
         writer.visitEnd();
         return writer.toByteArray();
