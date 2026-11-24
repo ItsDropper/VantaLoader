@@ -1,6 +1,7 @@
 package dev.itsdropper.vantaloader.runtime;
 
-import dev.itsdropper.vantaloader.api.EventPriority;\nimport org.junit.jupiter.api.Test;
+import dev.itsdropper.vantaloader.api.EventPriority;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +9,20 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ModEventBusTest {
+    @Test
+    void supportsNamedAndDefaultPrioritiesWithoutChangingNumericOrdering() {
+        ModEventBus bus = new ModEventBus();
+        List<String> received = new ArrayList<>();
+        bus.subscribe(Message.class, event -> received.add("normal-default"));
+        bus.subscribe(Message.class, EventPriority.HIGH, event -> received.add("high"));
+        bus.subscribe(Message.class, EventPriority.LOW, event -> received.add("low"));
+        bus.subscribe(Message.class, -101, event -> received.add("custom"));
+
+        bus.publish(new Message());
+
+        assertEquals(List.of("custom", "high", "normal-default", "low"), received);
+    }
+
     @Test
     void dispatchesAssignableTypesInPriorityThenRegistrationOrder() {
         ModEventBus bus = new ModEventBus();
