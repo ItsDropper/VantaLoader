@@ -105,7 +105,8 @@ public final class TransformationService implements ClassFileTransformer {
         boolean mixinActive = dev.itsdropper.vantaloader.mixin.VantaMixinService.isInitialized()
                 && shouldApplyMixin(binaryName)
                 && hasClassFileMagic(classfileBuffer)
-                && (minecraftClass || dev.itsdropper.vantaloader.mixin.VantaMixinService.isMixinTarget(binaryName));
+                && (dev.itsdropper.vantaloader.mixin.VantaMixinService.isMixinTarget(binaryName)
+                    || (minecraftClass && hasClassResource(loader, className)));
         if (matching.isEmpty() && !mixinActive) return null;
 
         byte[] current = classfileBuffer.clone();
@@ -182,6 +183,13 @@ public final class TransformationService implements ClassFileTransformer {
                 && !binaryName.startsWith("sun.")
                 && !binaryName.startsWith("org.spongepowered.asm.")
                 && !binaryName.startsWith("dev.itsdropper.vantaloader.");
+    }
+
+    static boolean hasClassResource(ClassLoader loader, String internalClassName) {
+        if (internalClassName == null) return false;
+        String resource = internalClassName + ".class";
+        return (loader != null && loader.getResource(resource) != null)
+                || ClassLoader.getSystemResource(resource) != null;
     }
 
     static boolean hasClassFileMagic(byte[] bytes) {

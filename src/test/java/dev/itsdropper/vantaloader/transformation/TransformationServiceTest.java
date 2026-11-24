@@ -264,6 +264,13 @@ class TransformationServiceTest {
         assertTrue(TransformationService.hasClassFileMagic(new byte[]{(byte) 0xCA, (byte) 0xFE, (byte) 0xBA, (byte) 0xBE}));
     }
 
+    @Test
+    void onlyBootstrapsMixinForMappedClassesWithResolvableResources() {
+        assertFalse(TransformationService.hasClassResource(getClass().getClassLoader(), "missing/runtime/Class"));
+        assertTrue(TransformationService.hasClassResource(getClass().getClassLoader(),
+                TransformationServiceTest.class.getName().replace('.', '/')));
+    }
+
     private static byte[] replaceStringConstant(byte[] original, String before, String after) {
         ClassReader reader = new ClassReader(original);
         ClassWriter writer = new ClassWriter(reader, 0);
