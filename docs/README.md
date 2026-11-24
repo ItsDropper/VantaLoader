@@ -14,7 +14,8 @@ VantaLoader is pre-alpha. These documents describe current design direction; pro
 - [VMA Showcase](../examples/vma-showcase/README.md) — high-level API example using persistent configuration and client events without raw ASM.
 
 
-- [Native mod quickstart](modding/getting-started.md) — Gradle setup, entrypoints, and an ASM transformation example.
+- [Native mod quickstart](modding/getting-started.md) — Gradle setup, entrypoints, and VMA-first development.
+- [VMA API reference](modding/vma-reference.md) — implemented API domains, compatibility rules, and planned high-level services.
 - [Mod metadata](modding/mod-metadata.md) — the implemented schema 1 descriptor.
 
 ## Development
