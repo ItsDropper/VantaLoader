@@ -20,6 +20,10 @@ VMA is the native mod development contract for VantaLoader. Its design is to mak
 
 `ModConfig` stores typed `ConfigKey` values in an isolated per-mod JSON file. Supported value types are string, boolean, integer, long, decimal, and enum. Integer and decimal keys support bounds. Writes are validated; reads reject invalid persisted values; saves use temporary-file replacement; reload discards unsaved state.
 
+## Background tasks
+
+`ModTasks` provides a serial, mod-owned asynchronous executor. Tasks run with the owning mod class loader as the thread context class loader. The runtime cancels outstanding work and waits up to five seconds for the worker to stop before closing the mod class loader. Use it for I/O and background computation; do not access Minecraft client objects from the worker thread.
+
 ## Resource lifecycle
 
 `ResourceReloadRegistry` watches mod-owned directories. `ResourceReloadListener` prepares reversible `ResourceReloadPlan` instances. All affected plans prepare before commits; failure triggers rollback. This is file-resource reload, not Minecraft resource-pack reload.

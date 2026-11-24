@@ -29,6 +29,7 @@ public interface ModContext {
     Logger logger();
     TransformationRegistry transformations();
     EventBus events();
+    default ModTasks tasks() { throw new UnsupportedOperationException("Mod task scheduling is not available in this runtime"); }
     default ModConfig config() { throw new UnsupportedOperationException("Persistent VMA config is not available in this runtime"); }
 
     /** Mod-owned file resources that can be transactionally reloaded without redefining classes. */

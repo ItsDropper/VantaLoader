@@ -104,6 +104,7 @@ public final class ModRuntime implements AutoCloseable {
                 } catch (Exception | Error failure) {
                     eventScope.close();
                     mod.resourceScope().close();
+                    mod.tasks().close();
                     throw failure;
                 }
                 LOGGER.info("Initialized " + mod.id() + " " + artifact.descriptor().version());
@@ -157,7 +158,8 @@ public final class ModRuntime implements AutoCloseable {
             Files.createDirectories(modConfigDirectory);
             mod.instance().onInitialize(new DefaultModContext(artifact.descriptor(), gameDirectory,
                     modConfigDirectory, transformationService, eventScope, minecraftCapabilities,
-                    mod.resourceScope(), new JsonModConfig(modConfigDirectory.resolve("vma-config.json"))));
+                    mod.resourceScope(), new JsonModConfig(modConfigDirectory.resolve("vma-config.json")),
+                    mod.tasks()));
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
         }
@@ -176,7 +178,8 @@ public final class ModRuntime implements AutoCloseable {
             }
             VantaMod instance = (VantaMod) type.getConstructor().newInstance();
             return new LoadedMod(id, instance, loader, eventScope,
-                    new ModResourceReloadScope(id, loader, resourceReloadService), artifact.descriptor());
+                    new ModResourceReloadScope(id, loader, resourceReloadService), artifact.descriptor(),
+                    new ModTaskService(id, loader));
         } catch (InvocationTargetException exception) {
             Throwable cause = exception.getCause() == null ? exception : exception.getCause();
             throw new IllegalStateException("Constructor for mod '" + id + "' failed: "
@@ -235,6 +238,7 @@ public final class ModRuntime implements AutoCloseable {
             Thread.currentThread().setContextClassLoader(previous);
             mod.eventScope().close();
             mod.resourceScope().close();
+            mod.tasks().close();
         }
     }
 
@@ -264,6 +268,7 @@ public final class ModRuntime implements AutoCloseable {
                 } finally {
                     mod.eventScope().close();
                     mod.resourceScope().close();
+                    mod.tasks().close();
                 }
             }
         } finally {
@@ -345,7 +350,8 @@ public final class ModRuntime implements AutoCloseable {
 
     private record LoadedMod(String id, VantaMod instance, ModClassLoader classLoader,
                              ModEventBus.Scope eventScope, ModResourceReloadScope resourceScope,
-                             dev.itsdropper.vantaloader.metadata.ModDescriptor descriptor) { }
+                             dev.itsdropper.vantaloader.metadata.ModDescriptor descriptor,
+                             ModTaskService tasks) { }
 
     /** Child-first for mod implementation classes, with explicit dependency visibility. */
     private static final class ModClassLoader extends URLClassLoader {
