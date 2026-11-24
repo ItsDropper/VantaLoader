@@ -151,7 +151,11 @@ public final class VantaMixinService extends MixinServiceAbstract
     public static byte[] transform(String binaryName, byte[] original) {
         IMixinTransformer active = transformer;
         if (active == null) return original;
-        return active.transformClass(MixinEnvironment.getCurrentEnvironment(), binaryName, original);
+        // Mod configurations are registered against the DEFAULT environment by
+        // Mixins.addConfiguration. The agent has no launch-wrapper phase provider
+        // to advance PREINIT to DEFAULT, so explicitly transform with that same
+        // environment instead of silently skipping every mod-owned config.
+        return active.transformClass(MixinEnvironment.getDefaultEnvironment(), binaryName, original);
     }
 
     public static boolean isInitialized() { return transformer != null; }
