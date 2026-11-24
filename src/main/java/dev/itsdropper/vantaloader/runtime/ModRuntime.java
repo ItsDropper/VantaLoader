@@ -281,8 +281,8 @@ public final class ModRuntime implements AutoCloseable {
 
     private void closeResourceReloadService(Throwable original) {
         if (resourceReloadService == null) return;
-        lastReloadReport = resourceReloadService.report();
         resourceReloadService.close();
+        lastReloadReport = resourceReloadService.report();
         resourceReloadService = null;
     }
 

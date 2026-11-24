@@ -211,8 +211,12 @@ final class ResourceReloadService implements AutoCloseable {
         try { watchService.close(); }
         catch (IOException failure) { LOGGER.log(Level.WARNING, "Failed to close resource watcher", failure); }
         worker.interrupt();
-        try { worker.join(2000); }
-        catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+        boolean interrupted = false;
+        while (worker.isAlive()) {
+            try { worker.join(); }
+            catch (InterruptedException failure) { interrupted = true; }
+        }
+        if (interrupted) Thread.currentThread().interrupt();
     }
 
     private record Registration(String modId, String id, Path directory, ResourceReloadListener listener) { }
