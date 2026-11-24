@@ -14,6 +14,7 @@ public final class VmaShowcaseMod implements VantaMod {
   boolean enabled=config.get(ENABLED);
   context.logger().info("VMA showcase config loaded: enabled="+enabled);
   if(!enabled)return;
+  context.tasks().execute(()->context.logger().info("VMA showcase: managed background task executed"));
   context.events().subscribe(ClientTickEvent.class,0,event->{
    if(event.phase()==ClientTickEvent.Phase.START&&observed.compareAndSet(false,true))
     context.logger().info("VMA showcase: high-level client tick event delivered");
