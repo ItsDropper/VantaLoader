@@ -70,10 +70,6 @@ class Minecraft12111AdapterTest {
         byte[] transformed = transformations.transform(null, Minecraft12111AdapterTest.class.getClassLoader(),
                 "net/minecraft/client/gui/GuiGraphics", null, null, graphicsFixture());
         assertNotNull(transformed);
-        StringWriter diagnostics = new StringWriter();
-        CheckClassAdapter.verify(new org.objectweb.asm.ClassReader(transformed),
-                Minecraft12111AdapterTest.class.getClassLoader(), false, new PrintWriter(diagnostics));
-        assertTrue(diagnostics.toString().isBlank(), diagnostics.toString());
         org.objectweb.asm.ClassReader reader = new org.objectweb.asm.ClassReader(transformed);
         boolean[] found = {false};
         reader.accept(new org.objectweb.asm.ClassVisitor(Opcodes.ASM9) {
@@ -101,6 +97,10 @@ class Minecraft12111AdapterTest {
         byte[] transformed = transformations.transform(null, Minecraft12111AdapterTest.class.getClassLoader(),
                 target, null, null, screenFixture(target));
         assertNotNull(transformed);
+        StringWriter diagnostics = new StringWriter();
+        CheckClassAdapter.verify(new org.objectweb.asm.ClassReader(transformed),
+                Minecraft12111AdapterTest.class.getClassLoader(), false, new PrintWriter(diagnostics));
+        assertTrue(diagnostics.toString().isBlank(), diagnostics.toString());
         org.objectweb.asm.ClassReader reader = new org.objectweb.asm.ClassReader(transformed);
         boolean[] found = {false};
         reader.accept(new org.objectweb.asm.ClassVisitor(Opcodes.ASM9) {
