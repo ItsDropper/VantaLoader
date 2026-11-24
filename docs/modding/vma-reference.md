@@ -24,6 +24,28 @@ The included Gradle plugin configures Java compilation against the standalone Va
 
 `ModConfig` stores typed `ConfigKey` values in an isolated per-mod JSON file. Supported value types are string, boolean, integer, long, decimal, and enum. Integer and decimal keys support bounds. Writes are validated; reads reject invalid persisted values; saves use temporary-file replacement; reload discards unsaved state.
 
+## Inter-mod services
+
+`ModContext.services()` exposes a typed service registry shared by the active native-mod runtime. Providers register a stable `namespace:path` `ServiceKey<T>` in their own mod-ID namespace. Consumers use the same key to discover an optional service with `find(...)` or require it with `require(...)`. Duplicate IDs and type mismatches fail explicitly; a provider's registrations are removed when it shuts down or startup rolls back. Declare a normal mod dependency on providers whose service is required so dependency ordering initializes the provider first.
+
+```java
+public interface ProfileProvider {
+    Optional<Profile> load(String id);
+}
+
+private static final ServiceKey<ProfileProvider> PROFILES =
+        ServiceKey.of("profilemod:profiles", ProfileProvider.class);
+
+// Provider mod, during onInitialize:
+context.services().register(PROFILES, this::loadProfile);
+
+// Consumer mod, during onInitialize (with profilemod declared as a dependency):
+ProfileProvider profiles = context.services().require(PROFILES);
+profiles.load("default").ifPresent(this::applyProfile);
+```
+
+Services are in-process Java objects, not a network protocol. Keep service interfaces small, version them deliberately, and avoid retaining service instances beyond the provider's lifetime.
+
 ## Background tasks
 
 `ModTasks` provides a serial, mod-owned asynchronous executor. Tasks run with the owning mod class loader as the thread context class loader. The runtime cancels outstanding work and waits up to five seconds for the worker to stop before closing the mod class loader. Use it for I/O and background computation; do not access Minecraft client objects from the worker thread.
