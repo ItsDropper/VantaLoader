@@ -5,7 +5,7 @@
 VantaLoader has moved from repository scaffolding into its first executable native-mod runtime. It discovers mod JARs, validates metadata, resolves dependencies, loads entrypoints, and manages initialization and shutdown.
 
 > [!WARNING]
-> **Pre-alpha runtime.** The dedicated in-game CI launches Minecraft 1.21.11 with the Java agent and four separately packaged native mods. It verifies the title screen and Mods menu, client tick START/END delivery, a third-party-style SpongePowered Mixin config and real title-screen injection, and composed Auto Sprint/runtime-probe transformations on `LocalPlayer` inside a CI-created singleplayer world. The smoke artifact includes the in-world screenshot, full runtime log, and machine-readable evidence. Auto Sprint gameplay behavior has also been manually verified by the maintainer. This proves the tested 1.21.11 integration path, not broad compatibility with arbitrary third-party mods or other Minecraft versions.
+> **Pre-alpha runtime.** The dedicated in-game CI launches Minecraft 1.21.11 with the Java agent and five separately packaged native mods. It verifies the title screen and Mods menu, client tick START/END delivery, a third-party-style SpongePowered Mixin config and real title-screen injection, and composed Auto Sprint/runtime-probe transformations on `LocalPlayer` inside a CI-created singleplayer world. The smoke artifact includes the in-world screenshot, full runtime log, and machine-readable evidence. Auto Sprint gameplay behavior has also been manually verified by the maintainer. This proves the tested 1.21.11 integration path, not broad compatibility with arbitrary third-party mods or other Minecraft versions.
 ## Implemented
 
 - Native vanta.mod.json descriptor parsing with descriptions, JAR icons, license/project links, and required/optional dependency declarations.
@@ -22,6 +22,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - A buildable [Hello World example mod](examples/hello-mod/README.md).
 - A standalone [Auto Sprint gameplay mod](examples/auto-sprint/README.md) using official 1.21.11 mappings and the native transformation API.
 - A separately packaged [Mixin interoperability probe](examples/mixin-probe/README.md) used by in-game CI to verify third-party Mixin config discovery and real title-screen injection.
+- A [VMA Showcase mod](examples/vma-showcase/README.md) demonstrating typed persistent settings and client events without ASM.
 - A self-contained Minecraft Java-agent artifact with Gson and ASM 9.8 bundled and manifest/content verification.
 - A standalone `VantaLoader-api.jar` for compiling native mods without depending on implementation classes.
 - ASM integration tests that transform, verify, define, and invoke fixture classes, including ordered composition from multiple mods targeting the same class and fail-closed behavior when a later patch fails.
@@ -46,9 +47,9 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 | Minecraft Java-agent bootstrap | Experimental; Minecraft 1.21.11 title/menu launch smoke-tested in CI |
 | Minecraft class/member mappings | Official class, method, and field mapping lookup by exact named JVM descriptor; version adapters remain incomplete |
 | Native class transformation API | ASM-backed pipeline; Auto Sprint and composed LocalPlayer transformations execute in a CI-created singleplayer world |
-| High-level Vanta Mod API | Planned for Phase 5; ASM remains the internal transformation backend |
+| High-level Vanta Mod API | VMA base implemented: lifecycle, typed events, typed persistent config, resource reload, accessors, Mod Menu, capability negotiation, and advanced transformations; game-facing breadth remains in progress |
 | SpongePowered Mixin adapter | Narrow Minecraft 1.21.11 third-party-style config and title-screen injection verified in CI; broad compatibility unverified |
-| Resource reload | Not implemented |
+| Resource reload | Transactional mod-owned file resources implemented and tested; arbitrary Minecraft assets are not claimed |
 | Vanta Client integration | Planned |
 
 See the [roadmap](docs/roadmap.md) for milestone acceptance criteria.
@@ -77,9 +78,10 @@ Build the example mod (after building the loader JAR):
 gradle build
 gradle -p examples/hello-mod build
 gradle -p examples/auto-sprint build
+gradle -p examples/vma-showcase build
 ~~~
 
-See [Hello World](examples/hello-mod/README.md) for the native lifecycle example and [Auto Sprint](examples/auto-sprint/README.md) for the first gameplay-oriented mod. Auto Sprint targets Minecraft 1.21.11 and requires verified class-transformation and official-mapping capabilities. It writes its default setting to `config/vantaloader/auto_sprint/enabled.properties`; set `enabled=false` to disable it.
+See [Hello World](examples/hello-mod/README.md) for the native lifecycle example, [VMA Showcase](examples/vma-showcase/README.md) for high-level API usage without ASM, and [Auto Sprint](examples/auto-sprint/README.md) for advanced transformation access. Auto Sprint targets Minecraft 1.21.11 and requires verified class-transformation and official-mapping capabilities. It writes its default setting to `config/vantaloader/auto_sprint/enabled.properties`; set `enabled=false` to disable it.
 
 Build the self-contained Minecraft agent artifact:
 

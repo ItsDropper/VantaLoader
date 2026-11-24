@@ -125,6 +125,10 @@ context.resources().register("language-files", resources, reload -> {
 
 The loader watches registered resource directories recursively. Changes to JARs in the instance `mods/` directory are reported as restart-required; Java classes, Mixin configurations, and transformation registrations are never hot-swapped. Loader integrations can inspect `ModRuntime.resourceReloadReport()` for completed/failed reloads and restart-required paths. Registrations are removed when their mod shuts down or startup rolls back.
 
+## VMA-first development
+
+Prefer high-level VMA contracts for ordinary behavior. Use typed persistent configuration, typed events, resource reload registrations, Mod Menu integration, and accessor views where appropriate. The [VMA Showcase](../../examples/vma-showcase/README.md) demonstrates settings and client events without ASM. The [Auto Sprint example](../../examples/auto-sprint/README.md) demonstrates the lower-level transformation escape hatch.
+
 ## ASM transformation example
 
 The agent bundles ASM 9.8 and exposes it to mods at runtime. This example replaces a string constant while preserving the method's existing stack shape and frames:

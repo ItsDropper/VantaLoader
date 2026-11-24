@@ -279,7 +279,7 @@ def main():
             subprocess.run(["xdotool", "click", "--clearmodifiers", "--delay", "100", "1"],
                            check=True, timeout=10)
             wait_for_log_marker(process, log_path, "VantaLoader menu button activated", 15)
-            wait_for_log_marker(process, log_path, "VantaLoader mod menu rendered; entries=4", 30)
+            wait_for_log_marker(process, log_path, "VantaLoader mod menu rendered; entries=5", 30)
             subprocess.run(["xdotool", "mousemove", "--sync", "20", "20"],
                            check=True, timeout=10)
             time.sleep(1)
