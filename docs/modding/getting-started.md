@@ -107,6 +107,28 @@ context.events().subscribe(KeyInputEvent.class, EventPriority.NORMAL, event -> {
 });
 ```
 
+## High-level key bindings
+
+When the active adapter supports keyboard input, register a mod-owned binding instead of matching raw key codes yourself:
+
+```java
+if (context.keyBindings().isAvailable()) {
+    context.keyBindings().register(new KeyBinding(
+            "toggle-feature",
+            "Toggle feature",
+            82, // GLFW key code for R
+            0,  // no modifiers
+            action -> {
+                if (action == KeyBindingAction.PRESSED) {
+                    toggleFeature();
+                }
+            }
+    ));
+}
+```
+
+Bindings receive `PRESSED`, `REPEATED`, and `RELEASED` transitions and expose their pressed state through `KeyBindingRegistration.isPressed()`. The current implementation uses the declared default key; user remapping and persistent key-map UI are not implemented. Bindings are automatically removed when their mod shuts down.
+
 ## Inter-mod services
 
 A mod can publish a typed service for dependent mods without using global static registries. Use a service key whose namespace is the provider's mod ID:
