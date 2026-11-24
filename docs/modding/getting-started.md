@@ -95,6 +95,27 @@ context.events().publish(new ProfileLoaded("default"));
 
 This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter separately exposes client tick START/END events when the launcher supplies the matching official mappings. Other game hooks, input, command registration, rendering, and networking APIs are not yet stable or advertised as implemented. The resource API reloads explicitly registered mod-owned files; it does not reload Minecraft resource packs or arbitrary game assets.
 
+## Inter-mod services
+
+A mod can publish a typed service for dependent mods without using global static registries. Use a service key whose namespace is the provider's mod ID:
+
+```java
+public interface GreetingService {
+    String greeting(String name);
+}
+
+private static final ServiceKey<GreetingService> GREETING =
+        ServiceKey.of("greetingmod:greeting", GreetingService.class);
+
+// Provider:
+context.services().register(GREETING, name -> "Hello, " + name);
+
+// Consumer (declare greetingmod as a required dependency):
+String message = context.services().require(GREETING).greeting("Vanta");
+```
+
+Registrations are unique, type-checked, scoped to the provider, and removed automatically when it shuts down.
+
 ## Persistent VMA configuration
 
 Each mod receives an isolated JSON configuration at `config/vantaloader/<mod-id>/vma-config.json`. Typed keys support strings, booleans, integers, longs, decimals, and enums. Integer/decimal keys can enforce bounds; reads and writes are validated. `save()` uses a temporary file and atomic replacement where supported; `reload()` discards unsaved changes. Unknown keys are preserved.
