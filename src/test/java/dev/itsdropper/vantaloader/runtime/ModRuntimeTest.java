@@ -19,6 +19,33 @@ import static org.junit.jupiter.api.Assertions.*;
 class ModRuntimeTest {
     @TempDir Path temporaryDirectory;
 
+    @Test void exposesTypedServicesBetweenModsAndRemovesThemWhenProviderStops() throws Exception {
+        RuntimeEvents.EVENTS.clear();
+        RuntimeEvents.serviceRegistration = null;
+        RuntimeEvents.providerServices = null;
+        Path jar = temporaryDirectory.resolve("service-runtime-fixture.jar");
+        try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
+        var provider = artifact(jar, "service_provider", RuntimeTestEntrypoint.class.getName());
+        var consumer = artifact(jar, "service_consumer", RuntimeTestEntrypoint.class.getName());
+
+        ModRuntime runtime = new ModRuntime(temporaryDirectory.resolve("service-runtime-game"));
+        runtime.start(List.of(provider, consumer));
+
+        assertEquals(List.of("init:service_provider", "init:service_consumer", "service:called"),
+                RuntimeEvents.EVENTS);
+        assertNotNull(RuntimeEvents.serviceRegistration);
+        assertFalse(RuntimeEvents.serviceRegistration.isClosed());
+        assertTrue(RuntimeEvents.providerServices.isRegistered(RuntimeEvents.TEST_SERVICE));
+
+        runtime.stop();
+
+        assertTrue(RuntimeEvents.serviceRegistration.isClosed());
+        assertThrows(IllegalStateException.class,
+                () -> RuntimeEvents.providerServices.find(RuntimeEvents.TEST_SERVICE));
+        assertEquals(List.of("init:service_provider", "init:service_consumer", "service:called",
+                "stop", "stop"), RuntimeEvents.EVENTS);
+    }
+
     @Test void exposesModMenuHeaderFromMinecraftVersionAndLoadedRuntimeCount() throws Exception {
         Path jar = temporaryDirectory.resolve("header-fixture.jar");
         try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
