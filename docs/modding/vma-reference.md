@@ -18,7 +18,7 @@ The included Gradle plugin configures Java compilation against the standalone Va
 
 ## Event system
 
-`EventBus` supports typed event subscriptions, named `EventPriority` bands (`HIGHEST`, `HIGH`, `NORMAL`, `LOW`, `LOWEST`), explicit numeric priorities, deterministic equal-priority ordering, removable subscriptions, and mod-owned cleanup. The two-argument `subscribe(eventType, listener)` overload uses `NORMAL`; the enum overload is preferred for ordinary mods, while numeric priorities remain available for precise interop. The current verified game event is `ClientTickEvent` START/END on the exact Minecraft 1.21.11 adapter. The event's client handle remains an opaque game object; a stable cross-version player/world facade is not yet implemented.
+`EventBus` supports typed event subscriptions, named `EventPriority` bands (`HIGHEST`, `HIGH`, `NORMAL`, `LOW`, `LOWEST`), explicit numeric priorities, deterministic equal-priority ordering, removable subscriptions, and mod-owned cleanup. The two-argument `subscribe(eventType, listener)` overload uses `NORMAL`; the enum overload is preferred for ordinary mods, while numeric priorities remain available for precise interop. The verified Minecraft 1.21.11 adapter emits `ClientTickEvent` START/END and `KeyInputEvent` events. Keyboard events expose the GLFW-compatible key code, scan code, action, modifier bitmask, window handle, and opaque keyboard-handler reference; they are delivered on Minecraft's input thread and listeners must not block it. The client handle remains opaque; stable cross-version player/world facades and a remappable high-level keybinding registry are not yet implemented.
 
 ## Persistent configuration
 
