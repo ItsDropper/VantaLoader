@@ -257,6 +257,13 @@ class TransformationServiceTest {
         assertTrue(TransformationService.shouldApplyMixin("com.example.mod.Target"));
     }
 
+    @Test
+    void onlyPassesValidClassFilesToMixin() {
+        assertFalse(TransformationService.hasClassFileMagic(new byte[]{0, 0, 0, 0}));
+        assertFalse(TransformationService.hasClassFileMagic(new byte[]{(byte) 0xCA, (byte) 0xFE, (byte) 0xBA}));
+        assertTrue(TransformationService.hasClassFileMagic(new byte[]{(byte) 0xCA, (byte) 0xFE, (byte) 0xBA, (byte) 0xBE}));
+    }
+
     private static byte[] replaceStringConstant(byte[] original, String before, String after) {
         ClassReader reader = new ClassReader(original);
         ClassWriter writer = new ClassWriter(reader, 0);

@@ -104,6 +104,7 @@ public final class TransformationService implements ClassFileTransformer {
                 && mappings.toNamedClassName(binaryName).startsWith("net.minecraft.");
         boolean mixinActive = dev.itsdropper.vantaloader.mixin.VantaMixinService.isInitialized()
                 && shouldApplyMixin(binaryName)
+                && hasClassFileMagic(classfileBuffer)
                 && (minecraftClass || dev.itsdropper.vantaloader.mixin.VantaMixinService.isMixinTarget(binaryName));
         if (matching.isEmpty() && !mixinActive) return null;
 
@@ -181,6 +182,14 @@ public final class TransformationService implements ClassFileTransformer {
                 && !binaryName.startsWith("sun.")
                 && !binaryName.startsWith("org.spongepowered.asm.")
                 && !binaryName.startsWith("dev.itsdropper.vantaloader.");
+    }
+
+    static boolean hasClassFileMagic(byte[] bytes) {
+        return bytes != null && bytes.length >= 4
+                && (bytes[0] & 0xFF) == 0xCA
+                && (bytes[1] & 0xFF) == 0xFE
+                && (bytes[2] & 0xFF) == 0xBA
+                && (bytes[3] & 0xFF) == 0xBE;
     }
 
     private String runtimeTargetName(Registration registration) {
