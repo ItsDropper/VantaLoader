@@ -23,6 +23,7 @@ final class DefaultModContext implements ModContext {
     private final dev.itsdropper.vantaloader.api.ModConfig config;
     private final dev.itsdropper.vantaloader.api.ModTasks tasks;
     private final dev.itsdropper.vantaloader.api.ModServices services;
+    private final dev.itsdropper.vantaloader.api.KeyBindingRegistry keyBindings;
 
     DefaultModContext(ModDescriptor descriptor, Path gameDirectory, Path configDirectory,
                       TransformationService transformationService, EventBus events,
@@ -30,7 +31,8 @@ final class DefaultModContext implements ModContext {
                       dev.itsdropper.vantaloader.api.ResourceReloadRegistry resources,
                       dev.itsdropper.vantaloader.api.ModConfig config,
                       dev.itsdropper.vantaloader.api.ModTasks tasks,
-                      dev.itsdropper.vantaloader.api.ModServices services) {
+                      dev.itsdropper.vantaloader.api.ModServices services,
+                      dev.itsdropper.vantaloader.api.KeyBindingRegistry keyBindings) {
         this.descriptor = descriptor;
         this.gameDirectory = gameDirectory;
         this.configDirectory = configDirectory;
@@ -42,6 +44,7 @@ final class DefaultModContext implements ModContext {
         this.config = java.util.Objects.requireNonNull(config, "config");
         this.tasks = java.util.Objects.requireNonNull(tasks, "tasks");
         this.services = java.util.Objects.requireNonNull(services, "services");
+        this.keyBindings = java.util.Objects.requireNonNull(keyBindings, "keyBindings");
     }
     @Override public String modId() { return descriptor.id(); }
     @Override public String modVersion() { return descriptor.version().toString(); }
@@ -62,4 +65,5 @@ final class DefaultModContext implements ModContext {
     @Override public dev.itsdropper.vantaloader.api.ModConfig config() { return config; }
     @Override public dev.itsdropper.vantaloader.api.ModTasks tasks() { return tasks; }
     @Override public dev.itsdropper.vantaloader.api.ModServices services() { return services; }
+    @Override public dev.itsdropper.vantaloader.api.KeyBindingRegistry keyBindings() { return keyBindings; }
 }
