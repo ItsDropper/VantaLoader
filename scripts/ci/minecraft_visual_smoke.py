@@ -287,6 +287,16 @@ def main():
             shutil.copy2(output / "mod-menu-probe.png", output / "mod-menu.png")
             print(f"Mod menu confirmed by runtime render hook; {len(mods)} mod entries loaded.")
 
+            # Return to the title screen and open the singleplayer world picker.
+            subprocess.run(["xdotool", "key", "Escape"], check=True, timeout=10)
+            time.sleep(2)
+            subprocess.run(["xdotool", "mousemove", "--sync", "640", "296"], check=True, timeout=10)
+            subprocess.run(["xdotool", "click", "--clearmodifiers", "1"], check=True, timeout=10)
+            time.sleep(3)
+            subprocess.run(["java", "-cp", str(Path(__file__).resolve().parent), "ScreenCapture",
+                            str(output / "world-select-probe.png")], check=True, timeout=15)
+            print("Opened Minecraft singleplayer world selection screen.")
+
         logs = log_path.read_text(encoding="utf-8", errors="replace")
         required = ("Sponge Mixin active", "Initialized hello_world 1.0.0",
                     "Initialized auto_sprint 1.0.0", "Initialized runtime_probe 1.0.0",
