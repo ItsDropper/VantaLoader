@@ -100,7 +100,8 @@ public final class TransformationService implements ClassFileTransformer {
         List<Registration> matching = registrations.stream()
                 .filter(registration -> runtimeTargetName(registration).equals(binaryName))
                 .toList();
-        boolean mixinActive = dev.itsdropper.vantaloader.mixin.VantaMixinService.isInitialized();
+        boolean mixinActive = dev.itsdropper.vantaloader.mixin.VantaMixinService.isInitialized()
+                && shouldApplyMixin(binaryName);
         if (matching.isEmpty() && !mixinActive) return null;
 
         byte[] current = classfileBuffer.clone();
@@ -160,6 +161,22 @@ public final class TransformationService implements ClassFileTransformer {
             }
         }
         return changed ? current : null;
+    }
+
+    /**
+     * Mixin must not transform its own implementation, JDK classes, or the
+     * loader bootstrap that owns the transformer. Doing so re-enters Mixin while
+     * it is defining its service/transformer classes and can cause class circularity.
+     * Game classes and third-party mod classes remain eligible.
+     */
+    static boolean shouldApplyMixin(String binaryName) {
+        return binaryName != null
+                && !binaryName.startsWith("java.")
+                && !binaryName.startsWith("javax.")
+                && !binaryName.startsWith("jdk.")
+                && !binaryName.startsWith("sun.")
+                && !binaryName.startsWith("org.spongepowered.asm.")
+                && !binaryName.startsWith("dev.itsdropper.vantaloader.");
     }
 
     private String runtimeTargetName(Registration registration) {

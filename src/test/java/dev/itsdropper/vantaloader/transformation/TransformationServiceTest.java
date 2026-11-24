@@ -248,6 +248,15 @@ class TransformationServiceTest {
                 () -> conflicts.get(0).contributions().clear());
     }
 
+    @Test
+    void excludesMixinAndLoaderInfrastructureFromMixinTransformation() {
+        assertFalse(TransformationService.shouldApplyMixin("org.spongepowered.asm.launch.MixinBootstrap"));
+        assertFalse(TransformationService.shouldApplyMixin("java.lang.ClassFormatError"));
+        assertFalse(TransformationService.shouldApplyMixin("dev.itsdropper.vantaloader.mixin.VantaMixinService"));
+        assertTrue(TransformationService.shouldApplyMixin("net.minecraft.client.Minecraft"));
+        assertTrue(TransformationService.shouldApplyMixin("com.example.mod.Target"));
+    }
+
     private static byte[] replaceStringConstant(byte[] original, String before, String after) {
         ClassReader reader = new ClassReader(original);
         ClassWriter writer = new ClassWriter(reader, 0);
