@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ModServiceRegistryTest {
     private static final ServiceKey<Runnable> GREETER =
-            ServiceKey.of("test:greeter", Runnable.class);
+            ServiceKey.of("provider:greeter", Runnable.class);
 
     @Test
     void servicesAreSharedAcrossModScopesAndRemovedWithTheirOwner() {
@@ -17,7 +17,7 @@ class ModServiceRegistryTest {
         int[] calls = {0};
 
         var registration = provider.register(GREETER, () -> calls[0]++);
-        assertSame(registration, registration);
+        assertEquals(GREETER, registration.key());
         consumer.require(GREETER).run();
 
         assertEquals(1, calls[0]);
@@ -41,7 +41,7 @@ class ModServiceRegistryTest {
         assertThrows(IllegalStateException.class,
                 () -> consumer.register(GREETER, () -> { }));
         assertThrows(IllegalStateException.class,
-                () -> consumer.find(ServiceKey.of("test:greeter", String.class)));
+                () -> consumer.find(ServiceKey.of("provider:greeter", String.class)));
 
         provider.close();
         consumer.close();
@@ -53,6 +53,8 @@ class ModServiceRegistryTest {
         var scope = registry.createScope("provider");
 
         assertThrows(NullPointerException.class, () -> scope.register(GREETER, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> registry.createScope("other").register(GREETER, () -> { }));
         var registration = scope.register(GREETER, () -> { });
         registration.close();
         registration.close();
