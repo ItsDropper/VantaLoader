@@ -105,6 +105,15 @@ val verifyAgentJar by tasks.registering {
             check(jar.getEntry("dev/itsdropper/vantaloader/api/ConfigKey.class") != null) {
                 "Standalone mod API JAR is missing ConfigKey"
             }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ModServices.class") != null) {
+                "Standalone mod API JAR is missing ModServices"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ServiceKey.class") != null) {
+                "Standalone mod API JAR is missing ServiceKey"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ServiceRegistration.class") != null) {
+                "Standalone mod API JAR is missing ServiceRegistration"
+            }
             check(jar.getEntry("dev/itsdropper/vantaloader/api/EventPriority.class") != null) {
                 "Standalone mod API JAR is missing EventPriority"
             }
