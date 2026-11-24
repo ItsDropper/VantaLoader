@@ -10,6 +10,14 @@ public final class RuntimeTestEntrypoint implements VantaMod {
     public void onInitialize(ModContext context) {
         RuntimeEvents.EVENTS.add("init:" + context.modId());
         RuntimeEvents.lastCapabilities = context.minecraftCapabilities();
+        if (context.modId().equals("service_provider")) {
+            RuntimeEvents.providerServices = context.services();
+            RuntimeEvents.serviceRegistration = context.services().register(
+                    RuntimeEvents.TEST_SERVICE, () -> RuntimeEvents.EVENTS.add("service:called"));
+        }
+        if (context.modId().equals("service_consumer")) {
+            context.services().require(RuntimeEvents.TEST_SERVICE).run();
+        }
         if (context.modId().equals("resource_fixture")) {
             context.resources().register("runtime-test",
                     context.configDirectory().resolve("resources"), reload -> {
