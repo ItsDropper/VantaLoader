@@ -11,6 +11,9 @@ VantaLoader is pre-alpha. These documents describe current design direction; pro
 
 ## Mod development
 
+- [Vanta Mod Gradle plugin](../gradle-plugin/README.md) — Java setup, compile-only API dependency, and descriptor validation.
+
+
 - [VMA Showcase](../examples/vma-showcase/README.md) — high-level API example using persistent configuration and client events without raw ASM.
 
 

@@ -35,6 +35,10 @@ java {
 
 Put the API JAR in `libs/VantaLoader-api.jar`.
 
+## Vanta Mod Gradle plugin
+
+VantaLoader ships a Gradle plugin that applies the Java plugin, adds the API JAR as a compile-only dependency, and validates the native descriptor before Java compilation. During pre-alpha it is consumed as a composite build; see [gradle-plugin/README.md](../../gradle-plugin/README.md) for setup. The manual `compileOnly(files(...))` setup below remains supported.
+
 ## Descriptor
 
 Create `src/main/resources/vanta.mod.json`:

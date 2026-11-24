@@ -26,3 +26,5 @@ jobs:
           gradle --no-daemon -p examples/hello-mod clean build
           gradle --no-daemon -p examples/auto-sprint clean build
           gradle --no-daemon -p examples/runtime-probe clean build
+          gradle --no-daemon -p examples/vma-showcase clean build
+          gradle --no-daemon -p gradle-plugin clean build

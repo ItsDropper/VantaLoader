@@ -5,6 +5,10 @@
 
 VMA is the native mod development contract for VantaLoader. Its design is to make ordinary mod development declarative and type-safe, while retaining ASM and Mixin as optional advanced escape hatches. It is not a compatibility facade for Fabric API; existing Fabric mods do not become compatible automatically.
 
+## Developer tooling
+
+The included Gradle plugin configures Java compilation against the standalone VantaLoader API JAR and validates the required schema-1 mod descriptor before compiling source. It is currently distributed as a Gradle composite build; see [plugin setup](../../gradle-plugin/README.md).
+
 ## Core entrypoint and context
 
 - `VantaMod`: main mod lifecycle (`onInitialize`, `onShutdown`).

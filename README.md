@@ -25,6 +25,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - A [VMA Showcase mod](examples/vma-showcase/README.md) demonstrating typed persistent settings and client events without ASM.
 - A self-contained Minecraft Java-agent artifact with Gson and ASM 9.8 bundled and manifest/content verification.
 - A standalone `VantaLoader-api.jar` for compiling native mods without depending on implementation classes.
+- A Vanta Mod Gradle plugin that configures the compile-only API dependency and validates native mod metadata.
 - ASM integration tests that transform, verify, define, and invoke fixture classes, including ordered composition from multiple mods targeting the same class and fail-closed behavior when a later patch fails.
 - A Java Instrumentation transformation backend with mod-scoped registration, deterministic priority ordering, defensive byte-array handling, and failure diagnostics.
 - An API-level ASM `HierarchyClassWriter` that resolves common supertypes from class-file resources without defining game classes, including interface ancestry and multidimensional array merges.
