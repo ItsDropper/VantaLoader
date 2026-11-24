@@ -112,6 +112,7 @@ jobs:
               --agent build/agent/VantaLoader-agent.jar \
               --mod examples/hello-mod/build/libs/vantaloader-hello-mod-1.0.0.jar \
               --mod examples/auto-sprint/build/libs/vantaloader-auto-sprint-1.0.0.jar \
+              --mod examples/runtime-probe/build/libs/vantaloader-runtime-probe-1.0.0.jar \
               --output build/visual-smoke \
               --timeout 240
       - name: Upload Minecraft screenshots and launch logs
