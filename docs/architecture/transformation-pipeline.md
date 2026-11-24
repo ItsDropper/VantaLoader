@@ -2,9 +2,9 @@
 
 ## Status
 
-**Status: JVM transformation backend implemented; first exact-version game hook fixture-tested**
+**Status: JVM transformation backend and Minecraft 1.21.11 runtime hooks verified; narrow third-party Mixin interoperability verified in CI**
 
-VantaLoader bundles ASM 9.8 (core, tree, commons, util, and analysis) in its self-contained agent. A fixture integration test transforms, verifies, defines, and invokes a compiled class. The exact-version Minecraft 1.21.11 adapter also injects client tick START/END dispatch into a fixture class matching the target. This is not yet proof of a successful real Minecraft launch.
+VantaLoader bundles ASM 9.8 (core, tree, commons, util, and analysis) in its self-contained agent. A fixture integration test transforms, verifies, defines, and invokes a compiled class. The exact-version Minecraft 1.21.11 adapter is also exercised in a real Minecraft process: CI verifies client tick START/END dispatch, composes Auto Sprint and a runtime probe on `LocalPlayer`, creates a singleplayer world, and observes the transformed player tick. A separately packaged Mixin probe registers its own config and injects into the actual title screen; CI verifies the injection changes the target bytecode and executes in-game.
 
 ## Native transformation API
 
@@ -24,7 +24,8 @@ The JVM agent installs the transformer before native mod initialization. Mods re
 - Every non-empty transformation result is parsed by ASM and must retain the target class identity.
 - SpongePowered Mixin output passes through the same class-file parsing and target-identity validation before it is returned to the JVM.
 - Malformed class files, empty results, and changed class identities fail closed.
-- A failed required transformation is logged with mod ID, transformation ID, and target class; the transformer returns deliberately invalid class bytes so the JVM cannot silently continue with an unpatched target.
+- A failed required transformation is logged with mod ID, transformation ID, target class, and the ordered contributions already applied; the transformer returns deliberately invalid class bytes so the JVM cannot silently continue with an unpatched target.
+- Cross-mod shared targets are exposed as deterministic potential-conflict reports and logged at startup. Shared targets are not automatically treated as incompatible because ordered composition is intentional.
 - ASM parsing is not a substitute for full JVM verification or correct stack-map-frame computation.
 - The bundled `HierarchyClassWriter` resolves common supertypes from class-file resources without defining game classes. Resolution is limited to resources visible to the supplied class loader.
 - Semantic conflicts between individually valid transformations cannot yet be detected automatically.
@@ -41,7 +42,7 @@ The JVM agent installs the transformer before native mod initialization. Mods re
 
 Adapters are selected by exact Minecraft version string. Unknown versions receive no adapter and no game lifecycle capability. The first adapter targets Minecraft 1.21.11's unobfuscated `net.minecraft.client.Minecraft.tick()V` method and emits typed `ClientTickEvent` START and END events through a static agent bridge.
 
-The adapter is fixture-tested, not yet validated against a real game process. If the expected target method is missing, the transformation fails closed instead of silently claiming the hook worked. The client event exposes the Minecraft client as `Object` so the stable VantaLoader API does not bundle Minecraft classes.
+The 1.21.11 adapter is verified in the real Minecraft 1.21.11 in-game CI suite. If an expected target method is missing, the transformation fails closed instead of silently claiming the hook worked. The client event exposes the Minecraft client as `Object` so the stable VantaLoader API does not bundle Minecraft classes.
 
 ## Remaining work
 

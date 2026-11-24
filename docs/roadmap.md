@@ -47,13 +47,14 @@ Milestones describe intended work, not promises or release dates. A milestone is
 - [x] Bundle ASM and test transformed fixture class loading.
 - [x] Download and validate official client mappings in Vanta Launcher; parse class mappings and dispatch named class targets to obfuscated runtime classes.
 - [x] Parse official method/field mappings and resolve member names using exact named JVM descriptors.
-- [x] Add deterministic cross-mod shared-target diagnostics; hierarchy-aware frame computation is implemented through resource-only `HierarchyClassWriter` and covered by dedicated hierarchy tests. Additional version adapters remain pending exact-version runtime evidence.
+- [x] Add deterministic cross-mod shared-target diagnostics; hierarchy-aware frame computation is implemented through resource-only `HierarchyClassWriter` and covered by dedicated hierarchy tests.
+- [ ] Add adapters for additional Minecraft releases, each backed by exact-version runtime evidence.
 - [x] Implement an experimental SpongePowered Mixin service/bootstrap, mod-container classpath, and per-mod configuration discovery/registration.
-- [ ] Verify third-party Mixin mods against real Minecraft targets and publish an explicit compatibility matrix.
+- [x] Verify a separately packaged third-party-style Mixin mod against a real Minecraft 1.21.11 target in CI; publish only this narrow verified scope, not a broad compatibility claim.
 - [x] Verify ordered transformations from multiple mods targeting the same real LocalPlayer class in a real singleplayer world; cover later-transform failure with fail-closed tests.
 - [x] Verify Auto Sprint behavior in an actual Minecraft world (maintainer gameplay test) and exercise its transformed LocalPlayer class in a CI-created world.
 
-**Exit criteria:** a native test mod changes a verified in-game behavior, and transformation failures are diagnosable.
+**Exit criteria:** a native test mod changes a verified in-game behavior, transformation failures are diagnosable, and a separately packaged Mixin config applies a real target injection. Additional Minecraft versions remain a follow-on compatibility task.
 
 ## Stage 4 — Reload-aware development
 

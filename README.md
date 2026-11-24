@@ -5,8 +5,7 @@
 VantaLoader has moved from repository scaffolding into its first executable native-mod runtime. It discovers mod JARs, validates metadata, resolves dependencies, loads entrypoints, and manages initialization and shutdown.
 
 > [!WARNING]
-> **Pre-alpha runtime.** CI now launches Minecraft 1.21.11 with the Java agent, initializes three native mods, verifies the title screen and in-game Mods menu, observes client tick START/END events, and composes Auto Sprint with a second transformation on the real LocalPlayer class. The first gameplay example, Auto Sprint, has been manually verified in a real game by the maintainer. CI creates a fresh singleplayer world, verifies client tick START/END delivery, and composes a second mod-owned transformation after Auto Sprint on the real LocalPlayer class. The smoke artifact includes an in-world screenshot and runtime log. An experimental SpongePowered Mixin service/bootstrap and per-mod config discovery are integrated. In-game CI now loads a separately packaged Mixin probe mod and verifies its injection executes against the real Minecraft title screen. This is a narrow interoperability proof, not a broad third-party mod compatibility claim.
-
+> **Pre-alpha runtime.** The dedicated in-game CI launches Minecraft 1.21.11 with the Java agent and four separately packaged native mods. It verifies the title screen and Mods menu, client tick START/END delivery, a third-party-style SpongePowered Mixin config and real title-screen injection, and composed Auto Sprint/runtime-probe transformations on `LocalPlayer` inside a CI-created singleplayer world. The smoke artifact includes the in-world screenshot, full runtime log, and machine-readable evidence. Auto Sprint gameplay behavior has also been manually verified by the maintainer. This proves the tested 1.21.11 integration path, not broad compatibility with arbitrary third-party mods or other Minecraft versions.
 ## Implemented
 
 - Native vanta.mod.json descriptor parsing with descriptions, JAR icons, license/project links, and required/optional dependency declarations.
@@ -28,6 +27,7 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 - ASM integration tests that transform, verify, define, and invoke fixture classes, including ordered composition from multiple mods targeting the same class and fail-closed behavior when a later patch fails.
 - A Java Instrumentation transformation backend with mod-scoped registration, deterministic priority ordering, defensive byte-array handling, and failure diagnostics.
 - An API-level ASM `HierarchyClassWriter` that resolves common supertypes from class-file resources without defining game classes, including interface ancestry and multidimensional array merges.
+- Deterministic potential-conflict reports for cross-mod shared targets, with startup warnings and prior-contribution context on transformation failures.
 - Official Mojang client class-mapping parsing and named-class-to-obfuscated-runtime target dispatch, with launcher-managed SHA-1-verified mapping downloads.
 - Unit tests for metadata, discovery, dependency resolution, and lifecycle ordering.
 - End-to-end integration tests that compile independent Java mod JARs, verify JAR-origin loading and lifecycle callbacks, and prove declared-dependency visibility, unrelated-mod isolation, and same-name class separation.
@@ -45,9 +45,9 @@ VantaLoader has moved from repository scaffolding into its first executable nati
 | Cross-mod event bus | Implemented; not Minecraft game events |
 | Minecraft Java-agent bootstrap | Experimental; Minecraft 1.21.11 title/menu launch smoke-tested in CI |
 | Minecraft class/member mappings | Official class, method, and field mapping lookup by exact named JVM descriptor; version adapters remain incomplete |
-| Native class transformation API | ASM-backed pipeline and Auto Sprint injection tested on fixtures; player-world execution unverified |
-| VantaTransform planning, validation and reports | In progress |
-| SpongePowered Mixin adapter | Experimental; separate third-party-style mod config and real title-screen injection verified in CI; broad compatibility unverified |
+| Native class transformation API | ASM-backed pipeline; Auto Sprint and composed LocalPlayer transformations execute in a CI-created singleplayer world |
+| High-level Vanta Mod API | Planned for Phase 5; ASM remains the internal transformation backend |
+| SpongePowered Mixin adapter | Narrow Minecraft 1.21.11 third-party-style config and title-screen injection verified in CI; broad compatibility unverified |
 | Resource reload | Not implemented |
 | Vanta Client integration | Planned |
 
@@ -156,7 +156,7 @@ public final class ExampleMod implements VantaMod {
 }
 ~~~
 
-The entrypoint needs a public no-argument constructor. Mods initialize after their declared dependencies and shut down in reverse order. `ModContext` exposes the game directory, per-mod config directory, loader version, Minecraft version, client environment, logger, and transformation registry. The launcher supplies the Minecraft version and client environment before agent startup. `ModContext.minecraftCapabilities()` exposes an immutable snapshot of verified facilities; mods must query it rather than guessing support from a version string. The client lifecycle API is version-adapter-specific; resource reload is not implemented. An experimental Mixin service/bootstrap and config registration path is present, but third-party Mixin compatibility remains unverified. See the [native mod quickstart](docs/modding/getting-started.md) for a complete Gradle setup and an ASM transformation example.
+The entrypoint needs a public no-argument constructor. Mods initialize after their declared dependencies and shut down in reverse order. `ModContext` exposes the game directory, per-mod config directory, loader version, Minecraft version, client environment, logger, and transformation registry. The launcher supplies the Minecraft version and client environment before agent startup. `ModContext.minecraftCapabilities()` exposes an immutable snapshot of verified facilities; mods must query it rather than guessing support from a version string. The client lifecycle API is version-adapter-specific; resource reload is not implemented. A Mixin service/bootstrap and config registration path is present. The separately packaged probe mod's title-screen injection is verified in CI on Minecraft 1.21.11; broader third-party compatibility remains unverified. See the [native mod quickstart](docs/modding/getting-started.md) for a complete Gradle setup and an ASM transformation example.
 
 ### Native class transformations
 
