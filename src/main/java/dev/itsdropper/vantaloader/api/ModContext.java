@@ -30,12 +30,12 @@ public interface ModContext {
     TransformationRegistry transformations();
     EventBus events();
 
-    /** Typed services exported by and discovered between native mods. */
     /** Mod-owned keyboard bindings using the active exact-version input adapter. */
     default KeyBindingRegistry keyBindings() {
         throw new UnsupportedOperationException("Key bindings are not available in this runtime");
     }
 
+    /** Typed services exported by and discovered between native mods. */
     default ModServices services() {
         throw new UnsupportedOperationException("Inter-mod services are not available in this runtime");
     }
