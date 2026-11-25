@@ -156,7 +156,8 @@ public final class IntermediaryMappings {
         }
 
         String tail = reference.substring(ownerEnd + 1);
-        String runtimeOwner = runtimeMappings.toRuntimeClassName(officialOwner).replace('.', '/');
+        String officialOwnerBinaryName = officialOwner.replace('/', '.');
+        String runtimeOwner = runtimeMappings.toRuntimeClassName(officialOwnerBinaryName).replace('.', '/');
         int methodStart = tail.indexOf('(');
         int fieldSeparator = tail.indexOf(':');
         if (methodStart >= 0) {
@@ -169,7 +170,7 @@ public final class IntermediaryMappings {
                 throw new IOException("No official method mapping for " + intermediaryOwner + "#" + intermediaryName
                         + intermediaryDescriptor);
             }
-            String runtimeName = runtimeMappings.toRuntimeMethodName(officialOwner, officialName, officialDescriptor);
+            String runtimeName = runtimeMappings.toRuntimeMethodName(officialOwnerBinaryName, officialName, officialDescriptor);
             return "L" + runtimeOwner + ";" + runtimeName + runtimeMappings.runtimeDescriptor(officialDescriptor);
         }
         if (fieldSeparator >= 0) {
@@ -182,7 +183,7 @@ public final class IntermediaryMappings {
                 throw new IOException("No official field mapping for " + intermediaryOwner + "#" + intermediaryName
                         + ":" + intermediaryDescriptor);
             }
-            String runtimeName = runtimeMappings.toRuntimeFieldName(officialOwner, officialName, officialDescriptor);
+            String runtimeName = runtimeMappings.toRuntimeFieldName(officialOwnerBinaryName, officialName, officialDescriptor);
             return "L" + runtimeOwner + ";" + runtimeName + ":" + runtimeMappings.runtimeDescriptor(officialDescriptor);
         }
         return "L" + runtimeOwner + ";" + mapDescriptor(tail);
