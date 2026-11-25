@@ -39,9 +39,14 @@ class Minecraft12111AdapterTest {
         Path mappingsFile = temporaryDirectory.resolve("client.txt");
         Files.writeString(mappingsFile, """
                 net.minecraft.client.KeyboardHandler -> b:
-                    1:1:void keyPress(long,int,int,int,int) -> a
+                    1:1:void keyPress(long,int,net.minecraft.client.input.KeyEvent) -> a
+                net.minecraft.client.input.KeyEvent -> c:
+                    1:1:int key() -> a
+                    1:1:int scancode() -> b
+                    1:1:int modifiers() -> c
                 """);
         MinecraftMappings mappings = MinecraftMappings.read(mappingsFile);
+        MinecraftHooks.configureMappings(mappings);
         TransformationService transformations = new TransformationService(mappings);
         new Minecraft12111Adapter().install(transformations);
 
@@ -54,12 +59,15 @@ class Minecraft12111AdapterTest {
         EventSubscription subscription = bus.subscribe(KeyInputEvent.class, 0, received::set);
         MinecraftHooks.bind(bus);
         try {
-            Class<?> handlerType = new IsolatedClassLoader(getClass().getClassLoader())
-                    .define("b", transformed);
+            IsolatedClassLoader loader = new IsolatedClassLoader(getClass().getClassLoader());
+            Class<?> keyEventType = loader.define("c", keyEventFixture());
+            Class<?> handlerType = loader.define("b", transformed);
             Object handler = handlerType.getConstructor().newInstance();
+            Object keyEvent = keyEventType.getConstructor(int.class, int.class, int.class)
+                    .newInstance(65, 30, 3);
 
-            handlerType.getMethod("a", long.class, int.class, int.class, int.class, int.class)
-                    .invoke(handler, 0x1234L, 65, 30, KeyInputEvent.PRESS, 3);
+            handlerType.getMethod("a", long.class, int.class, keyEventType)
+                    .invoke(handler, 0x1234L, KeyInputEvent.PRESS, keyEvent);
 
             KeyInputEvent event = received.get();
             assertNotNull(event);
@@ -233,13 +241,52 @@ class Minecraft12111AdapterTest {
         constructor.visitMaxs(1, 1);
         constructor.visitEnd();
 
-        MethodVisitor keyPress = writer.visitMethod(Opcodes.ACC_PUBLIC, "a", "(JIIII)V", null, null);
+        MethodVisitor keyPress = writer.visitMethod(Opcodes.ACC_PUBLIC, "a", "(JILc;)V", null, null);
         keyPress.visitCode();
         keyPress.visitInsn(Opcodes.RETURN);
-        keyPress.visitMaxs(0, 7);
+        keyPress.visitMaxs(0, 5);
         keyPress.visitEnd();
         writer.visitEnd();
         return writer.toByteArray();
+    }
+
+    private static byte[] keyEventFixture() {
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "c", null, "java/lang/Object", null);
+        writer.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, "key", "I", null, null).visitEnd();
+        writer.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, "scanCode", "I", null, null).visitEnd();
+        writer.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, "modifiers", "I", null, null).visitEnd();
+        MethodVisitor constructor = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "(III)V", null, null);
+        constructor.visitCode();
+        constructor.visitVarInsn(Opcodes.ALOAD, 0);
+        constructor.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        constructor.visitVarInsn(Opcodes.ALOAD, 0);
+        constructor.visitVarInsn(Opcodes.ILOAD, 1);
+        constructor.visitFieldInsn(Opcodes.PUTFIELD, "c", "key", "I");
+        constructor.visitVarInsn(Opcodes.ALOAD, 0);
+        constructor.visitVarInsn(Opcodes.ILOAD, 2);
+        constructor.visitFieldInsn(Opcodes.PUTFIELD, "c", "scanCode", "I");
+        constructor.visitVarInsn(Opcodes.ALOAD, 0);
+        constructor.visitVarInsn(Opcodes.ILOAD, 3);
+        constructor.visitFieldInsn(Opcodes.PUTFIELD, "c", "modifiers", "I");
+        constructor.visitInsn(Opcodes.RETURN);
+        constructor.visitMaxs(3, 4);
+        constructor.visitEnd();
+        addIntAccessor(writer, "a", "key");
+        addIntAccessor(writer, "b", "scanCode");
+        addIntAccessor(writer, "c", "modifiers");
+        writer.visitEnd();
+        return writer.toByteArray();
+    }
+
+    private static void addIntAccessor(ClassWriter writer, String methodName, String fieldName) {
+        MethodVisitor method = writer.visitMethod(Opcodes.ACC_PUBLIC, methodName, "()I", null, null);
+        method.visitCode();
+        method.visitVarInsn(Opcodes.ALOAD, 0);
+        method.visitFieldInsn(Opcodes.GETFIELD, "c", fieldName, "I");
+        method.visitInsn(Opcodes.IRETURN);
+        method.visitMaxs(1, 1);
+        method.visitEnd();
     }
 
     private static byte[] fixture(boolean includeTick) {
