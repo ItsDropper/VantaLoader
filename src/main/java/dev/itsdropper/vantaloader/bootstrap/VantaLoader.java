@@ -63,6 +63,7 @@ public final class VantaLoader {
         // Minecraft 1.21.11 still ships obfuscated runtime names. Use Mojang's
         // official client mappings for both native adapters and reflection-backed UI.
         MinecraftMappings mappings = loadMinecraftMappings();
+        if (mappings != null) MinecraftHooks.configureMappings(mappings);
         TransformationService transformations = new TransformationService(mappings);
 
         List<MinecraftCapability> verifiedCapabilities = new java.util.ArrayList<>();
@@ -79,6 +80,7 @@ public final class VantaLoader {
                     adapter.install(transformations);
                     verifiedCapabilities.add(MinecraftCapability.CLIENT_LIFECYCLE_EVENTS);
                     verifiedCapabilities.add(MinecraftCapability.KEYBOARD_INPUT_EVENTS);
+                    verifiedCapabilities.add(MinecraftCapability.CLIENT_GAME_STATE);
                     LOGGER.info("Installed exact Minecraft adapter: " + adapter.minecraftVersion());
                 } else {
                     LOGGER.info("No exact Minecraft adapter is available for " + minecraftVersion);
