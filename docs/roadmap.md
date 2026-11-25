@@ -70,7 +70,9 @@ Milestones describe intended work, not promises or release dates. A milestone is
 
 - [x] Establish VMA around lifecycle, typed events, capabilities, transformations, accessors, Mod Menu, and resource reload.
 - [x] Add isolated persistent typed configuration with validation, atomic persistence, and reload semantics.
-- [ ] Add game-facing commands, keybindings, player/world state, registries, rendering, and networking, each backed by verified version adapters.
+- [x] Add mod-scoped high-level keybindings on the verified Minecraft 1.21.11 keyboard adapter (default bindings; user remapping is still pending).
+- [x] Add immutable player/world snapshots on the verified Minecraft 1.21.11 client adapter, with unit fixtures and a real in-world CI probe.
+- [ ] Add game-facing commands, registry APIs, rendering, and networking, each backed by verified version adapters.
 - [ ] Add first-party Vanta Client reference integration after the relevant game APIs exist.
 - [ ] Provide developer documentation, templates, and Gradle tooling.
 - [ ] Add compatibility tests for external mods.
