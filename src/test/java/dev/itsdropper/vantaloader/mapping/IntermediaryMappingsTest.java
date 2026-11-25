@@ -19,6 +19,7 @@ class IntermediaryMappingsTest {
                 tiny\t2\t0\tofficial\tintermediary
                 c\tnet/minecraft/client/gui/screens/TitleScreen\tnet/minecraft/class_442
                 \tm\t()V\tinit\tmethod_25426
+                \tm\t(Lnet/minecraft/util/profiling/jfr/event/ChunkGenerationEvent;)V\tprobe\tmethod_90000
                 c\tnet/minecraft/network/Connection\tnet/minecraft/class_2535
                 \tf\tLjava/net/SocketAddress;\taddress\tfield_11645
                 """;
@@ -31,6 +32,7 @@ class IntermediaryMappingsTest {
                     1:1:void init() -> a
                 net.minecraft.network.Connection -> xyz:
                     java.net.SocketAddress address -> b
+                net.minecraft.util.profiling.jfr.event.ChunkGenerationEvent -> jfr:
                 """);
         MinecraftMappings runtime = MinecraftMappings.read(officialMappings);
 
@@ -38,7 +40,8 @@ class IntermediaryMappingsTest {
                 {
                   "mappings": {
                     "example/TitleMixin": {
-                      "init": "Lnet/minecraft/class_442;method_25426()V"
+                      "init": "Lnet/minecraft/class_442;method_25426()V",
+                      "probe": "Lnet/minecraft/class_442;method_90000(Lnet/minecraft/util/profiling/jfr/event/ChunkGenerationEvent;)V"
                     },
                     "example/ConnectionAccessor": {
                       "address": "Lnet/minecraft/class_2535;field_11645:Ljava/net/SocketAddress;"
@@ -50,6 +53,7 @@ class IntermediaryMappingsTest {
                 refmap.getBytes(StandardCharsets.UTF_8), runtime), StandardCharsets.UTF_8);
 
         assertTrue(remapped.contains("Labc;a()V"), remapped);
+        assertTrue(remapped.contains("Ljfr;"), remapped);
         assertTrue(remapped.contains("Lxyz;b:Ljava/net/SocketAddress;"), remapped);
     }
 }
