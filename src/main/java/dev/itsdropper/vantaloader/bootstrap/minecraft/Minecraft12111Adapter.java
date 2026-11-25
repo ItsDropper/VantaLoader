@@ -44,6 +44,8 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         registry.register("minecraft-1.21.11-client-tick", CLIENT_CLASS, 0, this::transformClientTick);
         registry.register("minecraft-1.21.11-keyboard-input", KEYBOARD_HANDLER_CLASS,
                 0, this::transformKeyboardInput);
+        registry.register("minecraft-1.21.11-client-commands", CLIENT_PACKET_LISTENER_CLASS,
+                0, this::transformClientCommands);
         registry.register("minecraft-1.21.11-hud-render", HUD_GUI_CLASS,
                 0, this::transformHudRender);
         registry.register("minecraft-1.21.11-title-screen", "net.minecraft.client.gui.screens.TitleScreen",
