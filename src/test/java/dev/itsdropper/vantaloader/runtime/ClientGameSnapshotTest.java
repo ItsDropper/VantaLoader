@@ -14,6 +14,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -49,6 +51,7 @@ class ClientGameSnapshotTest {
         MinecraftHooks.bind(bus);
         try {
             FakeClient client = new FakeClient(new FakeLocalPlayer(), new FakeClientLevel());
+            assertTrue(snapshotDirectly(client).inWorld());
             MinecraftHooks.onClientTick(client, true);
 
             ClientGameTickEvent start = received.get();
@@ -111,6 +114,20 @@ class ClientGameSnapshotTest {
         } finally {
             MinecraftHooks.unbind(bus);
             MinecraftHooks.onClientTickEnd();
+        }
+    }
+
+    private static dev.itsdropper.vantaloader.api.ClientGameSnapshot snapshotDirectly(Object client)
+            throws Exception {
+        Method snapshot = MinecraftHooks.class.getDeclaredMethod("snapshot", Object.class);
+        snapshot.setAccessible(true);
+        try {
+            return (dev.itsdropper.vantaloader.api.ClientGameSnapshot) snapshot.invoke(null, client);
+        } catch (InvocationTargetException failure) {
+            Throwable cause = failure.getCause();
+            if (cause instanceof Exception exception) throw exception;
+            if (cause instanceof Error error) throw error;
+            throw new AssertionError(cause);
         }
     }
 
