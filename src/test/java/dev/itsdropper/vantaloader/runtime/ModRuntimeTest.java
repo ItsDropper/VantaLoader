@@ -6,6 +6,7 @@ import dev.itsdropper.vantaloader.bootstrap.MinecraftHooks;
 import dev.itsdropper.vantaloader.discovery.ModArtifact;
 import dev.itsdropper.vantaloader.transformation.TransformationService;
 import dev.itsdropper.vantaloader.metadata.DescriptorReader;
+import dev.itsdropper.vantaloader.mapping.MinecraftMappings;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -31,13 +32,18 @@ class ModRuntimeTest {
                 MinecraftCapabilities.of(MinecraftCapability.KEYBOARD_INPUT_EVENTS));
         runtime.start(List.of(fixture));
 
+        Path mappingsFile = temporaryDirectory.resolve("key-event-mappings.txt");
+        Files.writeString(mappingsFile, "net.minecraft.client.input.KeyEvent -> "
+                + FakeKeyEvent.class.getName() + ":\\n");
+        MinecraftHooks.configureMappings(MinecraftMappings.read(mappingsFile));
+
         assertNotNull(RuntimeEvents.keyBindingRegistration);
         assertFalse(RuntimeEvents.keyBindingRegistration.isClosed());
-        MinecraftHooks.onKeyInput(new Object(), 1L, 65, 30,
-                dev.itsdropper.vantaloader.api.KeyInputEvent.PRESS, 0);
+        MinecraftHooks.onKeyInput(new Object(), 1L,
+                dev.itsdropper.vantaloader.api.KeyInputEvent.PRESS, new FakeKeyEvent(65, 30, 0));
         assertTrue(RuntimeEvents.keyBindingRegistration.isPressed());
-        MinecraftHooks.onKeyInput(new Object(), 1L, 65, 30,
-                dev.itsdropper.vantaloader.api.KeyInputEvent.RELEASE, 0);
+        MinecraftHooks.onKeyInput(new Object(), 1L,
+                dev.itsdropper.vantaloader.api.KeyInputEvent.RELEASE, new FakeKeyEvent(65, 30, 0));
         assertFalse(RuntimeEvents.keyBindingRegistration.isPressed());
 
         runtime.stop();
@@ -45,6 +51,20 @@ class ModRuntimeTest {
         assertTrue(RuntimeEvents.keyBindingRegistration.isClosed());
         assertEquals(List.of("init:keybinding_fixture", "key:PRESSED", "key:RELEASED", "stop"),
                 RuntimeEvents.EVENTS);
+    }
+
+    public static final class FakeKeyEvent {
+        private final int key;
+        private final int scanCode;
+        private final int modifiers;
+        FakeKeyEvent(int key, int scanCode, int modifiers) {
+            this.key = key;
+            this.scanCode = scanCode;
+            this.modifiers = modifiers;
+        }
+        public int key() { return key; }
+        public int scancode() { return scanCode; }
+        public int modifiers() { return modifiers; }
     }
 
     @Test void rollsBackServicesRegisteredByAModWhoseInitializationFails() throws Exception {
