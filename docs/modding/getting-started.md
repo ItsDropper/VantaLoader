@@ -102,8 +102,10 @@ context.events().subscribe(ClientGameTickEvent.class, EventPriority.NORMAL, even
     if (event.phase() != ClientTickEvent.Phase.START || !event.snapshot().inWorld()) return;
     ClientPlayerSnapshot player = event.snapshot().player().orElseThrow();
     ClientWorldSnapshot world = event.snapshot().world().orElseThrow();
+    List<ClientEntitySnapshot> nearby = world.entitiesWithin(player.x(), player.y(), player.z(), 16.0);
     context.logger().fine("Position: " + player.x() + ", " + player.y() + ", " + player.z());
     context.logger().fine("Dimension: " + world.dimensionId());
+    context.logger().fine("Visible entities within 16 blocks: " + nearby.size());
 });
 ```
 

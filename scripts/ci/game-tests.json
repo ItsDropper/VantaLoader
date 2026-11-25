@@ -39,7 +39,7 @@
         "VMA showcase config loaded: enabled=true",
         "VMA showcase: managed background task executed",
         "VMA showcase: high-level client tick event delivered",
-        "VMA showcase: player/world snapshot delivered; dimension=",
+        "VMA showcase: player/world snapshot delivered; dimension=",\n        "VMA showcase: entity snapshots delivered; nearby="
         "VMA showcase: HUD render context delivered"
       ]
     },

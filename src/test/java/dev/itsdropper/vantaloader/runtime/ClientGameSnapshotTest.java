@@ -73,6 +73,15 @@ class ClientGameSnapshotTest {
             ClientWorldSnapshot world = start.snapshot().world().orElseThrow();
             assertEquals("minecraft:overworld", world.dimensionId());
             assertEquals(123456L, world.gameTime());
+            assertEquals(1, world.entities().size());
+            var zombie = world.entities().get(0);
+            assertEquals("entity.minecraft.zombie", zombie.typeDescriptionId());
+            assertEquals("Zombie", zombie.displayName());
+            assertTrue(zombie.alive());
+            assertEquals(17.0f, zombie.health().orElseThrow());
+            assertEquals(1, world.entitiesWithin(12.5, 64.0, -3.25, 0).size());
+            assertTrue(world.entitiesWithin(0, 0, 0, 1).isEmpty());
+            assertThrows(IllegalArgumentException.class, () -> world.entitiesWithin(0, 0, 0, -1));
 
             MinecraftHooks.onClientTickEnd();
             assertEquals(List.of(ClientTickEvent.Phase.START, ClientTickEvent.Phase.END),
@@ -140,7 +149,19 @@ class ClientGameSnapshotTest {
         }
     }
 
+    public static final class FakeEntityType {
+        public String getDescriptionId() { return "entity.minecraft.zombie"; }
+    }
+
+    public static final class FakeComponent {
+        public String getString() { return "Zombie"; }
+    }
+
     public static class FakeEntity {
+        public java.util.UUID getUUID() { return java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"); }
+        public FakeEntityType getType() { return new FakeEntityType(); }
+        public FakeComponent getName() { return new FakeComponent(); }
+        public boolean isAlive() { return true; }
         public boolean bc = true;
         public double getX() { return 12.5; }
         public double getY() { return 64.0; }
@@ -176,7 +197,9 @@ class ClientGameSnapshotTest {
         @Override public long getGameTime() { return 123456L; }
     }
 
-    public static final class FakeClientLevel extends FakeLevel { }
+    public static final class FakeClientLevel extends FakeLevel {
+        public Iterable<FakeEntity> entitiesForRendering() { return List.of(new FakeLivingEntity()); }
+    }
 
     public static final class FakeResourceKey {
         public FakeIdentifier identifier() { return new FakeIdentifier(); }

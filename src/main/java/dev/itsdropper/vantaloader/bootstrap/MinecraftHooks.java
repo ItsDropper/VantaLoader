@@ -1,6 +1,7 @@
 package dev.itsdropper.vantaloader.bootstrap;
 
 import dev.itsdropper.vantaloader.api.ClientCommandDispatcher;
+import dev.itsdropper.vantaloader.api.ClientEntitySnapshot;
 import dev.itsdropper.vantaloader.api.ClientGameSnapshot;
 import dev.itsdropper.vantaloader.api.ClientGameTickEvent;
 import dev.itsdropper.vantaloader.api.ClientPlayerSnapshot;
@@ -15,6 +16,8 @@ import dev.itsdropper.vantaloader.mapping.MinecraftMappings;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Optional;
+import java.lang.ref.WeakReference;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -42,6 +45,9 @@ public final class MinecraftHooks {
 
     public static void configureMappings(MinecraftMappings mappings) {
         MAPPINGS.set(Objects.requireNonNull(mappings, "mappings"));
+        entitySnapshotLevel = new WeakReference<>(null);
+        entitySnapshotGameTime = Long.MIN_VALUE;
+        cachedEntitySnapshots = new EntitySnapshotBatch(List.of(), false);
     }
 
     public static void bind(EventBus eventBus) { bind(eventBus, null); }
@@ -251,8 +257,65 @@ public final class MinecraftHooks {
         String dimensionId = String.valueOf(location);
         long gameTime = ((Number) invoke(level, mappings, "net.minecraft.world.level.LevelAccessor",
                 "getGameTime", "()J")).longValue();
-        return new ClientWorldSnapshot(dimensionId, gameTime);
+        EntitySnapshotBatch entityBatch = snapshotEntities(level, gameTime, mappings);
+        return new ClientWorldSnapshot(dimensionId, gameTime, entityBatch.entities(), entityBatch.truncated());
     }
+
+    private static final int MAX_ENTITY_SNAPSHOTS = 256;
+    private static WeakReference<Object> entitySnapshotLevel = new WeakReference<>(null);
+    private static long entitySnapshotGameTime = Long.MIN_VALUE;
+    private static EntitySnapshotBatch cachedEntitySnapshots =
+            new EntitySnapshotBatch(List.of(), false);
+
+    /** Reuses the immutable list for START/END phases of the same world tick. */
+    private static synchronized EntitySnapshotBatch snapshotEntities(
+            Object level, long gameTime, MinecraftMappings mappings) throws ReflectiveOperationException {
+        if (entitySnapshotLevel.get() == level && entitySnapshotGameTime == gameTime) return cachedEntitySnapshots;
+        Object rawEntities = invoke(level, mappings, "net.minecraft.client.multiplayer.ClientLevel",
+                "entitiesForRendering", "()Ljava/lang/Iterable;");
+        if (!(rawEntities instanceof Iterable<?> iterable))
+            throw new IllegalStateException("ClientLevel.entitiesForRendering did not return Iterable");
+        java.util.ArrayList<ClientEntitySnapshot> snapshots = new java.util.ArrayList<>();
+        boolean truncated = false;
+        for (Object entity : iterable) {
+            if (entity == null) continue;
+            if (snapshots.size() >= MAX_ENTITY_SNAPSHOTS) { truncated = true; break; }
+            snapshots.add(snapshotEntity(entity, mappings));
+        }
+        cachedEntitySnapshots = new EntitySnapshotBatch(List.copyOf(snapshots), truncated);
+        entitySnapshotLevel = new WeakReference<>(level);
+        entitySnapshotGameTime = gameTime;
+        return cachedEntitySnapshots;
+    }
+
+    private static ClientEntitySnapshot snapshotEntity(Object entity, MinecraftMappings mappings)
+            throws ReflectiveOperationException {
+        java.util.UUID uuid = (java.util.UUID) invoke(entity, mappings, "net.minecraft.world.entity.Entity",
+                "getUUID", "()Ljava/util/UUID;");
+        Object type = invoke(entity, mappings, "net.minecraft.world.entity.Entity", "getType",
+                "()Lnet/minecraft/world/entity/EntityType;");
+        String typeId = (String) invoke(type, mappings, "net.minecraft.world.entity.EntityType",
+                "getDescriptionId", "()Ljava/lang/String;");
+        Object name = invoke(entity, mappings, "net.minecraft.world.entity.Entity", "getName",
+                "()Lnet/minecraft/network/chat/Component;");
+        String displayName = (String) invoke(name, mappings, "net.minecraft.network.chat.Component",
+                "getString", "()Ljava/lang/String;");
+        double x = ((Number) invoke(entity, mappings, "net.minecraft.world.entity.Entity", "getX", "()D")).doubleValue();
+        double y = ((Number) invoke(entity, mappings, "net.minecraft.world.entity.Entity", "getY", "()D")).doubleValue();
+        double z = ((Number) invoke(entity, mappings, "net.minecraft.world.entity.Entity", "getZ", "()D")).doubleValue();
+        float yaw = ((Number) invoke(entity, mappings, "net.minecraft.world.entity.Entity", "getYRot", "()F")).floatValue();
+        float pitch = ((Number) invoke(entity, mappings, "net.minecraft.world.entity.Entity", "getXRot", "()F")).floatValue();
+        boolean alive = (Boolean) invoke(entity, mappings, "net.minecraft.world.entity.Entity", "isAlive", "()Z");
+        Class<?> livingType = Class.forName(mappings.runtimeClassName("net.minecraft.world.entity.LivingEntity"),
+                false, entity.getClass().getClassLoader());
+        Optional<Float> health = livingType.isInstance(entity)
+                ? Optional.of(((Number) invoke(entity, mappings, "net.minecraft.world.entity.LivingEntity",
+                        "getHealth", "()F")).floatValue())
+                : Optional.empty();
+        return new ClientEntitySnapshot(uuid, typeId, displayName, x, y, z, yaw, pitch, alive, health);
+    }
+
+    private record EntitySnapshotBatch(List<ClientEntitySnapshot> entities, boolean truncated) { }
 
     private static Object readField(Object target, MinecraftMappings mappings, String owner,
                                     String name, String descriptor) throws ReflectiveOperationException {

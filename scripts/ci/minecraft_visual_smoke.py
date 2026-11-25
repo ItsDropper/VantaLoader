@@ -308,7 +308,7 @@ def main():
                             str(output / "in-world.png")], check=True, timeout=15)
             print("Singleplayer world loaded; LocalPlayer.aiStep runtime probe observed.")
 
-            # Exercise a real VMA command through Minecraft's chat/sendCommand path.
+            # Exercise a real VMA command through ChatScreen before vanilla command parsing.
             subprocess.run(["xdotool", "key", "t"], check=True, timeout=10)
             time.sleep(1)
             subprocess.run(["xdotool", "type", "--clearmodifiers", "--delay", "50", "/vmashowcase"],

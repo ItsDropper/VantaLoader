@@ -66,6 +66,10 @@ public final class VmaShowcaseMod implements VantaMod {
                         || !gameStateObserved.compareAndSet(false, true)) return;
                 ClientPlayerSnapshot player = event.snapshot().player().orElseThrow();
                 ClientWorldSnapshot world = event.snapshot().world().orElseThrow();
+                if (context.minecraftCapabilities().supports(MinecraftCapability.CLIENT_ENTITY_SNAPSHOTS)) {
+                    int nearbyEntities = world.entitiesWithin(player.x(), player.y(), player.z(), 64.0).size();
+                    context.logger().info("VMA showcase: entity snapshots delivered; nearby=" + nearbyEntities);
+                }
                 context.logger().info("VMA showcase: player/world snapshot delivered; dimension="
                         + world.dimensionId() + ", position=" + player.x() + "," + player.y() + "," + player.z());
             });

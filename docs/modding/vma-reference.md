@@ -1,6 +1,6 @@
 # Vanta Mod API (VMA) Reference
 
-**API version:** 1.5.0  
+**API version:** 1.6.0  
 **Status:** Pre-alpha; the contracts below are implemented in the matching API JAR. Minecraft-facing coverage remains adapter-specific.
 
 VMA is the native mod development contract for VantaLoader. Its design is to make ordinary mod development declarative and type-safe, while retaining ASM and Mixin as optional advanced escape hatches. It is not a compatibility facade for Fabric API; existing Fabric mods do not become compatible automatically.
