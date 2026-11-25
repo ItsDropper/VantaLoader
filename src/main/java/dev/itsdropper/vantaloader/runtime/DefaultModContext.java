@@ -24,6 +24,7 @@ final class DefaultModContext implements ModContext {
     private final dev.itsdropper.vantaloader.api.ModTasks tasks;
     private final dev.itsdropper.vantaloader.api.ModServices services;
     private final dev.itsdropper.vantaloader.api.KeyBindingRegistry keyBindings;
+    private final dev.itsdropper.vantaloader.api.ClientCommandRegistry clientCommands;
 
     DefaultModContext(ModDescriptor descriptor, Path gameDirectory, Path configDirectory,
                       TransformationService transformationService, EventBus events,
@@ -32,7 +33,8 @@ final class DefaultModContext implements ModContext {
                       dev.itsdropper.vantaloader.api.ModConfig config,
                       dev.itsdropper.vantaloader.api.ModTasks tasks,
                       dev.itsdropper.vantaloader.api.ModServices services,
-                      dev.itsdropper.vantaloader.api.KeyBindingRegistry keyBindings) {
+                      dev.itsdropper.vantaloader.api.KeyBindingRegistry keyBindings,
+                      dev.itsdropper.vantaloader.api.ClientCommandRegistry clientCommands) {
         this.descriptor = descriptor;
         this.gameDirectory = gameDirectory;
         this.configDirectory = configDirectory;
@@ -45,6 +47,7 @@ final class DefaultModContext implements ModContext {
         this.tasks = java.util.Objects.requireNonNull(tasks, "tasks");
         this.services = java.util.Objects.requireNonNull(services, "services");
         this.keyBindings = java.util.Objects.requireNonNull(keyBindings, "keyBindings");
+        this.clientCommands = java.util.Objects.requireNonNull(clientCommands, "clientCommands");
     }
     @Override public String modId() { return descriptor.id(); }
     @Override public String modVersion() { return descriptor.version().toString(); }
@@ -66,4 +69,5 @@ final class DefaultModContext implements ModContext {
     @Override public dev.itsdropper.vantaloader.api.ModTasks tasks() { return tasks; }
     @Override public dev.itsdropper.vantaloader.api.ModServices services() { return services; }
     @Override public dev.itsdropper.vantaloader.api.KeyBindingRegistry keyBindings() { return keyBindings; }
+    @Override public dev.itsdropper.vantaloader.api.ClientCommandRegistry clientCommands() { return clientCommands; }
 }

@@ -53,6 +53,28 @@ class ModRuntimeTest {
                 RuntimeEvents.EVENTS);
     }
 
+
+    @Test void registersAndDispatchesClientLocalCommandsAndClosesThemWithTheirMod() throws Exception {
+        RuntimeEvents.EVENTS.clear();
+        RuntimeEvents.clientCommandRegistration = null;
+        Path jar = temporaryDirectory.resolve("command-fixture.jar");
+        try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
+        var fixture = artifact(jar, "command_fixture", RuntimeTestEntrypoint.class.getName());
+        ModRuntime runtime = new ModRuntime(temporaryDirectory.resolve("command-game"),
+                new TransformationService(), MinecraftCapabilities.of(MinecraftCapability.CLIENT_COMMANDS));
+        runtime.start(List.of(fixture));
+
+        assertNotNull(RuntimeEvents.clientCommandRegistration);
+        assertFalse(RuntimeEvents.clientCommandRegistration.isClosed());
+        assertTrue(MinecraftHooks.onClientCommand(new Object(), "vma-test \"hello world\""));
+        assertFalse(MinecraftHooks.onClientCommand(new Object(), "not-a-vma-command"));
+        assertEquals(List.of("init:command_fixture", "command:hello world"), RuntimeEvents.EVENTS);
+
+        runtime.stop();
+        assertTrue(RuntimeEvents.clientCommandRegistration.isClosed());
+        assertEquals(List.of("init:command_fixture", "command:hello world", "stop"), RuntimeEvents.EVENTS);
+    }
+
     public static final class FakeKeyEvent {
         private final int key;
         private final int scanCode;

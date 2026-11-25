@@ -1,5 +1,6 @@
 package dev.itsdropper.vantaloader.bootstrap;
 
+import dev.itsdropper.vantaloader.api.ClientCommandDispatcher;
 import dev.itsdropper.vantaloader.api.ClientGameSnapshot;
 import dev.itsdropper.vantaloader.api.ClientGameTickEvent;
 import dev.itsdropper.vantaloader.api.ClientPlayerSnapshot;
@@ -23,6 +24,7 @@ import java.util.logging.Logger;
 public final class MinecraftHooks {
     private static final Logger LOGGER = Logger.getLogger("VantaLoader.GameHooks");
     private static final AtomicReference<EventBus> EVENT_BUS = new AtomicReference<>();
+    private static final AtomicReference<ClientCommandDispatcher> CLIENT_COMMANDS = new AtomicReference<>();
     private static final AtomicReference<Object> ACTIVE_CLIENT = new AtomicReference<>();
     private static final AtomicReference<MinecraftMappings> MAPPINGS = new AtomicReference<>();
     private static final java.util.concurrent.atomic.AtomicBoolean KEYBOARD_INPUT_OBSERVED =
@@ -42,17 +44,60 @@ public final class MinecraftHooks {
         MAPPINGS.set(Objects.requireNonNull(mappings, "mappings"));
     }
 
-    public static void bind(EventBus eventBus) {
+    public static void bind(EventBus eventBus) { bind(eventBus, null); }
+
+    public static void bind(EventBus eventBus, ClientCommandDispatcher commands) {
         Objects.requireNonNull(eventBus, "eventBus");
         EventBus current = EVENT_BUS.get();
-        if (current == eventBus) return;
-        if (!EVENT_BUS.compareAndSet(null, eventBus)) {
+        if (current != eventBus && !EVENT_BUS.compareAndSet(null, eventBus))
             throw new IllegalStateException("A VantaLoader Minecraft event bus is already bound");
+        if (commands != null && !CLIENT_COMMANDS.compareAndSet(null, commands)
+                && CLIENT_COMMANDS.get() != commands) {
+            EVENT_BUS.compareAndSet(eventBus, null);
+            throw new IllegalStateException("A VantaLoader client command dispatcher is already bound");
         }
     }
 
     public static void unbind(EventBus eventBus) {
-        if (eventBus != null) EVENT_BUS.compareAndSet(eventBus, null);
+        if (eventBus != null && EVENT_BUS.compareAndSet(eventBus, null)) CLIENT_COMMANDS.set(null);
+    }
+
+    /** Intercepts only registered VMA commands; unknown commands continue to the server unchanged. */
+    public static boolean onClientCommand(Object packetListener, String input) {
+        ClientCommandDispatcher dispatcher = CLIENT_COMMANDS.get();
+        if (dispatcher == null) return false;
+        boolean consumed = dispatcher.dispatch(input, message -> sendClientMessage(packetListener, message));
+        if (consumed) LOGGER.info("VantaLoader integration probe: client command intercepted");
+        return consumed;
+    }
+
+    private static void sendClientMessage(Object packetListener, String message) {
+        try {
+            MinecraftMappings mappings = MAPPINGS.get();
+            if (mappings == null) throw new IllegalStateException("Official Minecraft mappings are not configured");
+            Object minecraft = readField(packetListener, mappings,
+                    "net.minecraft.client.multiplayer.ClientPacketListener", "minecraft",
+                    "Lnet/minecraft/client/Minecraft;");
+            Object player = readField(minecraft, mappings, "net.minecraft.client.Minecraft", "player",
+                    "Lnet/minecraft/client/player/LocalPlayer;");
+            if (player == null) {
+                LOGGER.info("[VMA command] " + message.replaceAll("§.", ""));
+                return;
+            }
+            String componentOwner = "net.minecraft.network.chat.Component";
+            Class<?> componentType = Class.forName(mappings.runtimeClassName(componentOwner), false,
+                    player.getClass().getClassLoader());
+            String literalName = mappings.runtimeMethodName(componentOwner, "literal",
+                    "(Ljava/lang/String;)Lnet/minecraft/network/chat/MutableComponent;");
+            Method literal = componentType.getDeclaredMethod(literalName, String.class);
+            if (!literal.trySetAccessible()) throw new IllegalAccessException("Cannot access Component.literal");
+            Object component = literal.invoke(null, message);
+            invoke(player, mappings, "net.minecraft.world.entity.player.Player", "displayClientMessage",
+                    "(Lnet/minecraft/network/chat/Component;Z)V", component, false);
+        } catch (Throwable failure) {
+            rethrowFatal(failure);
+            LOGGER.log(Level.WARNING, "Could not display VMA command feedback in chat: " + message, failure);
+        }
     }
 
     /** Listener failures are logged after all listeners run; they do not abort Minecraft's tick. */

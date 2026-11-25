@@ -117,6 +117,24 @@ val verifyAgentJar by tasks.registering {
             check(jar.getEntry("dev/itsdropper/vantaloader/api/ServiceRegistration.class") != null) {
                 "Standalone mod API JAR is missing ServiceRegistration"
             }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientCommand.class") != null) {
+                "Standalone mod API JAR is missing ClientCommand"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientCommandCallback.class") != null) {
+                "Standalone mod API JAR is missing ClientCommandCallback"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientCommandContext.class") != null) {
+                "Standalone mod API JAR is missing ClientCommandContext"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientCommandRegistry.class") != null) {
+                "Standalone mod API JAR is missing ClientCommandRegistry"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientCommandRegistration.class") != null) {
+                "Standalone mod API JAR is missing ClientCommandRegistration"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientCommandDispatcher.class") != null) {
+                "Standalone mod API JAR is missing ClientCommandDispatcher"
+            }
             check(jar.getEntry("dev/itsdropper/vantaloader/api/KeyBinding.class") != null) {
                 "Standalone mod API JAR is missing KeyBinding"
             }

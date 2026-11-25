@@ -93,7 +93,7 @@ context.events().subscribe(ProfileLoaded.class, 0, event ->
 context.events().publish(new ProfileLoaded("default"));
 ```
 
-This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter exposes client tick START/END, immutable player/world snapshots, and raw keyboard input events when the launcher supplies the matching official mappings. High-level key bindings are available with declared defaults; command registration, registry mutation, and networking APIs are not yet implemented. The resource API reloads explicitly registered mod-owned files; it does not reload Minecraft resource packs or arbitrary game assets.
+This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter exposes client tick START/END, immutable player/world snapshots, and raw keyboard input events when the launcher supplies the matching official mappings. High-level key bindings support persistent user remapping. Client-local commands are available on the verified 1.21.11 adapter and are intercepted before they are sent to a server. Registry mutation and networking APIs are not yet implemented. The resource API reloads explicitly registered mod-owned files; it does not reload Minecraft resource packs or arbitrary game assets.
 
 ## Client player and world state
 
@@ -111,7 +111,7 @@ This API is currently client-only and verified against Minecraft 1.21.11. Snapsh
 
 ## Client keyboard input
 
-The exact Minecraft 1.21.11 adapter publishes immutable player/world snapshots and raw key input through the typed event bus. `ClientGameTickEvent` is emitted at both client tick phases; its `snapshot()` contains optional `player()` and `world()` values. These snapshots contain copied values, not live Minecraft objects. Events run on Minecraft's input thread; keep callbacks short and dispatch expensive work through `context.tasks()`. The current event reports raw GLFW-compatible values. High-level bindings can be remapped and persisted through their registration handles.
+The exact Minecraft 1.21.11 adapter publishes immutable player/world snapshots and raw key input through the typed event bus. `ClientGameTickEvent` is emitted at both client tick phases; its `snapshot()` contains optional `player()` and `world()` values. These snapshots contain copied values, not live Minecraft objects. Events run on Minecraft's input thread; keep callbacks short and dispatch expensive work through `context.tasks()`. The current event reports raw GLFW-compatible values. High-level bindings can be remapped and persisted through their registration handles. Client-local commands are available through `context.clientCommands()` on the verified 1.21.11 adapter.
 
 ```java
 context.events().subscribe(KeyInputEvent.class, EventPriority.NORMAL, event -> {
@@ -142,6 +142,18 @@ if (context.keyBindings().isAvailable()) {
 ```
 
 Bindings receive `PRESSED`, `REPEATED`, and `RELEASED` transitions and expose their pressed state through `KeyBindingRegistration.isPressed()`. Bindings can be remapped at runtime through `registration.remap(keyCode, modifiers)`; the mapping is persisted in the owning mod's VMA config. `registration.resetToDefault()` restores the declared key. A dedicated key-map settings screen is not implemented. Bindings are automatically removed when their mod shuts down.
+
+## Client-local commands
+
+Client-local commands execute on the client and are intercepted before vanilla sends them to a server. Unknown commands pass through unchanged. Register a command during initialization; its registration is removed automatically when the mod stops.
+
+```java
+context.clientCommands().register(new ClientCommand(
+        "example", "Example local command", "example <message>",
+        command -> command.reply("Hello, " + String.join(" ", command.arguments()))));
+```
+
+Arguments support quoted strings and backslash escaping. Callbacks run on the client thread and must not block. Check `context.clientCommands().isAvailable()` before registering. This capability is verified for Minecraft 1.21.11.
 
 ## Inter-mod services
 

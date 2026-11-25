@@ -86,6 +86,61 @@ class Minecraft12111AdapterTest {
         }
     }
 
+
+    @Test
+    void interceptsRegisteredClientCommandsBeforeVanillaSendsThemToTheServer() throws Exception {
+        Path mappingsFile = temporaryDirectory.resolve("commands.txt");
+        Files.writeString(mappingsFile, """
+                net.minecraft.client.multiplayer.ClientPacketListener -> d:
+                    1:1:void sendCommand(java.lang.String) -> a
+                """);
+        MinecraftMappings mappings = MinecraftMappings.read(mappingsFile);
+        TransformationService transformations = new TransformationService(mappings);
+        new Minecraft12111Adapter().install(transformations);
+        byte[] transformed = transformations.transform(getClass().getClassLoader(),
+                "d", null, null, clientPacketListenerFixture());
+        assertNotNull(transformed);
+
+        ModEventBus bus = new ModEventBus();
+        ModClientCommandService commands = new ModClientCommandService(true);
+        var scope = commands.createScope("testmod");
+        List<String> received = new ArrayList<>();
+        scope.register(new dev.itsdropper.vantaloader.api.ClientCommand(
+                "local", "Local test", "local <value>",
+                command -> received.add(String.join(" ", command.arguments()))));
+        MinecraftHooks.bind(bus, commands);
+        try {
+            Class<?> type = new IsolatedClassLoader(getClass().getClassLoader()).define("d", transformed);
+            Object listener = type.getConstructor().newInstance();
+            type.getMethod("a", String.class).invoke(listener, "local \"hello world\"");
+            type.getMethod("a", String.class).invoke(listener, "say hello");
+            assertEquals(List.of("hello world"), received);
+        } finally {
+            MinecraftHooks.unbind(bus);
+            scope.close();
+            commands.close();
+        }
+    }
+
+    private static byte[] clientPacketListenerFixture() {
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "d", null, "java/lang/Object", null);
+        MethodVisitor constructor = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        constructor.visitCode();
+        constructor.visitVarInsn(Opcodes.ALOAD, 0);
+        constructor.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        constructor.visitInsn(Opcodes.RETURN);
+        constructor.visitMaxs(1, 1);
+        constructor.visitEnd();
+        MethodVisitor send = writer.visitMethod(Opcodes.ACC_PUBLIC, "a", "(Ljava/lang/String;)V", null, null);
+        send.visitCode();
+        send.visitInsn(Opcodes.RETURN);
+        send.visitMaxs(0, 2);
+        send.visitEnd();
+        writer.visitEnd();
+        return writer.toByteArray();
+    }
+
     @Test
     void injectsClientTickStartAndEndEvents() throws Exception {
         TransformationService transformations = new TransformationService();

@@ -1,6 +1,6 @@
 # Vanta Mod API (VMA) Reference
 
-**API version:** 1.4.0  
+**API version:** 1.5.0  
 **Status:** Pre-alpha; the contracts below are implemented in the matching API JAR. Minecraft-facing coverage remains adapter-specific.
 
 VMA is the native mod development contract for VantaLoader. Its design is to make ordinary mod development declarative and type-safe, while retaining ASM and Mixin as optional advanced escape hatches. It is not a compatibility facade for Fabric API; existing Fabric mods do not become compatible automatically.
@@ -18,7 +18,19 @@ The included Gradle plugin configures Java compilation against the standalone Va
 
 ## Event system
 
-`EventBus` supports typed event subscriptions, named `EventPriority` bands (`HIGHEST`, `HIGH`, `NORMAL`, `LOW`, `LOWEST`), explicit numeric priorities, deterministic equal-priority ordering, removable subscriptions, and mod-owned cleanup. The two-argument `subscribe(eventType, listener)` overload uses `NORMAL`; the enum overload is preferred for ordinary mods, while numeric priorities remain available for precise interop. The verified Minecraft 1.21.11 adapter emits `ClientTickEvent` START/END, immutable `ClientGameTickEvent` snapshots, `KeyInputEvent`, and `HudRenderEvent` events. `ClientGameSnapshot` exposes optional player and world snapshots; player coordinates, rotation, health, food level, and grounded state are copied into immutable API records on the client tick thread, alongside the dimension ID and world game time. No live Minecraft object escapes through this snapshot API. Raw keyboard input exposes the GLFW-compatible key code, scan code, action, modifier bitmask, window handle, and opaque keyboard-handler reference. The mod-scoped `KeyBindingRegistry` builds press/repeat/release bindings on top of that event, supports per-binding remapping and unbinding, persists mappings in the owning mod's config, and automatically unregisters bindings with the mod. `HudRenderEvent` is emitted after vanilla HUD rendering; its `HudRenderContext` provides scaled dimensions, text drawing, and filled rectangles. The context is callback-scoped and expires immediately after dispatch. Rendering callbacks execute on the Minecraft render thread and must remain short. Callbacks run on Minecraft's input thread and must not block it. User remapping and a persistent key-map screen are not implemented yet. The client handle remains opaque; live mutable player/world/entity objects and stable cross-version facades are not exposed. The snapshot adapter is currently verified only for Minecraft 1.21.11. A user-remappable keybinding settings screen is not implemented.
+`EventBus` supports typed event subscriptions, named `EventPriority` bands (`HIGHEST`, `HIGH`, `NORMAL`, `LOW`, `LOWEST`), explicit numeric priorities, deterministic equal-priority ordering, removable subscriptions, and mod-owned cleanup. The two-argument `subscribe(eventType, listener)` overload uses `NORMAL`; the enum overload is preferred for ordinary mods, while numeric priorities remain available for precise interop. The verified Minecraft 1.21.11 adapter emits `ClientTickEvent` START/END, immutable `ClientGameTickEvent` snapshots, `KeyInputEvent`, and `HudRenderEvent` events. `ClientGameSnapshot` exposes optional player and world snapshots; player coordinates, rotation, health, food level, and grounded state are copied into immutable API records on the client tick thread, alongside the dimension ID and world game time. No live Minecraft object escapes through this snapshot API. Raw keyboard input exposes the GLFW-compatible key code, scan code, action, modifier bitmask, window handle, and opaque keyboard-handler reference. The mod-scoped `KeyBindingRegistry` builds press/repeat/release bindings on top of that event, supports per-binding remapping and unbinding, persists mappings in the owning mod's config, and automatically unregisters bindings with the mod. `HudRenderEvent` is emitted after vanilla HUD rendering; its `HudRenderContext` provides scaled dimensions, text drawing, and filled rectangles. The context is callback-scoped and expires immediately after dispatch. Rendering callbacks execute on the Minecraft render thread and must remain short. Callbacks run on Minecraft's input thread and must not block it. A persistent key-map settings screen is not implemented. The client handle remains opaque; live mutable player/world/entity objects and stable cross-version facades are not exposed. The snapshot adapter is currently verified only for Minecraft 1.21.11. A user-remappable keybinding settings screen is not implemented.
+
+## Client-local commands
+
+`ModContext.clientCommands()` registers commands owned by a mod and intercepted in `ClientPacketListener.sendCommand` before vanilla sends them to a server. Only registered command names are consumed; unknown commands pass through unchanged. Names are globally unique across loaded mods. Arguments support whitespace separation, single/double quotes, and backslash escaping. Callbacks execute synchronously on Minecraft's client thread; use `context.tasks()` for background I/O and never block the game thread. Registrations are removed when their owning mod shuts down or startup rolls back. This integration is capability-gated by `CLIENT_COMMANDS` and is verified only for the exact Minecraft 1.21.11 adapter.
+
+```java
+context.clientCommands().register(new ClientCommand(
+        "example", "Example local command", "example <message>",
+        command -> command.reply("Hello, " + String.join(" ", command.arguments()))));
+```
+
+These are local client commands, not remote server commands or a server-side command registration API.
 
 ## Persistent configuration
 

@@ -3,6 +3,7 @@ package dev.itsdropper.vantaloader.runtime;
 import dev.itsdropper.vantaloader.api.ModContext;
 import dev.itsdropper.vantaloader.api.VantaMod;
 import dev.itsdropper.vantaloader.api.KeyBinding;
+import dev.itsdropper.vantaloader.api.ClientCommand;
 
 public final class RuntimeTestEntrypoint implements VantaMod {
     public RuntimeTestEntrypoint() { }
@@ -15,6 +16,11 @@ public final class RuntimeTestEntrypoint implements VantaMod {
             RuntimeEvents.keyBindingRegistration = context.keyBindings().register(
                     new KeyBinding("test", "Test binding", 65, 0,
                             action -> RuntimeEvents.EVENTS.add("key:" + action.name())));
+        }
+        if (context.modId().equals("command_fixture")) {
+            RuntimeEvents.clientCommandRegistration = context.clientCommands().register(
+                    new ClientCommand("vma-test", "VMA command test", "vma-test <text>",
+                            command -> RuntimeEvents.EVENTS.add("command:" + String.join(" ", command.arguments()))));
         }
         if (context.modId().equals("service_provider")) {
             RuntimeEvents.providerServices = context.services();

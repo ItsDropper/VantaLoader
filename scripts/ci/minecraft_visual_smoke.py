@@ -308,6 +308,17 @@ def main():
                             str(output / "in-world.png")], check=True, timeout=15)
             print("Singleplayer world loaded; LocalPlayer.aiStep runtime probe observed.")
 
+            # Exercise a real VMA command through Minecraft's chat/sendCommand path.
+            subprocess.run(["xdotool", "key", "t"], check=True, timeout=10)
+            time.sleep(1)
+            subprocess.run(["xdotool", "type", "--clearmodifiers", "--delay", "50", "/vmashowcase"],
+                           check=True, timeout=10)
+            subprocess.run(["xdotool", "key", "Return"], check=True, timeout=10)
+            wait_for_log_marker(process, log_path, "VMA showcase: client command executed", 20)
+            wait_for_log_marker(process, log_path,
+                                "VantaLoader integration probe: client command intercepted", 20)
+            print("Client-local VMA command intercepted and executed in-game.")
+
         logs = log_path.read_text(encoding="utf-8", errors="replace")
         manifest_path = Path(__file__).with_name("game-tests.json")
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

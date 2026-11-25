@@ -38,6 +38,7 @@ public final class ModRuntime implements AutoCloseable {
     private final List<ModClassLoader> classLoaders = new ArrayList<>();
     private final ModEventBus eventBus = new ModEventBus();
     private final ModServiceRegistry serviceRegistry = new ModServiceRegistry();
+    private final ModClientCommandService clientCommandService;
     private ResourceReloadService resourceReloadService;
     private dev.itsdropper.vantaloader.api.ResourceReloadReport lastReloadReport;
     private boolean started;
@@ -63,6 +64,8 @@ public final class ModRuntime implements AutoCloseable {
         this.transformationService = java.util.Objects.requireNonNull(transformationService, "transformationService");
         this.minecraftCapabilities = java.util.Objects.requireNonNull(minecraftCapabilities, "minecraftCapabilities");
         this.minecraftMappings = minecraftMappings;
+        this.clientCommandService = new ModClientCommandService(
+                minecraftCapabilities.supports(MinecraftCapability.CLIENT_COMMANDS));
     }
 
     public void start(List<ModArtifact> orderedMods) throws Exception {
@@ -99,6 +102,7 @@ public final class ModRuntime implements AutoCloseable {
                 ModClassLoader loader = loadersById.get(artifact.descriptor().id());
                 ModEventBus.Scope eventScope = new ModEventBus.Scope(eventBus);
                 ModServiceRegistry.Scope serviceScope = serviceRegistry.createScope(artifact.descriptor().id());
+                ModClientCommandService.Scope commandScope = clientCommandService.createScope(artifact.descriptor().id());
                 JsonModConfig modConfig;
                 try {
                     Path modConfigDirectory = configDirectory.resolve(artifact.descriptor().id());
@@ -107,17 +111,19 @@ public final class ModRuntime implements AutoCloseable {
                 } catch (Exception | Error failure) {
                     eventScope.close();
                     serviceScope.close();
+                    commandScope.close();
                     throw failure;
                 }
                 ModKeyBindingRegistry keyBindings = new ModKeyBindingRegistry(eventScope,
                         minecraftCapabilities.supports(MinecraftCapability.KEYBOARD_INPUT_EVENTS), modConfig);
                 LoadedMod mod;
                 try {
-                    mod = instantiate(artifact, loader, eventScope, serviceScope, keyBindings, modConfig);
+                    mod = instantiate(artifact, loader, eventScope, serviceScope, keyBindings, modConfig, commandScope);
                 } catch (Exception | Error failure) {
                     keyBindings.close();
                     eventScope.close();
                     serviceScope.close();
+                    commandScope.close();
                     throw failure;
                 }
                 try {
@@ -129,11 +135,13 @@ public final class ModRuntime implements AutoCloseable {
                     mod.resourceScope().close();
                     mod.tasks().close();
                     mod.serviceScope().close();
+                    mod.commandScope().close();
+                    mod.commandScope().close();
                     throw failure;
                 }
                 LOGGER.info("Initialized " + mod.id() + " " + artifact.descriptor().version());
             }
-            MinecraftHooks.bind(eventBus);
+            MinecraftHooks.bind(eventBus, clientCommandService);
             started = true;
         } catch (Throwable failure) {
             rollback(failure);
@@ -181,7 +189,7 @@ public final class ModRuntime implements AutoCloseable {
             Path modConfigDirectory = configDirectory.resolve(artifact.descriptor().id());
             mod.instance().onInitialize(new DefaultModContext(artifact.descriptor(), gameDirectory,
                     modConfigDirectory, transformationService, eventScope, minecraftCapabilities,
-                    mod.resourceScope(), mod.config(), mod.tasks(), mod.serviceScope(), mod.keyBindings()));
+                    mod.resourceScope(), mod.config(), mod.tasks(), mod.serviceScope(), mod.keyBindings(), mod.commandScope()));
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
         }
@@ -189,7 +197,8 @@ public final class ModRuntime implements AutoCloseable {
 
     private LoadedMod instantiate(ModArtifact artifact, ModClassLoader loader, ModEventBus.Scope eventScope,
                                   ModServiceRegistry.Scope serviceScope,
-                                  ModKeyBindingRegistry keyBindings, JsonModConfig modConfig) throws Exception {
+                                  ModKeyBindingRegistry keyBindings, JsonModConfig modConfig,
+                                  ModClientCommandService.Scope commandScope) throws Exception {
         String id = artifact.descriptor().id();
         String name = artifact.descriptor().mainEntrypoint();
         ClassLoader previous = Thread.currentThread().getContextClassLoader();
@@ -203,7 +212,7 @@ public final class ModRuntime implements AutoCloseable {
             VantaMod instance = (VantaMod) type.getConstructor().newInstance();
             return new LoadedMod(id, instance, loader, eventScope,
                     new ModResourceReloadScope(id, loader, resourceReloadService), artifact.descriptor(),
-                    new ModTaskService(id, loader), serviceScope, keyBindings, modConfig);
+                    new ModTaskService(id, loader), serviceScope, keyBindings, modConfig, commandScope);
         } catch (InvocationTargetException exception) {
             Throwable cause = exception.getCause() == null ? exception : exception.getCause();
             throw new IllegalStateException("Constructor for mod '" + id + "' failed: "
@@ -301,7 +310,7 @@ public final class ModRuntime implements AutoCloseable {
                         aggregate.addSuppressed(new IllegalStateException("Shutdown failed for mod '" + mod.id() + "'", failure));
                     }
                 } finally {
-                    AutoCloseable[] owned = {mod.keyBindings(), mod.eventScope(), mod.resourceScope(), mod.tasks(), mod.serviceScope()};
+                    AutoCloseable[] owned = {mod.keyBindings(), mod.commandScope(), mod.eventScope(), mod.resourceScope(), mod.tasks(), mod.serviceScope()};
                     for (AutoCloseable resource : owned) {
                         try { resource.close(); }
                         catch (Throwable failure) {
@@ -345,6 +354,7 @@ public final class ModRuntime implements AutoCloseable {
             }
         }
         classLoaders.clear();
+        clientCommandService.close();
     }
 
     @Override public void close() throws Exception { stop(); }
@@ -398,7 +408,8 @@ public final class ModRuntime implements AutoCloseable {
                              ModEventBus.Scope eventScope, ModResourceReloadScope resourceScope,
                              dev.itsdropper.vantaloader.metadata.ModDescriptor descriptor,
                              ModTaskService tasks, ModServiceRegistry.Scope serviceScope,
-                             ModKeyBindingRegistry keyBindings, JsonModConfig config) { }
+                             ModKeyBindingRegistry keyBindings, JsonModConfig config,
+                             ModClientCommandService.Scope commandScope) { }
 
     /** Child-first for mod implementation classes, with explicit dependency visibility. */
     private static final class ModClassLoader extends URLClassLoader {

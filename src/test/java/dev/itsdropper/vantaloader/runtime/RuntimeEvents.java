@@ -5,6 +5,7 @@ import dev.itsdropper.vantaloader.api.ModServices;
 import dev.itsdropper.vantaloader.api.ServiceKey;
 import dev.itsdropper.vantaloader.api.ServiceRegistration;
 import dev.itsdropper.vantaloader.api.KeyBindingRegistration;
+import dev.itsdropper.vantaloader.api.ClientCommandRegistration;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,5 +22,6 @@ final class RuntimeEvents {
     static volatile ServiceRegistration serviceRegistration;
     static volatile ModServices providerServices;
     static volatile KeyBindingRegistration keyBindingRegistration;
+    static volatile ClientCommandRegistration clientCommandRegistration;
     private RuntimeEvents() { }
 }

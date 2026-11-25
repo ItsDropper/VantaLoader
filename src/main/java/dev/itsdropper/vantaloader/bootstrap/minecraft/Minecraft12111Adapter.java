@@ -17,8 +17,10 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
     public static final String VERSION = "1.21.11";
     public static final String CLIENT_CLASS = "net.minecraft.client.Minecraft";
     public static final String KEYBOARD_HANDLER_CLASS = "net.minecraft.client.KeyboardHandler";
+    public static final String CLIENT_PACKET_LISTENER_CLASS = "net.minecraft.client.multiplayer.ClientPacketListener";
     public static final String HUD_GUI_CLASS = "net.minecraft.client.gui.Gui";
     private static final String KEY_PRESS_METHOD = "keyPress";
+    private static final String SEND_COMMAND_DESCRIPTOR = "(Ljava/lang/String;)V";
     private static final String HUD_RENDER_METHOD = "render";
     private static final String HUD_RENDER_DESCRIPTOR =
             "(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/DeltaTracker;)V";
@@ -212,6 +214,46 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
             throw new IllegalStateException("Expected Minecraft 1.21.11 KeyboardHandler.keyPress"
                     + KEY_PRESS_DESCRIPTOR + " method missing: " + runtimeMethod + runtimeDescriptor);
         }
+        return writer.toByteArray();
+    }
+
+
+    private byte[] transformClientCommands(ClassTransformContext context, byte[] originalClass) {
+        String runtimeMethod = context.mappings().runtimeMethodName(
+                CLIENT_PACKET_LISTENER_CLASS, "sendCommand", SEND_COMMAND_DESCRIPTOR);
+        String runtimeDescriptor = context.mappings().runtimeDescriptor(SEND_COMMAND_DESCRIPTOR);
+        ClassReader reader = new ClassReader(originalClass);
+        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        boolean[] matched = {false};
+        ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String descriptor,
+                                             String signature, String[] exceptions) {
+                MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions);
+                if (!runtimeMethod.equals(name) || !runtimeDescriptor.equals(descriptor)) return delegate;
+                if (matched[0]) throw new IllegalStateException("Multiple client sendCommand methods found");
+                if ((access & Opcodes.ACC_STATIC) != 0)
+                    throw new IllegalStateException("ClientPacketListener.sendCommand must be an instance method");
+                matched[0] = true;
+                return new MethodVisitor(Opcodes.ASM9, delegate) {
+                    @Override public void visitCode() {
+                        super.visitCode();
+                        Label continueVanilla = new Label();
+                        super.visitVarInsn(Opcodes.ALOAD, 0);
+                        super.visitVarInsn(Opcodes.ALOAD, 1);
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOK_OWNER,
+                                "onClientCommand", "(Ljava/lang/Object;Ljava/lang/String;)Z", false);
+                        super.visitJumpInsn(Opcodes.IFEQ, continueVanilla);
+                        super.visitInsn(Opcodes.RETURN);
+                        super.visitLabel(continueVanilla);
+                    }
+                };
+            }
+        };
+        reader.accept(visitor, 0);
+        if (!matched[0]) throw new IllegalStateException(
+                "Expected Minecraft 1.21.11 ClientPacketListener.sendCommand(String) method missing: "
+                        + runtimeMethod + runtimeDescriptor);
         return writer.toByteArray();
     }
 

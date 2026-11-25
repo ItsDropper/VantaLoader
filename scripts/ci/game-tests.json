@@ -14,6 +14,8 @@
         "Initialized vma_showcase 1.0.0",
         "VMA showcase config loaded: enabled=true",
         "VMA showcase: managed background task executed",
+        "Registered client command /vmashowcase for mod vma_showcase",
+        "VMA showcase: client command executed",
         "All VantaLoader mods initialized successfully"
       ]
     },
@@ -54,6 +56,15 @@
       "description": "The exact-version keyboard adapter emits typed VMA key input events on the Minecraft input thread.",
       "required_log_markers": [
         "VantaLoader integration probe: keyboard input observed"
+      ]
+    },
+    {
+      "id": "vma-client-commands",
+      "description": "A client-local VMA command is intercepted from the real Minecraft chat path and executes without reaching the server.",
+      "required_log_markers": [
+        "Registered client command /vmashowcase for mod vma_showcase",
+        "VantaLoader integration probe: client command intercepted",
+        "VMA showcase: client command executed"
       ]
     },
     {

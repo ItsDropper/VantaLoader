@@ -80,6 +80,7 @@ public final class VantaLoader {
                     adapter.install(transformations);
                     verifiedCapabilities.add(MinecraftCapability.CLIENT_LIFECYCLE_EVENTS);
                     verifiedCapabilities.add(MinecraftCapability.KEYBOARD_INPUT_EVENTS);
+                    verifiedCapabilities.add(MinecraftCapability.CLIENT_COMMANDS);
                     verifiedCapabilities.add(MinecraftCapability.CLIENT_GAME_STATE);
                     verifiedCapabilities.add(MinecraftCapability.HUD_RENDERING);
                     LOGGER.info("Installed exact Minecraft adapter: " + adapter.minecraftVersion());

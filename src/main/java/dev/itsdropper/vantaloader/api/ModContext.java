@@ -35,6 +35,11 @@ public interface ModContext {
         throw new UnsupportedOperationException("Key bindings are not available in this runtime");
     }
 
+    /** Client-local commands intercepted before they are sent to a remote server. */
+    default ClientCommandRegistry clientCommands() {
+        throw new UnsupportedOperationException("Client commands are not available in this runtime");
+    }
+
     /** Typed services exported by and discovered between native mods. */
     default ModServices services() {
         throw new UnsupportedOperationException("Inter-mod services are not available in this runtime");
