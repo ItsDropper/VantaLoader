@@ -2,6 +2,7 @@ package dev.itsdropper.vantaloader.runtime;
 
 import dev.itsdropper.vantaloader.api.KeyBinding;
 import dev.itsdropper.vantaloader.api.KeyBindingAction;
+import dev.itsdropper.vantaloader.api.KeyInputEvent;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
