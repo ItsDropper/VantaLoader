@@ -107,6 +107,7 @@ class ClientGameSnapshotTest {
             assertTrue(received.get().snapshot().world().isEmpty());
         } finally {
             MinecraftHooks.unbind(bus);
+            MinecraftHooks.onClientTickEnd();
         }
     }
 
