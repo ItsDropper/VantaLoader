@@ -24,16 +24,17 @@ class ClientGameSnapshotTest {
     void publishesImmutablePlayerAndWorldSnapshotsAtBothTickPhases() throws Exception {
         Path mappingsFile = temporaryDirectory.resolve("client.txt");
         Files.writeString(mappingsFile, """
-                net.minecraft.client.Minecraft -> a:
-                net.minecraft.client.player.LocalPlayer -> b:
-                net.minecraft.client.multiplayer.ClientLevel -> c:
-                net.minecraft.world.entity.Entity -> d:
-                net.minecraft.world.entity.LivingEntity -> e:
-                net.minecraft.world.entity.player.Player -> f:
-                net.minecraft.world.level.Level -> g:
-                net.minecraft.world.food.FoodData -> h:
-                net.minecraft.resources.ResourceKey -> i:
-                net.minecraft.resources.ResourceLocation -> j:
+                net.minecraft.client.Minecraft -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeClient:
+                net.minecraft.client.player.LocalPlayer -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLocalPlayer:
+                net.minecraft.client.multiplayer.ClientLevel -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeClientLevel:
+                net.minecraft.world.entity.Entity -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeEntity:
+                    1:1:boolean onGround -> bc
+                net.minecraft.world.entity.LivingEntity -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLivingEntity:
+                net.minecraft.world.entity.player.Player -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakePlayer:
+                net.minecraft.world.level.Level -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLevel:
+                net.minecraft.world.food.FoodData -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeFoodData:
+                net.minecraft.resources.ResourceKey -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeResourceKey:
+                net.minecraft.resources.ResourceLocation -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeResourceLocation:
                 """);
         MinecraftHooks.configureMappings(MinecraftMappings.read(mappingsFile));
 
@@ -46,7 +47,7 @@ class ClientGameSnapshotTest {
         });
         MinecraftHooks.bind(bus);
         try {
-            FakeClient client = new FakeClient(new FakePlayer(), new FakeLevel());
+            FakeClient client = new FakeClient(new FakeLocalPlayer(), new FakeClientLevel());
             MinecraftHooks.onClientTick(client, true);
 
             ClientGameTickEvent start = received.get();
@@ -82,16 +83,17 @@ class ClientGameSnapshotTest {
     void representsTitleScreenStateWithoutInventingPlayerOrWorld() throws Exception {
         Path mappingsFile = temporaryDirectory.resolve("client.txt");
         Files.writeString(mappingsFile, """
-                net.minecraft.client.Minecraft -> a:
-                net.minecraft.client.player.LocalPlayer -> b:
-                net.minecraft.client.multiplayer.ClientLevel -> c:
-                net.minecraft.world.entity.Entity -> d:
-                net.minecraft.world.entity.LivingEntity -> e:
-                net.minecraft.world.entity.player.Player -> f:
-                net.minecraft.world.level.Level -> g:
-                net.minecraft.world.food.FoodData -> h:
-                net.minecraft.resources.ResourceKey -> i:
-                net.minecraft.resources.ResourceLocation -> j:
+                net.minecraft.client.Minecraft -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeClient:
+                net.minecraft.client.player.LocalPlayer -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLocalPlayer:
+                net.minecraft.client.multiplayer.ClientLevel -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeClientLevel:
+                net.minecraft.world.entity.Entity -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeEntity:
+                    1:1:boolean onGround -> bc
+                net.minecraft.world.entity.LivingEntity -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLivingEntity:
+                net.minecraft.world.entity.player.Player -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakePlayer:
+                net.minecraft.world.level.Level -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLevel:
+                net.minecraft.world.food.FoodData -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeFoodData:
+                net.minecraft.resources.ResourceKey -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeResourceKey:
+                net.minecraft.resources.ResourceLocation -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeResourceLocation:
                 """);
         MinecraftHooks.configureMappings(MinecraftMappings.read(mappingsFile));
 
@@ -112,34 +114,47 @@ class ClientGameSnapshotTest {
     }
 
     public static final class FakeClient {
-        public final FakePlayer player;
-        public final FakeLevel level;
-        public FakeClient(FakePlayer player, FakeLevel level) {
+        public final FakeLocalPlayer player;
+        public final FakeClientLevel level;
+        public FakeClient(FakeLocalPlayer player, FakeClientLevel level) {
             this.player = player;
             this.level = level;
         }
     }
 
-    public static final class FakePlayer {
-        public boolean onGround = true;
+    public static class FakeEntity {
+        public boolean bc = true;
         public double getX() { return 12.5; }
         public double getY() { return 64.0; }
         public double getZ() { return -3.25; }
         public float getYRot() { return 90.0f; }
         public float getXRot() { return -15.0f; }
+    }
+
+    public static class FakeLivingEntity extends FakeEntity {
         public float getHealth() { return 17.0f; }
         public float getMaxHealth() { return 20.0f; }
+    }
+
+    public static class FakePlayer extends FakeLivingEntity {
         public FakeFoodData getFoodData() { return new FakeFoodData(); }
+    }
+
+    public static final class FakeLocalPlayer extends FakePlayer {
+        // Simulates a subclass field that shares the mapped name but has another type.
+        public int bc = 1;
     }
 
     public static final class FakeFoodData {
         public int getFoodLevel() { return 18; }
     }
 
-    public static final class FakeLevel {
+    public static class FakeLevel {
         public FakeResourceKey dimension() { return new FakeResourceKey(); }
         public long getGameTime() { return 123456L; }
     }
+
+    public static final class FakeClientLevel extends FakeLevel { }
 
     public static final class FakeResourceKey {
         public FakeResourceLocation location() { return new FakeResourceLocation(); }
