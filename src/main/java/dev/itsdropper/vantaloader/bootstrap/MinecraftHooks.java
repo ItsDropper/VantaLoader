@@ -5,6 +5,8 @@ import dev.itsdropper.vantaloader.api.ClientEntitySnapshot;
 import dev.itsdropper.vantaloader.api.ClientGameSnapshot;
 import dev.itsdropper.vantaloader.api.ClientGameTickEvent;
 import dev.itsdropper.vantaloader.api.ClientPlayerSnapshot;
+import dev.itsdropper.vantaloader.api.ClientScreenEvent;
+import dev.itsdropper.vantaloader.api.ClientWorldLifecycleEvent;
 import dev.itsdropper.vantaloader.api.ClientTickEvent;
 import dev.itsdropper.vantaloader.api.ClientWorldSnapshot;
 import dev.itsdropper.vantaloader.api.EventBus;
@@ -30,6 +32,10 @@ public final class MinecraftHooks {
     private static final AtomicReference<ClientCommandDispatcher> CLIENT_COMMANDS = new AtomicReference<>();
     private static final AtomicReference<Object> ACTIVE_CLIENT = new AtomicReference<>();
     private static final AtomicReference<MinecraftMappings> MAPPINGS = new AtomicReference<>();
+    private static WeakReference<Object> lastLifecycleWorld = new WeakReference<>(null);
+    private static WeakReference<Object> lastLifecycleScreen = new WeakReference<>(null);
+    private static String lastLifecycleDimension;
+    private static String lastLifecycleScreenClass;
     private static final java.util.concurrent.atomic.AtomicBoolean KEYBOARD_INPUT_OBSERVED =
             new java.util.concurrent.atomic.AtomicBoolean();
     private static final java.util.concurrent.atomic.AtomicBoolean PLAYER_TICK_OBSERVED =
@@ -48,6 +54,10 @@ public final class MinecraftHooks {
         entitySnapshotLevel = new WeakReference<>(null);
         entitySnapshotGameTime = Long.MIN_VALUE;
         cachedEntitySnapshots = new EntitySnapshotBatch(List.of(), false);
+        lastLifecycleWorld = new WeakReference<>(null);
+        lastLifecycleScreen = new WeakReference<>(null);
+        lastLifecycleDimension = null;
+        lastLifecycleScreenClass = null;
     }
 
     public static void bind(EventBus eventBus) { bind(eventBus, null); }
@@ -65,7 +75,13 @@ public final class MinecraftHooks {
     }
 
     public static void unbind(EventBus eventBus) {
-        if (eventBus != null && EVENT_BUS.compareAndSet(eventBus, null)) CLIENT_COMMANDS.set(null);
+        if (eventBus != null && EVENT_BUS.compareAndSet(eventBus, null)) {
+            CLIENT_COMMANDS.set(null);
+            lastLifecycleWorld = new WeakReference<>(null);
+            lastLifecycleScreen = new WeakReference<>(null);
+            lastLifecycleDimension = null;
+            lastLifecycleScreenClass = null;
+        }
     }
 
     /** Intercepts only registered VMA commands; unknown commands continue to the server unchanged. */
@@ -108,8 +124,71 @@ public final class MinecraftHooks {
 
     /** Listener failures are logged after all listeners run; they do not abort Minecraft's tick. */
     public static void onClientTick(Object client, boolean starting) {
-        if (starting) ACTIVE_CLIENT.set(Objects.requireNonNull(client, "client"));
+        if (starting) {
+            ACTIVE_CLIENT.set(Objects.requireNonNull(client, "client"));
+            publishClientLifecycle(client);
+        }
         publishClientTick(client, starting ? ClientTickEvent.Phase.START : ClientTickEvent.Phase.END);
+    }
+
+
+    /** Detects world and screen transitions without exposing live Minecraft objects. */
+    private static void publishClientLifecycle(Object client) {
+        EventBus eventBus = EVENT_BUS.get();
+        if (eventBus == null) return;
+        try {
+            MinecraftMappings mappings = MAPPINGS.get();
+            if (mappings == null) throw new IllegalStateException("Official Minecraft mappings are not configured");
+            Object world = readField(client, mappings, "net.minecraft.client.Minecraft", "level",
+                    "Lnet/minecraft/client/multiplayer/ClientLevel;");
+            Object screen = readField(client, mappings, "net.minecraft.client.Minecraft", "screen",
+                    "Lnet/minecraft/client/gui/screens/Screen;");
+            String dimension = world == null ? null : dimensionId(world, mappings);
+            Object previousWorld = lastLifecycleWorld.get();
+            if (previousWorld != world || !Objects.equals(lastLifecycleDimension, dimension)) {
+                boolean hadPreviousWorld = lastLifecycleDimension != null;
+                boolean hasCurrentWorld = dimension != null;
+                ClientWorldLifecycleEvent.Transition transition = !hadPreviousWorld
+                        ? ClientWorldLifecycleEvent.Transition.JOINED
+                        : !hasCurrentWorld ? ClientWorldLifecycleEvent.Transition.LEFT
+                        : ClientWorldLifecycleEvent.Transition.CHANGED;
+                if (previousWorld != null || world != null) {
+                    eventBus.publish(new ClientWorldLifecycleEvent(transition,
+                            Optional.ofNullable(lastLifecycleDimension), Optional.ofNullable(dimension)));
+                }
+                lastLifecycleWorld = new WeakReference<>(world);
+                lastLifecycleDimension = dimension;
+            }
+
+            String screenClass = screen == null ? null : screen.getClass().getName();
+            Object previousScreen = lastLifecycleScreen.get();
+            if (previousScreen != screen || !Objects.equals(lastLifecycleScreenClass, screenClass)) {
+                boolean hadPreviousScreen = lastLifecycleScreenClass != null;
+                boolean hasCurrentScreen = screenClass != null;
+                ClientScreenEvent.Transition transition = !hadPreviousScreen
+                        ? ClientScreenEvent.Transition.OPENED
+                        : !hasCurrentScreen ? ClientScreenEvent.Transition.CLOSED
+                        : ClientScreenEvent.Transition.CHANGED;
+                if (previousScreen != null || screen != null) {
+                    eventBus.publish(new ClientScreenEvent(transition,
+                            Optional.ofNullable(lastLifecycleScreenClass), Optional.ofNullable(screenClass)));
+                }
+                lastLifecycleScreen = new WeakReference<>(screen);
+                lastLifecycleScreenClass = screenClass;
+            }
+        } catch (Throwable failure) {
+            rethrowFatal(failure);
+            LOGGER.log(Level.SEVERE, "VantaLoader could not publish client lifecycle events", failure);
+        }
+    }
+
+    private static String dimensionId(Object level, MinecraftMappings mappings)
+            throws ReflectiveOperationException {
+        Object dimension = invoke(level, mappings, "net.minecraft.world.level.Level",
+                "dimension", "()Lnet/minecraft/resources/ResourceKey;");
+        Object location = invoke(dimension, mappings, "net.minecraft.resources.ResourceKey",
+                "identifier", "()Lnet/minecraft/resources/Identifier;");
+        return String.valueOf(location);
     }
 
     /** Called immediately before Minecraft.tick returns; avoids loading local 0 from a chopped stack-map frame. */

@@ -11,6 +11,8 @@ public final class VmaShowcaseMod implements VantaMod {
     private final AtomicBoolean tickObserved = new AtomicBoolean();
     private final AtomicBoolean gameStateObserved = new AtomicBoolean();
     private final AtomicBoolean hudRenderObserved = new AtomicBoolean();
+    private final AtomicBoolean screenLifecycleObserved = new AtomicBoolean();
+    private final AtomicBoolean worldLifecycleObserved = new AtomicBoolean();
 
     public VmaShowcaseMod() { }
 
@@ -38,6 +40,19 @@ public final class VmaShowcaseMod implements VantaMod {
                         command.reply("VMA showcase is active for " + context.modId());
                     }));
         }
+
+        context.events().subscribe(ClientScreenEvent.class, EventPriority.NORMAL, event -> {
+            if (event.transition() == ClientScreenEvent.Transition.OPENED
+                    && screenLifecycleObserved.compareAndSet(false, true)) {
+                context.logger().info("VMA showcase: client screen lifecycle event delivered");
+            }
+        });
+        context.events().subscribe(ClientWorldLifecycleEvent.class, EventPriority.NORMAL, event -> {
+            if (event.transition() == ClientWorldLifecycleEvent.Transition.JOINED
+                    && worldLifecycleObserved.compareAndSet(false, true)) {
+                context.logger().info("VMA showcase: client world lifecycle event delivered");
+            }
+        });
 
         context.tasks().execute(() ->
                 context.logger().info("VMA showcase: managed background task executed"));

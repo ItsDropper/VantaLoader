@@ -159,6 +159,12 @@ val verifyAgentJar by tasks.registering {
             check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientGameTickEvent.class") != null) {
                 "Standalone mod API JAR is missing ClientGameTickEvent"
             }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientWorldLifecycleEvent.class") != null) {
+                "Standalone mod API JAR is missing ClientWorldLifecycleEvent"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientScreenEvent.class") != null) {
+                "Standalone mod API JAR is missing ClientScreenEvent"
+            }
             check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientEntitySnapshot.class") != null) {
                 "Standalone mod API JAR is missing ClientEntitySnapshot"
             }

@@ -9,7 +9,7 @@ package dev.itsdropper.vantaloader.api;
  */
 public final class VantaModApi {
     public static final int VERSION_MAJOR = 1;
-    public static final int VERSION_MINOR = 6;
+    public static final int VERSION_MINOR = 7;
     public static final int VERSION_PATCH = 0;
     public static final String VERSION = VERSION_MAJOR + "." + VERSION_MINOR + "." + VERSION_PATCH;
 

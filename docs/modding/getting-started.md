@@ -145,6 +145,10 @@ if (context.keyBindings().isAvailable()) {
 
 Bindings receive `PRESSED`, `REPEATED`, and `RELEASED` transitions and expose their pressed state through `KeyBindingRegistration.isPressed()`. Bindings can be remapped at runtime through `registration.remap(keyCode, modifiers)`; the mapping is persisted in the owning mod's VMA config. `registration.resetToDefault()` restores the declared key. A dedicated key-map settings screen is not implemented. Bindings are automatically removed when their mod shuts down.
 
+## Client lifecycle events
+
+Subscribe to `ClientWorldLifecycleEvent` and `ClientScreenEvent` for client world and screen transitions. They run on the client thread and contain only immutable identifiers/class names, not live Minecraft objects.
+
 ## Client-local commands
 
 Client-local commands execute on the client and are intercepted before vanilla's client-side command parser rejects unknown roots. Unknown commands pass through unchanged. Register a command during initialization; its registration is removed automatically when the mod stops.
