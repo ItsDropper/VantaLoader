@@ -129,7 +129,7 @@ val verifyAgentJar by tasks.registering {
             check(jar.getEntry("dev/itsdropper/vantaloader/api/KeyBindingRegistration.class") != null) {
                 "Standalone mod API JAR is missing KeyBindingRegistration"
             }
-            check(jar.getEntry("dev/itsdropper/vantaloader/api/KeyInputEvent.class") != null) {
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientGameTickEvent.class") != null) {\n                "Standalone mod API JAR is missing ClientGameTickEvent"\n            }\n            check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientGameSnapshot.class") != null) {\n                "Standalone mod API JAR is missing ClientGameSnapshot"\n            }\n            check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientPlayerSnapshot.class") != null) {\n                "Standalone mod API JAR is missing ClientPlayerSnapshot"\n            }\n            check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientWorldSnapshot.class") != null) {\n                "Standalone mod API JAR is missing ClientWorldSnapshot"\n            }\n            check(jar.getEntry("dev/itsdropper/vantaloader/api/KeyInputEvent.class") != null) {
                 "Standalone mod API JAR is missing KeyInputEvent"
             }
             check(jar.getEntry("dev/itsdropper/vantaloader/api/EventPriority.class") != null) {
