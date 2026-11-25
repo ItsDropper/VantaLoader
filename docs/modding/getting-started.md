@@ -95,9 +95,9 @@ context.events().publish(new ProfileLoaded("default"));
 
 This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter separately exposes client tick START/END and raw keyboard input events when the launcher supplies the matching official mappings. User-remappable keybinding settings, command registration, rendering, and networking APIs are not yet implemented. The resource API reloads explicitly registered mod-owned files; it does not reload Minecraft resource packs or arbitrary game assets.
 
-## Client keyboard input
+## Client player and world state\n\n```java\ncontext.events().subscribe(ClientGameTickEvent.class, EventPriority.NORMAL, event -> {\n    if (event.phase() != ClientTickEvent.Phase.START || !event.snapshot().inWorld()) return;\n    ClientPlayerSnapshot player = event.snapshot().player().orElseThrow();\n    ClientWorldSnapshot world = event.snapshot().world().orElseThrow();\n    context.logger().fine("Position: " + player.x() + ", " + player.y() + ", " + player.z());\n    context.logger().fine("Dimension: " + world.dimensionId());\n});\n```\n\nThis API is currently client-only and verified against Minecraft 1.21.11. Snapshot reads happen on the client tick thread; do not retain live game objects or block the callback. Check `CLIENT_GAME_STATE` before depending on this integration.\n\n## Client keyboard input
 
-The exact Minecraft 1.21.11 adapter publishes raw key input through the typed event bus. Events run on Minecraft's input thread; keep callbacks short and dispatch expensive work through `context.tasks()`. The current event reports raw GLFW-compatible values and does not yet provide user-remappable keybinding settings.
+The exact Minecraft 1.21.11 adapter publishes immutable player/world snapshots and raw key input through the typed event bus. `ClientGameTickEvent` is emitted at both client tick phases; its `snapshot()` contains optional `player()` and `world()` values. These snapshots contain copied values, not live Minecraft objects. Events run on Minecraft's input thread; keep callbacks short and dispatch expensive work through `context.tasks()`. The current event reports raw GLFW-compatible values and does not yet provide user-remappable keybinding settings.
 
 ```java
 context.events().subscribe(KeyInputEvent.class, EventPriority.NORMAL, event -> {
