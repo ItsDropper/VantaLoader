@@ -78,7 +78,7 @@ public final class IntermediaryMappings {
             String[] parts = line.split("\\t", -1);
             if ("c".equals(parts[0])) {
                 ownerIntermediary = parts[1 + intermediaryNamespace];
-            } else if (line.startsWith("\\tm\\t") || line.startsWith("\\tf\\t")) {
+            } else if (line.startsWith("\tm\t") || line.startsWith("\tf\t")) {
                 if (ownerIntermediary == null || parts.length <= 3 + Math.max(intermediaryNamespace, officialNamespace)) {
                     throw new IOException("Malformed member mapping at line " + (i + 1));
                 }
