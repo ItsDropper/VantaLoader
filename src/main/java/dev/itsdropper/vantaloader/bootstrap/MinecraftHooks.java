@@ -178,35 +178,38 @@ public final class MinecraftHooks {
 
     private static Object readField(Object target, MinecraftMappings mappings, String owner,
                                     String name, String descriptor) throws ReflectiveOperationException {
+        Objects.requireNonNull(target, "target");
         String runtimeName = mappings.runtimeFieldName(owner, name, descriptor);
-        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
-            try {
-                Field field = type.getDeclaredField(runtimeName);
-                if (!field.trySetAccessible()) {
-                    throw new IllegalAccessException("Cannot access mapped field " + type.getName() + "." + runtimeName);
-                }
-                return field.get(target);
-            } catch (NoSuchFieldException ignored) {
-                // Continue through the superclass chain; mappings identify the declaring owner.
-            }
+        Class<?> declaringType = Class.forName(mappings.runtimeClassName(owner), false,
+                target.getClass().getClassLoader());
+        if (!declaringType.isAssignableFrom(target.getClass())) {
+            throw new IllegalArgumentException("Mapped field owner " + declaringType.getName()
+                    + " is not a supertype of " + target.getClass().getName());
         }
-        throw new NoSuchFieldException("Mapped field not found: " + owner + "." + runtimeName + descriptor);
+        Field field = declaringType.getDeclaredField(runtimeName);
+        if (!field.trySetAccessible()) {
+            throw new IllegalAccessException("Cannot access mapped field "
+                    + declaringType.getName() + "." + runtimeName);
+        }
+        return field.get(target);
     }
 
     private static Object invoke(Object target, MinecraftMappings mappings, String owner,
                                   String name, String descriptor) throws ReflectiveOperationException {
         Objects.requireNonNull(target, "target");
         String runtimeName = mappings.runtimeMethodName(owner, name, descriptor);
-        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
-            for (Method method : type.getDeclaredMethods()) {
-                if (!method.getName().equals(runtimeName) || method.getParameterCount() != 0) continue;
-                if (!method.trySetAccessible()) {
-                    throw new IllegalAccessException("Cannot access mapped method " + type.getName() + "." + runtimeName);
-                }
-                return method.invoke(target);
-            }
+        Class<?> declaringType = Class.forName(mappings.runtimeClassName(owner), false,
+                target.getClass().getClassLoader());
+        if (!declaringType.isAssignableFrom(target.getClass())) {
+            throw new IllegalArgumentException("Mapped method owner " + declaringType.getName()
+                    + " is not a supertype of " + target.getClass().getName());
         }
-        throw new NoSuchMethodException("Mapped method not found: " + owner + "." + runtimeName + descriptor);
+        Method method = declaringType.getDeclaredMethod(runtimeName);
+        if (!method.trySetAccessible()) {
+            throw new IllegalAccessException("Cannot access mapped method "
+                    + declaringType.getName() + "." + runtimeName);
+        }
+        return method.invoke(target);
     }
 
     private static void rethrowFatal(Throwable failure) {
