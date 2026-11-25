@@ -34,7 +34,7 @@ class ClientGameSnapshotTest {
                 net.minecraft.world.level.Level -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLevel:
                 net.minecraft.world.food.FoodData -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeFoodData:
                 net.minecraft.resources.ResourceKey -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeResourceKey:
-                net.minecraft.resources.ResourceLocation -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeResourceLocation:
+                net.minecraft.resources.Identifier -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeIdentifier:
                 """);
         MinecraftHooks.configureMappings(MinecraftMappings.read(mappingsFile));
 
@@ -93,7 +93,7 @@ class ClientGameSnapshotTest {
                 net.minecraft.world.level.Level -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLevel:
                 net.minecraft.world.food.FoodData -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeFoodData:
                 net.minecraft.resources.ResourceKey -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeResourceKey:
-                net.minecraft.resources.ResourceLocation -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeResourceLocation:
+                net.minecraft.resources.Identifier -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeIdentifier:
                 """);
         MinecraftHooks.configureMappings(MinecraftMappings.read(mappingsFile));
 
@@ -157,10 +157,10 @@ class ClientGameSnapshotTest {
     public static final class FakeClientLevel extends FakeLevel { }
 
     public static final class FakeResourceKey {
-        public FakeResourceLocation location() { return new FakeResourceLocation(); }
+        public FakeIdentifier identifier() { return new FakeIdentifier(); }
     }
 
-    public static final class FakeResourceLocation {
+    public static final class FakeIdentifier {
         @Override public String toString() { return "minecraft:overworld"; }
     }
 }
