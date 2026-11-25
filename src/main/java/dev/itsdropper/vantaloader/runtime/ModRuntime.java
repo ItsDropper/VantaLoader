@@ -443,7 +443,16 @@ public final class ModRuntime implements AutoCloseable {
         protected Class<?> findClass(String name) throws ClassNotFoundException {
             String resourceName = name.replace('.', '/') + ".class";
             URL resource = findResource(resourceName);
-            if (resource == null) throw new ClassNotFoundException(name);
+            if (resource == null) {
+                if (name.startsWith("name.vantaclient.mixin.")) {
+                    LOGGER.severe("Mixin class resource missing from mod container: " + resourceName
+                            + " in " + java.util.Arrays.toString(getURLs()));
+                }
+                throw new ClassNotFoundException(name);
+            }
+            if (name.startsWith("name.vantaclient.mixin.")) {
+                LOGGER.fine("Loading Mixin class " + name + " from " + resource);
+            }
             try (java.io.InputStream input = resource.openStream()) {
                 byte[] bytecode = input.readAllBytes();
                 if (mappings != null) bytecode = MinecraftClassRemapper.remap(bytecode, mappings);
