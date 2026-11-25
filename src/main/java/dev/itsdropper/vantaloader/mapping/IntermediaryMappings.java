@@ -198,13 +198,9 @@ public final class IntermediaryMappings {
             int end = descriptor.indexOf(';', i);
             if (end < 0) throw new IOException("Malformed intermediary descriptor: " + descriptor);
             String intermediaryName = descriptor.substring(i, end);
-            String officialName = intermediaryToOfficialClasses.get(intermediaryName);
-            if (officialName == null) {
-                if (intermediaryName.startsWith("net/minecraft/")) {
-                    throw new IOException("No official class mapping for descriptor type " + intermediaryName);
-                }
-                officialName = intermediaryName;
-            }
+            // A descriptor may contain an official-only Minecraft class that
+            // has no Intermediary alias. Keep it official for Mojang remapping.
+            String officialName = intermediaryToOfficialClasses.getOrDefault(intermediaryName, intermediaryName);
             result.append(officialName).append(';');
             i = end + 1;
         }
