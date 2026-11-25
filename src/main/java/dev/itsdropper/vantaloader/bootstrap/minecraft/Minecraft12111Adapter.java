@@ -226,7 +226,9 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
                 CLIENT_PACKET_LISTENER_CLASS, "sendCommand", SEND_COMMAND_DESCRIPTOR);
         String runtimeDescriptor = context.mappings().runtimeDescriptor(SEND_COMMAND_DESCRIPTOR);
         ClassReader reader = new ClassReader(originalClass);
-        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        ClassWriter writer = new HierarchyClassWriter(reader,
+                ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS,
+                Minecraft12111Adapter.class.getClassLoader());
         boolean[] matched = {false};
         ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
             @Override
