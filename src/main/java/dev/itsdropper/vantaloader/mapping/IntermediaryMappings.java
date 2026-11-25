@@ -121,9 +121,8 @@ public final class IntermediaryMappings {
         return result.toString();
     }
 
-    public byte[] remapRefmap(byte[] json, MinecraftMappings runtimeMappings, ClassLoader modLoader) throws IOException {
+    public byte[] remapRefmap(byte[] json, ClassLoader modLoader) throws IOException {
         if (json == null) throw new NullPointerException("json");
-        if (runtimeMappings == null) throw new NullPointerException("runtimeMappings");
         try {
             JsonObject root = JsonParser.parseString(new String(json, StandardCharsets.UTF_8)).getAsJsonObject();
             JsonObject mappings = root.getAsJsonObject("mappings");
@@ -134,9 +133,9 @@ public final class IntermediaryMappings {
                     for (Map.Entry<String, JsonElement> reference : references.entrySet()) {
                         if (reference.getValue().isJsonPrimitive()
                                 && reference.getValue().getAsJsonPrimitive().isString()) {
-                            String owner = mixinTargetOwner(mixin.getKey(), modLoader, runtimeMappings);
+                            String owner = mixinTargetOwner(mixin.getKey(), modLoader);
                             reference.setValue(new com.google.gson.JsonPrimitive(
-                                    remapReference(reference.getValue().getAsString(), runtimeMappings, owner)));
+                                    remapReference(reference.getValue().getAsString(), owner)));
                         }
                     }
                 }
@@ -147,10 +146,9 @@ public final class IntermediaryMappings {
         }
     }
 
-    private String remapUnqualifiedReference(String reference, MinecraftMappings runtimeMappings,
-                                             String officialOwner) throws IOException {
-        if (officialOwner == null) return reference;
-        String intermediaryOwner = officialToIntermediaryClasses.get(officialOwner.replace('.', '/'));
+    private String remapUnqualifiedReference(String reference, String runtimeOwner) throws IOException {
+        if (runtimeOwner == null) return reference;
+        String intermediaryOwner = officialToIntermediaryClasses.get(runtimeOwner);
         if (intermediaryOwner == null) return reference;
 
         int methodStart = reference.indexOf('(');
@@ -158,34 +156,31 @@ public final class IntermediaryMappings {
         if (methodStart >= 0) {
             String intermediaryName = reference.substring(0, methodStart);
             String intermediaryDescriptor = reference.substring(methodStart);
-            String officialDescriptor = mapDescriptor(intermediaryDescriptor);
-            String officialName = intermediaryToOfficialMethods.get(
+            String runtimeDescriptor = mapDescriptor(intermediaryDescriptor);
+            String runtimeName = intermediaryToOfficialMethods.get(
                     intermediaryOwner + "#" + intermediaryName + intermediaryDescriptor);
-            if (officialName == null) {
-                throw new IOException("No official method mapping for mixin target " + officialOwner + "#"
+            if (runtimeName == null) {
+                throw new IOException("No runtime method mapping for mixin target " + runtimeOwner + "#"
                         + intermediaryName + intermediaryDescriptor);
             }
-            String runtimeName = runtimeMappings.toRuntimeMethodName(officialOwner, officialName, officialDescriptor);
-            return runtimeName + runtimeMappings.runtimeDescriptor(officialDescriptor);
+            return runtimeName + runtimeDescriptor;
         }
         if (fieldSeparator >= 0) {
             String intermediaryName = reference.substring(0, fieldSeparator);
             String intermediaryDescriptor = reference.substring(fieldSeparator + 1);
-            String officialDescriptor = mapDescriptor(intermediaryDescriptor);
-            String officialName = intermediaryToOfficialFields.get(
+            String runtimeDescriptor = mapDescriptor(intermediaryDescriptor);
+            String runtimeName = intermediaryToOfficialFields.get(
                     intermediaryOwner + "#" + intermediaryName + intermediaryDescriptor);
-            if (officialName == null) {
-                throw new IOException("No official field mapping for mixin target " + officialOwner + "#"
+            if (runtimeName == null) {
+                throw new IOException("No runtime field mapping for mixin target " + runtimeOwner + "#"
                         + intermediaryName + ":" + intermediaryDescriptor);
             }
-            String runtimeName = runtimeMappings.toRuntimeFieldName(officialOwner, officialName, officialDescriptor);
-            return runtimeName + ":" + runtimeMappings.runtimeDescriptor(officialDescriptor);
+            return runtimeName + ":" + runtimeDescriptor;
         }
         return reference;
     }
 
-    private static String mixinTargetOwner(String mixinClass, ClassLoader modLoader,
-                                           MinecraftMappings runtimeMappings) throws IOException {
+    private static String mixinTargetOwner(String mixinClass, ClassLoader modLoader) throws IOException {
         if (mixinClass == null || modLoader == null) return null;
         String resource = mixinClass + ".class";
         try (InputStream input = modLoader.getResourceAsStream(resource)) {
@@ -208,13 +203,12 @@ public final class IntermediaryMappings {
                         Object target = value instanceof java.util.List<?> list && !list.isEmpty()
                                 ? list.get(0) : value;
                         if (target instanceof org.objectweb.asm.Type type) {
-                            String runtimeName = type.getClassName();
-                            return runtimeMappings.toNamedClassName(runtimeName);
+                            return type.getInternalName();
                         }
                     }
                     if ("targets".equals(key) && value instanceof java.util.List<?> targets && !targets.isEmpty()
                             && targets.get(0) instanceof String target) {
-                        return runtimeMappings.toNamedClassName(target.replace('/', '.'));
+                        return target.replace('.', '/');
                     }
                 }
             }
@@ -222,17 +216,16 @@ public final class IntermediaryMappings {
         }
     }
 
-    private String remapReference(String reference, MinecraftMappings runtimeMappings, String mixinOwnerOfficial)
-            throws IOException {
+    private String remapReference(String reference, String mixinOwnerRuntime) throws IOException {
         int ownerStart = reference.indexOf('L');
         int ownerEnd = ownerStart < 0 ? -1 : reference.indexOf(';', ownerStart);
         if (ownerStart < 0 || ownerEnd < 0) {
-            return remapUnqualifiedReference(reference, runtimeMappings, mixinOwnerOfficial);
+            return remapUnqualifiedReference(reference, mixinOwnerRuntime);
         }
 
         String intermediaryOwner = reference.substring(ownerStart + 1, ownerEnd);
-        String officialOwner = intermediaryToOfficialClasses.get(intermediaryOwner);
-        if (officialOwner == null) {
+        String runtimeOwner = intermediaryToOfficialClasses.get(intermediaryOwner);
+        if (runtimeOwner == null) {
             if (intermediaryOwner.startsWith("net/minecraft/")) {
                 throw new IOException("No official class mapping for Mixin reference owner " + intermediaryOwner);
             }
@@ -240,35 +233,31 @@ public final class IntermediaryMappings {
         }
 
         String tail = reference.substring(ownerEnd + 1);
-        String officialOwnerBinaryName = officialOwner.replace('/', '.');
-        String runtimeOwner = runtimeMappings.toRuntimeClassName(officialOwnerBinaryName).replace('.', '/');
         int methodStart = tail.indexOf('(');
         int fieldSeparator = tail.indexOf(':');
         if (methodStart >= 0) {
             String intermediaryName = tail.substring(0, methodStart);
             String intermediaryDescriptor = tail.substring(methodStart);
-            String officialDescriptor = mapDescriptor(intermediaryDescriptor);
-            String officialName = intermediaryToOfficialMethods.get(
+            String runtimeDescriptor = mapDescriptor(intermediaryDescriptor);
+            String runtimeName = intermediaryToOfficialMethods.get(
                     intermediaryOwner + "#" + intermediaryName + intermediaryDescriptor);
-            if (officialName == null) {
-                throw new IOException("No official method mapping for " + intermediaryOwner + "#" + intermediaryName
+            if (runtimeName == null) {
+                throw new IOException("No runtime method mapping for " + intermediaryOwner + "#" + intermediaryName
                         + intermediaryDescriptor);
             }
-            String runtimeName = runtimeMappings.toRuntimeMethodName(officialOwnerBinaryName, officialName, officialDescriptor);
-            return "L" + runtimeOwner + ";" + runtimeName + runtimeMappings.runtimeDescriptor(officialDescriptor);
+            return "L" + runtimeOwner + ";" + runtimeName + runtimeDescriptor;
         }
         if (fieldSeparator >= 0) {
             String intermediaryName = tail.substring(0, fieldSeparator);
             String intermediaryDescriptor = tail.substring(fieldSeparator + 1);
-            String officialDescriptor = mapDescriptor(intermediaryDescriptor);
-            String officialName = intermediaryToOfficialFields.get(
+            String runtimeDescriptor = mapDescriptor(intermediaryDescriptor);
+            String runtimeName = intermediaryToOfficialFields.get(
                     intermediaryOwner + "#" + intermediaryName + intermediaryDescriptor);
-            if (officialName == null) {
-                throw new IOException("No official field mapping for " + intermediaryOwner + "#" + intermediaryName
+            if (runtimeName == null) {
+                throw new IOException("No runtime field mapping for " + intermediaryOwner + "#" + intermediaryName
                         + ":" + intermediaryDescriptor);
             }
-            String runtimeName = runtimeMappings.toRuntimeFieldName(officialOwnerBinaryName, officialName, officialDescriptor);
-            return "L" + runtimeOwner + ";" + runtimeName + ":" + runtimeMappings.runtimeDescriptor(officialDescriptor);
+            return "L" + runtimeOwner + ";" + runtimeName + ":" + runtimeDescriptor;
         }
         return "L" + runtimeOwner + ";" + mapDescriptor(tail);
     }
