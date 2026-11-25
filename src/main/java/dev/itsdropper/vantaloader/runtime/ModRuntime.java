@@ -98,12 +98,22 @@ public final class ModRuntime implements AutoCloseable {
             for (ModArtifact artifact : orderedMods) {
                 ModClassLoader loader = loadersById.get(artifact.descriptor().id());
                 ModEventBus.Scope eventScope = new ModEventBus.Scope(eventBus);
-                ModKeyBindingRegistry keyBindings = new ModKeyBindingRegistry(eventScope,
-                        minecraftCapabilities.supports(MinecraftCapability.KEYBOARD_INPUT_EVENTS));
                 ModServiceRegistry.Scope serviceScope = serviceRegistry.createScope(artifact.descriptor().id());
+                JsonModConfig modConfig;
+                try {
+                    Path modConfigDirectory = configDirectory.resolve(artifact.descriptor().id());
+                    Files.createDirectories(modConfigDirectory);
+                    modConfig = new JsonModConfig(modConfigDirectory.resolve("vma-config.json"));
+                } catch (Exception | Error failure) {
+                    eventScope.close();
+                    serviceScope.close();
+                    throw failure;
+                }
+                ModKeyBindingRegistry keyBindings = new ModKeyBindingRegistry(eventScope,
+                        minecraftCapabilities.supports(MinecraftCapability.KEYBOARD_INPUT_EVENTS), modConfig);
                 LoadedMod mod;
                 try {
-                    mod = instantiate(artifact, loader, eventScope, serviceScope, keyBindings);
+                    mod = instantiate(artifact, loader, eventScope, serviceScope, keyBindings, modConfig);
                 } catch (Exception | Error failure) {
                     keyBindings.close();
                     eventScope.close();
@@ -169,11 +179,9 @@ public final class ModRuntime implements AutoCloseable {
         Thread.currentThread().setContextClassLoader(mod.classLoader());
         try {
             Path modConfigDirectory = configDirectory.resolve(artifact.descriptor().id());
-            Files.createDirectories(modConfigDirectory);
             mod.instance().onInitialize(new DefaultModContext(artifact.descriptor(), gameDirectory,
                     modConfigDirectory, transformationService, eventScope, minecraftCapabilities,
-                    mod.resourceScope(), new JsonModConfig(modConfigDirectory.resolve("vma-config.json")),
-                    mod.tasks(), mod.serviceScope(), mod.keyBindings()));
+                    mod.resourceScope(), mod.config(), mod.tasks(), mod.serviceScope(), mod.keyBindings()));
         } finally {
             Thread.currentThread().setContextClassLoader(previous);
         }
@@ -181,7 +189,7 @@ public final class ModRuntime implements AutoCloseable {
 
     private LoadedMod instantiate(ModArtifact artifact, ModClassLoader loader, ModEventBus.Scope eventScope,
                                   ModServiceRegistry.Scope serviceScope,
-                                  ModKeyBindingRegistry keyBindings) throws Exception {
+                                  ModKeyBindingRegistry keyBindings, JsonModConfig modConfig) throws Exception {
         String id = artifact.descriptor().id();
         String name = artifact.descriptor().mainEntrypoint();
         ClassLoader previous = Thread.currentThread().getContextClassLoader();
@@ -195,7 +203,7 @@ public final class ModRuntime implements AutoCloseable {
             VantaMod instance = (VantaMod) type.getConstructor().newInstance();
             return new LoadedMod(id, instance, loader, eventScope,
                     new ModResourceReloadScope(id, loader, resourceReloadService), artifact.descriptor(),
-                    new ModTaskService(id, loader), serviceScope, keyBindings);
+                    new ModTaskService(id, loader), serviceScope, keyBindings, modConfig);
         } catch (InvocationTargetException exception) {
             Throwable cause = exception.getCause() == null ? exception : exception.getCause();
             throw new IllegalStateException("Constructor for mod '" + id + "' failed: "
@@ -372,7 +380,7 @@ public final class ModRuntime implements AutoCloseable {
                              ModEventBus.Scope eventScope, ModResourceReloadScope resourceScope,
                              dev.itsdropper.vantaloader.metadata.ModDescriptor descriptor,
                              ModTaskService tasks, ModServiceRegistry.Scope serviceScope,
-                             ModKeyBindingRegistry keyBindings) { }
+                             ModKeyBindingRegistry keyBindings, JsonModConfig config) { }
 
     /** Child-first for mod implementation classes, with explicit dependency visibility. */
     private static final class ModClassLoader extends URLClassLoader {

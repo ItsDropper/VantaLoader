@@ -69,7 +69,7 @@ Most mods should not need these bytecode facilities for ordinary behavior. Prefe
 
 ## Explicitly not stable/implemented yet
 
-The current public API does not claim stable abstractions for command registration, live mutable player/world/entity access, registry mutation, networking, server lifecycle, user-remappable keybinding settings, or Minecraft resource-pack reload. Read-only player/world snapshots are available only through the exact Minecraft 1.21.11 client adapter. These are planned VMA domains. They will be added with actual adapter implementations and in-game proof rather than no-op interfaces.
+The current public API does not claim stable abstractions for command registration, live mutable player/world/entity access, registry mutation, networking, server lifecycle, Minecraft resource-pack reload. Read-only player/world snapshots are available only through the exact Minecraft 1.21.11 client adapter. These are planned VMA domains. They will be added with actual adapter implementations and in-game proof rather than no-op interfaces.
 
 ## Compatibility rule
 

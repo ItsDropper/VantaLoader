@@ -17,6 +17,7 @@ public record KeyBinding(String id, String name, int defaultKeyCode, int modifie
     public static final int MODIFIER_MASK = MOD_SHIFT | MOD_CONTROL | MOD_ALT
             | MOD_SUPER | MOD_CAPS_LOCK | MOD_NUM_LOCK;
     public static final int UNBOUND = -1;
+    public static final int MAX_KEY_CODE = 348; // GLFW_KEY_LAST
 
     public KeyBinding {
         if (id == null || !id.matches("[a-z][a-z0-9_.-]{0,63}")) {
@@ -25,7 +26,7 @@ public record KeyBinding(String id, String name, int defaultKeyCode, int modifie
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Key binding name must not be blank");
         }
-        if (defaultKeyCode < UNBOUND) {
+        if (defaultKeyCode < UNBOUND || defaultKeyCode > MAX_KEY_CODE) {
             throw new IllegalArgumentException("Key code must be GLFW key code or UNBOUND");
         }
         if ((modifiers & ~MODIFIER_MASK) != 0) {

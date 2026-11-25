@@ -93,7 +93,7 @@ context.events().subscribe(ProfileLoaded.class, 0, event ->
 context.events().publish(new ProfileLoaded("default"));
 ```
 
-This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter exposes client tick START/END, immutable player/world snapshots, and raw keyboard input events when the launcher supplies the matching official mappings. High-level key bindings are available with declared defaults; user remapping, command registration, registry mutation, rendering, and networking APIs are not yet implemented. The resource API reloads explicitly registered mod-owned files; it does not reload Minecraft resource packs or arbitrary game assets.
+This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter exposes client tick START/END, immutable player/world snapshots, and raw keyboard input events when the launcher supplies the matching official mappings. High-level key bindings are available with declared defaults; command registration, registry mutation, and networking APIs are not yet implemented. The resource API reloads explicitly registered mod-owned files; it does not reload Minecraft resource packs or arbitrary game assets.
 
 ## Client player and world state
 
@@ -141,7 +141,7 @@ if (context.keyBindings().isAvailable()) {
 }
 ```
 
-Bindings receive `PRESSED`, `REPEATED`, and `RELEASED` transitions and expose their pressed state through `KeyBindingRegistration.isPressed()`. The current implementation uses the declared default key; user remapping and persistent key-map UI are not implemented. Bindings are automatically removed when their mod shuts down.
+Bindings receive `PRESSED`, `REPEATED`, and `RELEASED` transitions and expose their pressed state through `KeyBindingRegistration.isPressed()`. Bindings can be remapped at runtime through `registration.remap(keyCode, modifiers)`; the mapping is persisted in the owning mod's VMA config. `registration.resetToDefault()` restores the declared key. A dedicated key-map settings screen is not implemented. Bindings are automatically removed when their mod shuts down.
 
 ## Inter-mod services
 

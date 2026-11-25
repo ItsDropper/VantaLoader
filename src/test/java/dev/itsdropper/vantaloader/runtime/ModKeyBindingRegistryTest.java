@@ -4,6 +4,8 @@ import dev.itsdropper.vantaloader.api.KeyBinding;
 import dev.itsdropper.vantaloader.api.KeyBindingAction;
 import dev.itsdropper.vantaloader.api.KeyInputEvent;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import java.nio.file.Path;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +13,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ModKeyBindingRegistryTest {
+    @TempDir Path temporaryDirectory;
     private static final Object HANDLER = new Object();
 
     @Test
@@ -94,6 +97,44 @@ class ModKeyBindingRegistryTest {
         assertTrue(registry.find("missing").isEmpty());
         assertThrows(UnsupportedOperationException.class,
                 () -> registry.register(new KeyBinding("toggle", "Toggle", 65, 0, action -> { })));
+        registry.close();
+    }
+
+
+    @Test
+    void remappingPersistsAcrossRegistryInstancesAndCanBeReset() throws Exception {
+        Path file = temporaryDirectory.resolve("vma-config.json");
+        JsonModConfig config = new JsonModConfig(file);
+        ModEventBus events = new ModEventBus();
+        ModKeyBindingRegistry registry = new ModKeyBindingRegistry(events, true, config);
+        var registration = registry.register(new KeyBinding("toggle", "Toggle", 65, 0, action -> { }));
+
+        registration.remap(66, KeyBinding.MOD_CONTROL);
+        assertEquals(66, registration.keyCode());
+        assertEquals(KeyBinding.MOD_CONTROL, registration.modifiers());
+        registry.close();
+
+        JsonModConfig reloaded = new JsonModConfig(file);
+        ModKeyBindingRegistry next = new ModKeyBindingRegistry(new ModEventBus(), true, reloaded);
+        var restored = next.register(new KeyBinding("toggle", "Toggle", 65, 0, action -> { }));
+        assertEquals(66, restored.keyCode());
+        assertEquals(KeyBinding.MOD_CONTROL, restored.modifiers());
+
+        restored.resetToDefault();
+        assertEquals(65, restored.keyCode());
+        assertEquals(0, restored.modifiers());
+        next.close();
+    }
+
+    @Test
+    void rejectsInvalidRemapsAndDoesNotChangeTheActiveBinding() {
+        ModKeyBindingRegistry registry = new ModKeyBindingRegistry(new ModEventBus(), true);
+        var registration = registry.register(new KeyBinding("toggle", "Toggle", 65, 0, action -> { }));
+
+        assertThrows(IllegalArgumentException.class, () -> registration.remap(999, 0));
+        assertThrows(IllegalArgumentException.class, () -> registration.remap(66, 0x4000));
+        assertEquals(65, registration.keyCode());
+        assertEquals(0, registration.modifiers());
         registry.close();
     }
 
