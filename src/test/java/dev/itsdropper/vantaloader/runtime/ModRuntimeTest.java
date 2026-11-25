@@ -34,7 +34,7 @@ class ModRuntimeTest {
 
         Path mappingsFile = temporaryDirectory.resolve("key-event-mappings.txt");
         Files.writeString(mappingsFile, "net.minecraft.client.input.KeyEvent -> "
-                + FakeKeyEvent.class.getName() + ":\\n");
+                + FakeKeyEvent.class.getName() + ":\n");
         MinecraftHooks.configureMappings(MinecraftMappings.read(mappingsFile));
 
         assertNotNull(RuntimeEvents.keyBindingRegistration);
