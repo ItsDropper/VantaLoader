@@ -482,7 +482,7 @@ public final class ModRuntime implements AutoCloseable {
                 URL resource = findResource(name);
                 if (resource != null) {
                     try (java.io.InputStream input = resource.openStream()) {
-                        byte[] remapped = intermediaryMappings.remapRefmap(input.readAllBytes(), mappings, this);
+                        byte[] remapped = intermediaryMappings.remapRefmap(input.readAllBytes(), this);
                         return new java.io.ByteArrayInputStream(remapped);
                     } catch (IOException exception) {
                         LOGGER.log(Level.SEVERE, "Cannot remap Mixin reference map " + name, exception);
