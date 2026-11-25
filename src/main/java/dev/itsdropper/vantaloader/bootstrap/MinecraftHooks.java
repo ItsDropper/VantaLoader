@@ -169,7 +169,7 @@ public final class MinecraftHooks {
         Object dimension = invoke(level, mappings, "net.minecraft.world.level.Level",
                 "dimension", "()Lnet/minecraft/resources/ResourceKey;");
         Object location = invoke(dimension, mappings, "net.minecraft.resources.ResourceKey",
-                "location", "()Lnet/minecraft/resources/ResourceLocation;");
+                "identifier", "()Lnet/minecraft.resources.Identifier;");
         String dimensionId = String.valueOf(location);
         long gameTime = ((Number) invoke(level, mappings, "net.minecraft.world.level.Level",
                 "getGameTime", "()J")).longValue();
