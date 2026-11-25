@@ -419,12 +419,24 @@ public final class ModRuntime implements AutoCloseable {
         };
         private final List<ClassLoader> dependencies;
         private final MinecraftMappings mappings;
+        private final dev.itsdropper.vantaloader.mapping.IntermediaryMappings intermediaryMappings;
 
         private ModClassLoader(URL jar, ClassLoader parent, List<ClassLoader> dependencies,
                                MinecraftMappings mappings) {
             super(new URL[]{jar}, parent);
             this.dependencies = List.copyOf(dependencies);
             this.mappings = mappings;
+            this.intermediaryMappings = mappings == null ? null : loadIntermediaryMappings();
+        }
+
+        private dev.itsdropper.vantaloader.mapping.IntermediaryMappings loadIntermediaryMappings() {
+            try (java.io.InputStream input = super.getResourceAsStream("mappings/mappings.tiny")) {
+                if (input == null) return null;
+                return dev.itsdropper.vantaloader.mapping.IntermediaryMappings.read(input);
+            } catch (IOException exception) {
+                LOGGER.log(Level.WARNING, "Cannot load bundled intermediary mappings for Mixin refmaps", exception);
+                return null;
+            }
         }
 
         @Override
@@ -466,6 +478,18 @@ public final class ModRuntime implements AutoCloseable {
 
         @Override
         public java.io.InputStream getResourceAsStream(String name) {
+            if (mappings != null && intermediaryMappings != null && name.endsWith(".refmap.json")) {
+                URL resource = findResource(name);
+                if (resource != null) {
+                    try (java.io.InputStream input = resource.openStream()) {
+                        byte[] remapped = intermediaryMappings.remapRefmap(input.readAllBytes(), mappings);
+                        return new java.io.ByteArrayInputStream(remapped);
+                    } catch (IOException exception) {
+                        LOGGER.log(Level.SEVERE, "Cannot remap Mixin reference map " + name, exception);
+                        return null;
+                    }
+                }
+            }
             if (mappings != null && name.endsWith(".class")) {
                 URL resource = findResource(name);
                 if (resource != null) {
