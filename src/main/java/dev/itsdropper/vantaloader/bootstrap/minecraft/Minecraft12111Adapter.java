@@ -18,8 +18,8 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
     public static final String CLIENT_CLASS = "net.minecraft.client.Minecraft";
     public static final String KEYBOARD_HANDLER_CLASS = "net.minecraft.client.KeyboardHandler";
     private static final String KEY_PRESS_METHOD = "keyPress";
-    private static final String KEY_PRESS_DESCRIPTOR = "(JIIII)V";
-    private static final String KEY_INPUT_HOOK_DESCRIPTOR = "(Ljava/lang/Object;JIIII)V";
+    private static final String KEY_PRESS_DESCRIPTOR = "(JILnet/minecraft/client/input/KeyEvent;)V";
+    private static final String KEY_INPUT_HOOK_DESCRIPTOR = "(Ljava/lang/Object;JILjava/lang/Object;)V";
     private static final String CLIENT_TICK_METHOD = "tick";
     private static final String CLIENT_TICK_DESCRIPTOR = "()V";
     private static final String HOOK_OWNER = Type.getInternalName(MinecraftHooks.class);
@@ -155,9 +155,7 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
                         super.visitVarInsn(Opcodes.ALOAD, 0);
                         super.visitVarInsn(Opcodes.LLOAD, 1);
                         super.visitVarInsn(Opcodes.ILOAD, 3);
-                        super.visitVarInsn(Opcodes.ILOAD, 4);
-                        super.visitVarInsn(Opcodes.ILOAD, 5);
-                        super.visitVarInsn(Opcodes.ILOAD, 6);
+                        super.visitVarInsn(Opcodes.ALOAD, 4);
                         super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOK_OWNER,
                                 "onKeyInput", KEY_INPUT_HOOK_DESCRIPTOR, false);
                     }
