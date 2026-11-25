@@ -79,10 +79,15 @@ public final class VantaMixinService extends MixinServiceAbstract
         }
     }
     @Override public URL[] getClassPath() {
-        List<URL> urls = new ArrayList<>(MixinClassPath.containers());
-        try { urls.add(VantaMixinService.class.getProtectionDomain().getCodeSource().getLocation()); }
-        catch (Exception ignored) { }
-        return urls.toArray(URL[]::new);
+        // Mod JARs are intentionally not added to the application class path:
+        // each remains owned by its ModClassLoader. Exposing them here lets
+        // Mixin's platform agent load duplicate mod classes through the app
+        // loader, breaking references between a mod's entrypoint and mixins.
+        try {
+            return new URL[]{VantaMixinService.class.getProtectionDomain().getCodeSource().getLocation()};
+        } catch (Exception ignored) {
+            return new URL[0];
+        }
     }
     @Override public Class<?> findClass(String name) throws ClassNotFoundException {
         return findClass(name, false);
