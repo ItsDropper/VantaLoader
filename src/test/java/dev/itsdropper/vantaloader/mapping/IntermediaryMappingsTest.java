@@ -23,11 +23,11 @@ class IntermediaryMappingsTest {
                 \tf\tLjava/net/SocketAddress;\tb\tfield_11645
                 c\txyz\tnet/minecraft/class_1309
                 \tf\tF\tbD\tfield_6220
+                \tf\tF\tbF\tfield_6259
                 c\thig\tnet/minecraft/class_634
                 c\tadb\tnet/minecraft/class_2602
                 \tm\t(Ladj;)V\ta\tmethod_11136
                 c\tadj\tnet/minecraft/class_2626
-                \tf\tF\tbF\tfield_6259
                 """;
         IntermediaryMappings intermediary = IntermediaryMappings.read(
                 new ByteArrayInputStream(tiny.getBytes(StandardCharsets.UTF_8)));
