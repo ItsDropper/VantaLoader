@@ -106,10 +106,10 @@ public final class IntermediaryMappings {
             int end = descriptor.indexOf(';', i);
             if (end < 0) throw new IOException("Malformed Tiny member descriptor: " + descriptor);
             String sourceName = descriptor.substring(i, end);
+            // Some official Minecraft classes intentionally have no Intermediary
+            // alias. Keep those descriptor types in the official namespace; the
+            // following Mojang-mapping pass still converts them to runtime names.
             String intermediaryName = classes.get(sourceName);
-            if (intermediaryName == null && sourceName.startsWith("net/minecraft/")) {
-                throw new IOException("No intermediary class mapping for descriptor type " + sourceName);
-            }
             result.append(intermediaryName == null ? sourceName : intermediaryName).append(';');
             i = end + 1;
         }
