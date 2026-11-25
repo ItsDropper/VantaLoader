@@ -23,6 +23,10 @@ class IntermediaryMappingsTest {
                 \tf\tLjava/net/SocketAddress;\tb\tfield_11645
                 c\txyz\tnet/minecraft/class_1309
                 \tf\tF\tbD\tfield_6220
+                c\thig\tnet/minecraft/class_634
+                c\tadb\tnet/minecraft/class_2602
+                \tm\t(Ladj;)V\ta\tmethod_11136
+                c\tadj\tnet/minecraft/class_2626
                 \tf\tF\tbF\tfield_6259
                 """;
         IntermediaryMappings intermediary = IntermediaryMappings.read(
@@ -38,6 +42,9 @@ class IntermediaryMappingsTest {
                     "example/ConnectionAccessor": {
                       "address": "Lnet/minecraft/class_2535;field_11645:Ljava/net/SocketAddress;"
                     },
+                    "example/InheritedMethodMixin": {
+                      "blockUpdate": "Lnet/minecraft/class_634;method_11136(Lnet/minecraft/class_2626;)V"
+                    },
                     "dev/itsdropper/vantaloader/mapping/IntermediaryMappingsTest$LivingEntityAccessorMixin": {
                       "headYaw": "field_6259:F"
                     }
@@ -50,6 +57,7 @@ class IntermediaryMappingsTest {
         assertTrue(remapped.contains("Labc;a()V"), remapped);
         assertTrue(remapped.contains("Labc;b(Ljava/lang/String;)V"), remapped);
         assertTrue(remapped.contains("Lconn;b:Ljava/net/SocketAddress;"), remapped);
+        assertTrue(remapped.contains("Lhig;a(Ladj;)V"), remapped);
         assertTrue(remapped.contains("bF:F"), remapped);
     }
 }
