@@ -32,6 +32,7 @@ class ClientGameSnapshotTest {
                 net.minecraft.world.entity.LivingEntity -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLivingEntity:
                 net.minecraft.world.entity.player.Player -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakePlayer:
                 net.minecraft.world.level.Level -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLevel:
+                net.minecraft.world.level.LevelAccessor -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLevelAccessor:
                 net.minecraft.world.food.FoodData -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeFoodData:
                 net.minecraft.resources.ResourceKey -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeResourceKey:
                 net.minecraft.resources.Identifier -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeIdentifier:
@@ -149,9 +150,13 @@ class ClientGameSnapshotTest {
         public int getFoodLevel() { return 18; }
     }
 
-    public static class FakeLevel {
+    public interface FakeLevelAccessor {
+        long getGameTime();
+    }
+
+    public static class FakeLevel implements FakeLevelAccessor {
         public FakeResourceKey dimension() { return new FakeResourceKey(); }
-        public long getGameTime() { return 123456L; }
+        @Override public long getGameTime() { return 123456L; }
     }
 
     public static final class FakeClientLevel extends FakeLevel { }
