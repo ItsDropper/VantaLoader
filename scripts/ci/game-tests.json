@@ -32,11 +32,12 @@
     },
     {
       "id": "vma-high-level-api",
-      "description": "A native mod uses typed persistent configuration and the high-level client tick event without bytecode transformations.",
+      "description": "A native mod uses typed configuration, client tick events, and immutable player/world snapshots without bytecode transformations.",
       "required_log_markers": [
         "VMA showcase config loaded: enabled=true",
         "VMA showcase: managed background task executed",
-        "VMA showcase: high-level client tick event delivered"
+        "VMA showcase: high-level client tick event delivered",
+        "VMA showcase: player/world snapshot delivered; dimension="
       ]
     },
     {
