@@ -89,14 +89,20 @@ public final class VantaMixinService extends MixinServiceAbstract
     }
     @Override public Class<?> findClass(String name, boolean initialize) throws ClassNotFoundException {
         ClassNotFoundException failure = null;
-        ClassLoader context = Thread.currentThread().getContextClassLoader();
-        if (context != null) {
-            try { return Class.forName(name, initialize, context); }
-            catch (ClassNotFoundException exception) { failure = exception; }
-        }
+        // A mod's mixin and support classes must be defined by that mod's
+        // isolated loader. The thread context loader is commonly the app
+        // loader and may contain an incomplete/older copy of the same mod.
         for (ClassLoader loader : MixinClassPath.loaders()) {
             try { return Class.forName(name, initialize, loader); }
             catch (ClassNotFoundException exception) { failure = exception; }
+        }
+        ClassLoader context = Thread.currentThread().getContextClassLoader();
+        if (context != null) {
+            try { return Class.forName(name, initialize, context); }
+            catch (ClassNotFoundException exception) {
+                if (failure != null) exception.addSuppressed(failure);
+                failure = exception;
+            }
         }
         try { return Class.forName(name, initialize, VantaMixinService.class.getClassLoader()); }
         catch (ClassNotFoundException exception) {
@@ -124,13 +130,15 @@ public final class VantaMixinService extends MixinServiceAbstract
         }
     }
     private InputStream openClassResource(String resource) {
+        // Match findClass: use the owning mod loader first so Mixin sees the
+        // same remapped class bytes that the mod will execute against.
+        for (ClassLoader loader : MixinClassPath.loaders()) {
+            InputStream stream = loader.getResourceAsStream(resource);
+            if (stream != null) return stream;
+        }
         ClassLoader context = Thread.currentThread().getContextClassLoader();
         if (context != null) {
             InputStream stream = context.getResourceAsStream(resource);
-            if (stream != null) return stream;
-        }
-        for (ClassLoader loader : MixinClassPath.loaders()) {
-            InputStream stream = loader.getResourceAsStream(resource);
             if (stream != null) return stream;
         }
         return ClassLoader.getSystemResourceAsStream(resource);
