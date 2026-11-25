@@ -31,6 +31,8 @@ class ClientGameSnapshotTest {
                 net.minecraft.client.multiplayer.ClientLevel -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeClientLevel:
                 net.minecraft.world.entity.Entity -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeEntity:
                     1:1:boolean onGround -> bc
+                net.minecraft.world.entity.EntityType -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeEntityType:
+                net.minecraft.network.chat.Component -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeComponent:
                 net.minecraft.world.entity.LivingEntity -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLivingEntity:
                 net.minecraft.world.entity.player.Player -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakePlayer:
                 net.minecraft.world.level.Level -> dev.itsdropper.vantaloader.runtime.ClientGameSnapshotTest$FakeLevel:
