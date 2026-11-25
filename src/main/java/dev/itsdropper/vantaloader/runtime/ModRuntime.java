@@ -442,6 +442,9 @@ public final class ModRuntime implements AutoCloseable {
         @Override
         protected Class<?> findClass(String name) throws ClassNotFoundException {
             String resourceName = name.replace('.', '/') + ".class";
+            if (name.startsWith("name.vantaclient.")) {
+                LOGGER.info("Resolving Vanta Client class " + name + " in " + java.util.Arrays.toString(getURLs()));
+            }
             URL resource = findResource(resourceName);
             if (resource == null) {
                 if (name.startsWith("name.vantaclient.mixin.")) {
@@ -526,6 +529,9 @@ public final class ModRuntime implements AutoCloseable {
                         try {
                             loaded = findClass(name);
                         } catch (ClassNotFoundException ownMiss) {
+                            if (name.startsWith("name.vantaclient.")) {
+                                LOGGER.log(Level.SEVERE, "Vanta Client class is absent from its own mod container: " + name, ownMiss);
+                            }
                             for (ClassLoader dependency : dependencies) {
                                 try {
                                     loaded = dependency.loadClass(name);
