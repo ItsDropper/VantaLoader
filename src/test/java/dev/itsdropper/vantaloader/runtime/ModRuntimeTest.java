@@ -283,9 +283,10 @@ class ModRuntimeTest {
 
         OutOfMemoryError failure = assertThrows(OutOfMemoryError.class, runtime::stop);
         assertEquals("simulated fatal shutdown failure", failure.getMessage());
-        assertEquals(List.of("init:alpha", "init:beta", "stop"), RuntimeEvents.EVENTS);
+        assertEquals(List.of("init:alpha", "init:beta", "stop", "stop"), RuntimeEvents.EVENTS,
+                "A fatal shutdown callback must not prevent earlier mods from being shut down");
         runtime.close();
-        assertEquals(3, RuntimeEvents.EVENTS.size(),
+        assertEquals(4, RuntimeEvents.EVENTS.size(),
                 "A runtime closed after a fatal shutdown failure must not invoke mods again");
     }
 
