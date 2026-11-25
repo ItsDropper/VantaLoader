@@ -70,22 +70,31 @@ public final class MinecraftHooks {
         }
         EventBus eventBus = EVENT_BUS.get();
         if (eventBus == null) return;
+        final int keyCode;
+        final int scanCode;
+        final int modifiers;
         try {
             MinecraftMappings mappings = MAPPINGS.get();
             if (mappings == null) throw new IllegalStateException("Official Minecraft mappings are not configured");
-            int keyCode = ((Number) invoke(keyEvent, mappings,
+            keyCode = ((Number) invoke(keyEvent, mappings,
                     "net.minecraft.client.input.KeyEvent", "key", "()I")).intValue();
-            int scanCode = ((Number) invoke(keyEvent, mappings,
+            scanCode = ((Number) invoke(keyEvent, mappings,
                     "net.minecraft.client.input.KeyEvent", "scancode", "()I")).intValue();
-            int modifiers = ((Number) invoke(keyEvent, mappings,
+            modifiers = ((Number) invoke(keyEvent, mappings,
                     "net.minecraft.client.input.KeyEvent", "modifiers", "()I")).intValue();
-            eventBus.publish(new KeyInputEvent(
-                    keyboardHandler, windowHandle, keyCode, scanCode, action, modifiers));
         } catch (Throwable failure) {
             rethrowFatal(failure);
             if (KEY_INPUT_FAILURE_LOGGED.compareAndSet(false, true)) {
                 LOGGER.log(Level.SEVERE, "VantaLoader could not decode Minecraft's mapped KeyEvent", failure);
             }
+            return;
+        }
+        try {
+            eventBus.publish(new KeyInputEvent(
+                    keyboardHandler, windowHandle, keyCode, scanCode, action, modifiers));
+        } catch (Throwable failure) {
+            rethrowFatal(failure);
+            LOGGER.log(Level.SEVERE, "One or more VantaLoader keyboard input listeners failed", failure);
         }
     }
 
