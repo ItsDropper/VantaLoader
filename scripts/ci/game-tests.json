@@ -23,7 +23,7 @@
       "required_log_markers": [
         "VantaLoader Mods button registered at ",
         "VantaLoader menu button activated",
-        "VantaLoader mod menu rendered; entries=4"
+        "VantaLoader mod menu rendered; entries=5"
       ],
       "screenshots": [
         "main-menu.png",
