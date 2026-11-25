@@ -22,7 +22,7 @@ The included Gradle plugin configures Java compilation against the standalone Va
 
 ## Client-local commands
 
-`ModContext.clientCommands()` registers commands owned by a mod and intercepted in `ClientPacketListener.sendCommand` before vanilla sends them to a server. Only registered command names are consumed; unknown commands pass through unchanged. Names are globally unique across loaded mods. Arguments support whitespace separation, single/double quotes, and backslash escaping. Callbacks execute synchronously on Minecraft's client thread; use `context.tasks()` for background I/O and never block the game thread. Registrations are removed when their owning mod shuts down or startup rolls back. This integration is capability-gated by `CLIENT_COMMANDS` and is verified only for the exact Minecraft 1.21.11 adapter.
+`ModContext.clientCommands()` registers commands owned by a mod and intercepted at `ChatScreen.handleChatInput` before vanilla's client-side command parser rejects unknown roots. Only registered command names are consumed; unknown commands pass through unchanged. Names are globally unique across loaded mods. Arguments support whitespace separation, single/double quotes, and backslash escaping. Callbacks execute synchronously on Minecraft's client thread; use `context.tasks()` for background I/O and never block the game thread. Registrations are removed when their owning mod shuts down or startup rolls back. This integration is capability-gated by `CLIENT_COMMANDS` and is verified only for the exact Minecraft 1.21.11 adapter.
 
 ```java
 context.clientCommands().register(new ClientCommand(

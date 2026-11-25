@@ -88,17 +88,17 @@ class Minecraft12111AdapterTest {
 
 
     @Test
-    void interceptsRegisteredClientCommandsBeforeVanillaSendsThemToTheServer() throws Exception {
+    void interceptsRegisteredClientCommandsBeforeVanillaParsesThem() throws Exception {
         Path mappingsFile = temporaryDirectory.resolve("commands.txt");
         Files.writeString(mappingsFile, """
-                net.minecraft.client.multiplayer.ClientPacketListener -> d:
-                    1:1:void sendCommand(java.lang.String) -> a
+                net.minecraft.client.gui.screens.ChatScreen -> d:
+                    1:1:void handleChatInput(java.lang.String,boolean) -> a
                 """);
         MinecraftMappings mappings = MinecraftMappings.read(mappingsFile);
         TransformationService transformations = new TransformationService(mappings);
         new Minecraft12111Adapter().install(transformations);
         byte[] transformed = transformations.transform(getClass().getClassLoader(),
-                "d", null, null, clientPacketListenerFixture());
+                "d", null, null, chatScreenFixture());
         assertNotNull(transformed);
 
         ModEventBus bus = new ModEventBus();
@@ -112,8 +112,8 @@ class Minecraft12111AdapterTest {
         try {
             Class<?> type = new IsolatedClassLoader(getClass().getClassLoader()).define("d", transformed);
             Object listener = type.getConstructor().newInstance();
-            type.getMethod("a", String.class).invoke(listener, "local \"hello world\"");
-            type.getMethod("a", String.class).invoke(listener, "say hello");
+            type.getMethod("a", String.class, boolean.class).invoke(listener, "local \"hello world\"", true);
+            type.getMethod("a", String.class, boolean.class).invoke(listener, "say hello", true);
             assertEquals(List.of("hello world"), received);
         } finally {
             MinecraftHooks.unbind(bus);
@@ -122,7 +122,7 @@ class Minecraft12111AdapterTest {
         }
     }
 
-    private static byte[] clientPacketListenerFixture() {
+    private static byte[] chatScreenFixture() {
         ClassWriter writer = new ClassWriter(0);
         writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "d", null, "java/lang/Object", null);
         MethodVisitor constructor = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
@@ -132,10 +132,10 @@ class Minecraft12111AdapterTest {
         constructor.visitInsn(Opcodes.RETURN);
         constructor.visitMaxs(1, 1);
         constructor.visitEnd();
-        MethodVisitor send = writer.visitMethod(Opcodes.ACC_PUBLIC, "a", "(Ljava/lang/String;)V", null, null);
+        MethodVisitor send = writer.visitMethod(Opcodes.ACC_PUBLIC, "a", "(Ljava/lang/String;Z)V", null, null);
         send.visitCode();
         send.visitInsn(Opcodes.RETURN);
-        send.visitMaxs(0, 2);
+        send.visitMaxs(0, 3);
         send.visitEnd();
         writer.visitEnd();
         return writer.toByteArray();

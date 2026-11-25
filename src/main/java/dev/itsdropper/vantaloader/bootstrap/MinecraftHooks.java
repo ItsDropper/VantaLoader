@@ -76,7 +76,7 @@ public final class MinecraftHooks {
             MinecraftMappings mappings = MAPPINGS.get();
             if (mappings == null) throw new IllegalStateException("Official Minecraft mappings are not configured");
             Object minecraft = readField(packetListener, mappings,
-                    "net.minecraft.client.multiplayer.ClientPacketListener", "minecraft",
+                    "net.minecraft.client.gui.screens.Screen", "minecraft",
                     "Lnet/minecraft/client/Minecraft;");
             Object player = readField(minecraft, mappings, "net.minecraft.client.Minecraft", "player",
                     "Lnet/minecraft/client/player/LocalPlayer;");

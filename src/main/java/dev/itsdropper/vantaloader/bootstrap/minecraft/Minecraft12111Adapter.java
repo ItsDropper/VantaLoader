@@ -18,10 +18,10 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
     public static final String VERSION = "1.21.11";
     public static final String CLIENT_CLASS = "net.minecraft.client.Minecraft";
     public static final String KEYBOARD_HANDLER_CLASS = "net.minecraft.client.KeyboardHandler";
-    public static final String CLIENT_PACKET_LISTENER_CLASS = "net.minecraft.client.multiplayer.ClientPacketListener";
+    public static final String CHAT_SCREEN_CLASS = "net.minecraft.client.gui.screens.ChatScreen";
     public static final String HUD_GUI_CLASS = "net.minecraft.client.gui.Gui";
     private static final String KEY_PRESS_METHOD = "keyPress";
-    private static final String SEND_COMMAND_DESCRIPTOR = "(Ljava/lang/String;)V";
+    private static final String CHAT_INPUT_DESCRIPTOR = "(Ljava/lang/String;Z)V";
     private static final String HUD_RENDER_METHOD = "render";
     private static final String HUD_RENDER_DESCRIPTOR =
             "(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/DeltaTracker;)V";
@@ -223,8 +223,8 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
 
     private byte[] transformClientCommands(ClassTransformContext context, byte[] originalClass) {
         String runtimeMethod = context.mappings().runtimeMethodName(
-                CLIENT_PACKET_LISTENER_CLASS, "sendCommand", SEND_COMMAND_DESCRIPTOR);
-        String runtimeDescriptor = context.mappings().runtimeDescriptor(SEND_COMMAND_DESCRIPTOR);
+                CHAT_SCREEN_CLASS, "handleChatInput", CHAT_INPUT_DESCRIPTOR);
+        String runtimeDescriptor = context.mappings().runtimeDescriptor(CHAT_INPUT_DESCRIPTOR);
         ClassReader reader = new ClassReader(originalClass);
         ClassWriter writer = new HierarchyClassWriter(reader,
                 ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS,
@@ -236,9 +236,9 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
                                              String signature, String[] exceptions) {
                 MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions);
                 if (!runtimeMethod.equals(name) || !runtimeDescriptor.equals(descriptor)) return delegate;
-                if (matched[0]) throw new IllegalStateException("Multiple client sendCommand methods found");
+                if (matched[0]) throw new IllegalStateException("Multiple ChatScreen.handleChatInput methods found");
                 if ((access & Opcodes.ACC_STATIC) != 0)
-                    throw new IllegalStateException("ClientPacketListener.sendCommand must be an instance method");
+                    throw new IllegalStateException("ChatScreen.handleChatInput must be an instance method");
                 matched[0] = true;
                 return new MethodVisitor(Opcodes.ASM9, delegate) {
                     @Override public void visitCode() {
@@ -257,7 +257,7 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         };
         reader.accept(visitor, 0);
         if (!matched[0]) throw new IllegalStateException(
-                "Expected Minecraft 1.21.11 ClientPacketListener.sendCommand(String) method missing: "
+                "Expected Minecraft 1.21.11 ChatScreen.handleChatInput(String,boolean) method missing: "
                         + runtimeMethod + runtimeDescriptor);
         return writer.toByteArray();
     }

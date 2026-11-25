@@ -60,7 +60,7 @@
     },
     {
       "id": "vma-client-commands",
-      "description": "A client-local VMA command is intercepted from the real Minecraft chat path and executes without reaching the server.",
+      "description": "A client-local VMA command is intercepted before vanilla's chat command parser and executes locally.",
       "required_log_markers": [
         "Registered client command /vmashowcase for mod vma_showcase",
         "VantaLoader integration probe: client command intercepted",

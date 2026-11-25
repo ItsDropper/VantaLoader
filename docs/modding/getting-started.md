@@ -145,7 +145,7 @@ Bindings receive `PRESSED`, `REPEATED`, and `RELEASED` transitions and expose th
 
 ## Client-local commands
 
-Client-local commands execute on the client and are intercepted before vanilla sends them to a server. Unknown commands pass through unchanged. Register a command during initialization; its registration is removed automatically when the mod stops.
+Client-local commands execute on the client and are intercepted before vanilla's client-side command parser rejects unknown roots. Unknown commands pass through unchanged. Register a command during initialization; its registration is removed automatically when the mod stops.
 
 ```java
 context.clientCommands().register(new ClientCommand(

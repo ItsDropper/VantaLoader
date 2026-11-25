@@ -30,6 +30,15 @@ public final class VmaShowcaseMod implements VantaMod {
         context.logger().info("VMA showcase config loaded: enabled=" + enabled);
         if (!enabled) return;
 
+        if (context.clientCommands().isAvailable()) {
+            context.clientCommands().register(new ClientCommand(
+                    "vmashowcase", "Show VMA showcase status", "vmashowcase",
+                    command -> {
+                        context.logger().info("VMA showcase: client command executed");
+                        command.reply("VMA showcase is active for " + context.modId());
+                    }));
+        }
+
         context.tasks().execute(() ->
                 context.logger().info("VMA showcase: managed background task executed"));
 
