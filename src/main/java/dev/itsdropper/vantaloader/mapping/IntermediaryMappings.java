@@ -38,14 +38,14 @@ public final class IntermediaryMappings {
             String header = reader.readLine();
             if (header == null) throw new IOException("Empty intermediary mappings");
             String[] headerParts = header.split("\\t", -1);
-            if (headerParts.length < 6 || !"tiny".equals(headerParts[0]) || !"2".equals(headerParts[1])) {
+            if (headerParts.length < 5 || !"tiny".equals(headerParts[0]) || !"2".equals(headerParts[1])) {
                 throw new IOException("Expected Tiny v2 intermediary mappings");
             }
             int intermediaryNamespace = -1;
             int officialNamespace = -1;
-            for (int i = 4; i < headerParts.length; i++) {
-                if ("intermediary".equals(headerParts[i])) intermediaryNamespace = i - 4;
-                if ("official".equals(headerParts[i])) officialNamespace = i - 4;
+            for (int i = 3; i < headerParts.length; i++) {
+                if ("intermediary".equals(headerParts[i])) intermediaryNamespace = i - 3;
+                if ("official".equals(headerParts[i])) officialNamespace = i - 3;
             }
             if (intermediaryNamespace < 0 || officialNamespace < 0) {
                 throw new IOException("Intermediary mappings must contain official and intermediary namespaces");
@@ -66,7 +66,7 @@ public final class IntermediaryMappings {
                     }
                     ownerIntermediary = parts[intermediaryIndex];
                     classes.put(ownerIntermediary, parts[officialIndex]);
-                } else if (line.startsWith("\\tm\\t") || line.startsWith("\\tf\\t")) {
+                } else if (line.startsWith("\tm\t") || line.startsWith("\tf\t")) {
                     if (ownerIntermediary == null || parts.length <= 3 + Math.max(intermediaryNamespace, officialNamespace)) {
                         throw new IOException("Malformed member mapping at line " + lineNumber);
                     }
