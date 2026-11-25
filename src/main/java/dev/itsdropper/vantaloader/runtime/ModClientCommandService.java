@@ -148,13 +148,15 @@ public final class ModClientCommandService implements ClientCommandDispatcher, A
         @Override public Optional<ClientCommandRegistration> find(String name) {
             Objects.requireNonNull(name, "name");
             ensureOpen();
+            if (!available) return Optional.empty();
             Registration registration = commands.get(name);
             return registration != null && registration.scope == this
                     ? Optional.of(registration) : Optional.empty();
         }
 
         private void ensureOpen() {
-            if (!isAvailable()) throw new IllegalStateException("Client command scope is closed");
+            if (closed.get() || scopeClosed.get())
+                throw new IllegalStateException("Client command scope is closed");
         }
 
         @Override public void close() {

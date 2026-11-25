@@ -55,8 +55,9 @@ class ModClientCommandServiceTest {
 
         first.close();
         assertTrue(registration.isClosed());
-        assertTrue(second.register(new ClientCommand("reload", "Reload", "reload",
-                command -> { })).isClosed() == false);
+        var replacement = second.register(new ClientCommand("reload", "Reload", "reload",
+                command -> { }));
+        assertFalse(replacement.isClosed());
         second.close();
         service.close();
     }
@@ -66,6 +67,7 @@ class ModClientCommandServiceTest {
         ModClientCommandService service = new ModClientCommandService(false);
         var scope = service.createScope("examplemod");
         assertFalse(scope.isAvailable());
+        assertTrue(scope.find("echo").isEmpty());
         assertThrows(UnsupportedOperationException.class, () -> scope.register(
                 new ClientCommand("echo", "Echo", "echo", command -> { })));
         assertFalse(service.dispatch("/echo", ignored -> fail("Unavailable commands must not dispatch")));
