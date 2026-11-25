@@ -37,7 +37,7 @@ class IntermediaryMappingsTest {
         Files.writeString(officialMappings, """
                 net.minecraft.client.gui.screens.TitleScreen -> abc:
                     1:1:void init() -> a
-                net.minecraft.network.Connection -> xyz:
+                net.minecraft.network.Connection -> conn:
                     java.net.SocketAddress address -> b
                 net.minecraft.util.profiling.jfr.event.ChunkGenerationEvent -> jfr:
                 net.minecraft.world.entity.LivingEntity -> xyz:
@@ -68,6 +68,6 @@ class IntermediaryMappingsTest {
         assertTrue(remapped.contains("Labc;a()V"), remapped);
         assertTrue(remapped.contains("Ljfr;"), remapped);
         assertTrue(remapped.contains("bF:F"), remapped);
-        assertTrue(remapped.contains("Lxyz;b:Ljava/net/SocketAddress;"), remapped);
+        assertTrue(remapped.contains("Lconn;b:Ljava/net/SocketAddress;"), remapped);
     }
 }
