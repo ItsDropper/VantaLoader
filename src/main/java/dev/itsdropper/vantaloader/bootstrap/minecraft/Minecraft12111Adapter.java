@@ -57,7 +57,9 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         String runtimeName = context.mappings().runtimeMethodName(owner, HUD_RENDER_METHOD, HUD_RENDER_DESCRIPTOR);
         String runtimeDescriptor = context.mappings().runtimeDescriptor(HUD_RENDER_DESCRIPTOR);
         ClassReader reader = new ClassReader(originalClass);
-        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        ClassWriter writer = new HierarchyClassWriter(reader,
+                ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS,
+                Minecraft12111Adapter.class.getClassLoader());
         int[] matches = {0};
         ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
             @Override
