@@ -93,9 +93,23 @@ context.events().subscribe(ProfileLoaded.class, 0, event ->
 context.events().publish(new ProfileLoaded("default"));
 ```
 
-This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter separately exposes client tick START/END and raw keyboard input events when the launcher supplies the matching official mappings. User-remappable keybinding settings, command registration, registry mutation, rendering, and networking APIs are not yet implemented. The resource API reloads explicitly registered mod-owned files; it does not reload Minecraft resource packs or arbitrary game assets.
+This is a native mod-to-mod communication API, not a Minecraft event hook. The exact Minecraft 1.21.11 adapter exposes client tick START/END, immutable player/world snapshots, and raw keyboard input events when the launcher supplies the matching official mappings. High-level key bindings are available with declared defaults; user remapping, command registration, registry mutation, rendering, and networking APIs are not yet implemented. The resource API reloads explicitly registered mod-owned files; it does not reload Minecraft resource packs or arbitrary game assets.
 
-## Client player and world state\n\n```java\ncontext.events().subscribe(ClientGameTickEvent.class, EventPriority.NORMAL, event -> {\n    if (event.phase() != ClientTickEvent.Phase.START || !event.snapshot().inWorld()) return;\n    ClientPlayerSnapshot player = event.snapshot().player().orElseThrow();\n    ClientWorldSnapshot world = event.snapshot().world().orElseThrow();\n    context.logger().fine("Position: " + player.x() + ", " + player.y() + ", " + player.z());\n    context.logger().fine("Dimension: " + world.dimensionId());\n});\n```\n\nThis API is currently client-only and verified against Minecraft 1.21.11. Snapshot reads happen on the client tick thread; do not retain live game objects or block the callback. Check `CLIENT_GAME_STATE` before depending on this integration.\n\n## Client keyboard input
+## Client player and world state
+
+```java
+context.events().subscribe(ClientGameTickEvent.class, EventPriority.NORMAL, event -> {
+    if (event.phase() != ClientTickEvent.Phase.START || !event.snapshot().inWorld()) return;
+    ClientPlayerSnapshot player = event.snapshot().player().orElseThrow();
+    ClientWorldSnapshot world = event.snapshot().world().orElseThrow();
+    context.logger().fine("Position: " + player.x() + ", " + player.y() + ", " + player.z());
+    context.logger().fine("Dimension: " + world.dimensionId());
+});
+```
+
+This API is currently client-only and verified against Minecraft 1.21.11. Snapshot reads happen on the client tick thread; do not retain live game objects or block the callback. Check `CLIENT_GAME_STATE` before depending on this integration.
+
+## Client keyboard input
 
 The exact Minecraft 1.21.11 adapter publishes immutable player/world snapshots and raw key input through the typed event bus. `ClientGameTickEvent` is emitted at both client tick phases; its `snapshot()` contains optional `player()` and `world()` values. These snapshots contain copied values, not live Minecraft objects. Events run on Minecraft's input thread; keep callbacks short and dispatch expensive work through `context.tasks()`. The current event reports raw GLFW-compatible values and does not yet provide user-remappable keybinding settings.
 
@@ -188,10 +202,6 @@ The loader watches registered resource directories recursively. Changes to JARs 
 
 Prefer high-level VMA contracts for ordinary behavior. Use typed persistent configuration, typed events, resource reload registrations, Mod Menu integration, and accessor views where appropriate. The [VMA Showcase](../../examples/vma-showcase/README.md) demonstrates settings and client events without ASM. The [Auto Sprint example](../../examples/auto-sprint/README.md) demonstrates the lower-level transformation escape hatch.
 
-## VMA-first development
-
-Prefer the high-level VMA contracts for ordinary behavior: typed persistent configuration, typed events, resource reload, and capability negotiation. See the [VMA Showcase](../../examples/vma-showcase/README.md) for a mod that uses settings and client tick events without ASM. The [VMA API reference](vma-reference.md) documents implemented contracts and explicit limitations. Use transformations only when no supported high-level API exists.
-
 ## ASM transformation example
 
 The agent bundles ASM 9.8 and exposes it to mods at runtime. This example replaces a string constant while preserving the method's existing stack shape and frames:
@@ -234,4 +244,4 @@ The example target is illustrative, not a verified Minecraft class. Use Mojang-m
 
 ## Current compatibility boundary
 
-The loader currently provides native entrypoints, dependency ordering, isolated mod class loaders, and an ASM-backed exact-target transformation pipeline. The exact Minecraft 1.21.11 adapter exposes client tick START/END events and title/pause-screen hooks, all fixture-tested but not yet verified in a live world. An experimental SpongePowered Mixin service and per-mod configuration registration path is present; third-party Mixin compatibility remains unverified. Automatic bytecode remapping and Fabric/Forge APIs are not provided. VantaLoader is not yet a general-purpose replacement for established Minecraft loaders.
+The loader currently provides native entrypoints, dependency ordering, isolated mod class loaders, and an ASM-backed exact-target transformation pipeline. The exact Minecraft 1.21.11 adapter exposes client tick START/END events, immutable player/world snapshots, keyboard input, and title/pause-screen hooks. The in-world snapshot probe and mod-menu rendering are verified by the GitHub Actions Minecraft 1.21.11 integration suite. An experimental SpongePowered Mixin service and per-mod configuration registration path is present; third-party Mixin compatibility remains unverified. Automatic bytecode remapping and Fabric/Forge APIs are not provided. VantaLoader is not yet a general-purpose replacement for established Minecraft loaders.
