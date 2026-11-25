@@ -11,6 +11,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Converts Loom's intermediary-namespace Mixin reference maps to the exact
@@ -20,15 +22,21 @@ public final class IntermediaryMappings {
     private final Map<String, String> intermediaryToOfficialClasses;
     private final Map<String, String> officialToIntermediaryClasses;
     private final Map<String, String> intermediaryToOfficialMethods;
+    private final Map<String, String> methodsByNameAndDescriptor;
+    private final Set<String> ambiguousGlobalMethods;
     private final Map<String, String> intermediaryToOfficialFields;
 
     private IntermediaryMappings(Map<String, String> classes,
                                  Map<String, String> officialToIntermediary,
                                  Map<String, String> methods,
+                                 Map<String, String> globalMethods,
+                                 Set<String> ambiguousGlobalMethods,
                                  Map<String, String> fields) {
         intermediaryToOfficialClasses = Map.copyOf(classes);
         officialToIntermediaryClasses = Map.copyOf(officialToIntermediary);
         intermediaryToOfficialMethods = Map.copyOf(methods);
+        methodsByNameAndDescriptor = Map.copyOf(globalMethods);
+        this.ambiguousGlobalMethods = Set.copyOf(ambiguousGlobalMethods);
         intermediaryToOfficialFields = Map.copyOf(fields);
     }
 
@@ -38,6 +46,8 @@ public final class IntermediaryMappings {
         Map<String, String> sourceToIntermediaryClasses = new HashMap<>();
         Map<String, String> officialToIntermediaryClasses = new HashMap<>();
         Map<String, String> methods = new HashMap<>();
+        Map<String, String> globalMethods = new HashMap<>();
+        Set<String> ambiguousGlobalMethods = new HashSet<>();
         Map<String, String> fields = new HashMap<>();
         java.util.List<String> lines;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(source, StandardCharsets.UTF_8))) {
@@ -94,11 +104,19 @@ public final class IntermediaryMappings {
                 String intermediaryName = parts[3 + intermediaryNamespace];
                 String officialName = parts[3 + officialNamespace];
                 String key = ownerIntermediary + "#" + intermediaryName + descriptor;
-                if (parts[1].equals("m")) methods.put(key, officialName);
-                else fields.put(key, officialName);
+                if (parts[1].equals("m")) {
+                    methods.put(key, officialName);
+                    String globalKey = intermediaryName + descriptor;
+                    String previous = globalMethods.putIfAbsent(globalKey, officialName);
+                    if (previous != null && !previous.equals(officialName)) {
+                        globalMethods.remove(globalKey);
+                        ambiguousGlobalMethods.add(globalKey);
+                    }
+                } else fields.put(key, officialName);
             }
         }
-        return new IntermediaryMappings(classes, officialToIntermediaryClasses, methods, fields);
+        return new IntermediaryMappings(classes, officialToIntermediaryClasses, methods,
+                globalMethods, ambiguousGlobalMethods, fields);
     }
 
     private static String remapDescriptorClasses(String descriptor, Map<String, String> classes)
@@ -111,9 +129,8 @@ public final class IntermediaryMappings {
             int end = descriptor.indexOf(';', i);
             if (end < 0) throw new IOException("Malformed Tiny member descriptor: " + descriptor);
             String sourceName = descriptor.substring(i, end);
-            // Some official Minecraft classes intentionally have no Intermediary
-            // alias. Keep those descriptor types in the official namespace; the
-            // following Mojang-mapping pass still converts them to runtime names.
+            // Some obfuscated runtime classes intentionally have no Intermediary
+            // alias. Keep those descriptor types in the runtime namespace.
             String intermediaryName = classes.get(sourceName);
             result.append(intermediaryName == null ? sourceName : intermediaryName).append(';');
             i = end + 1;
@@ -146,6 +163,13 @@ public final class IntermediaryMappings {
         }
     }
 
+    private String runtimeMethodName(String intermediaryOwner, String intermediaryName, String descriptor) {
+        String exact = intermediaryToOfficialMethods.get(intermediaryOwner + "#" + intermediaryName + descriptor);
+        if (exact != null) return exact;
+        String globalKey = intermediaryName + descriptor;
+        return ambiguousGlobalMethods.contains(globalKey) ? null : methodsByNameAndDescriptor.get(globalKey);
+    }
+
     private String remapUnqualifiedReference(String reference, String runtimeOwner) throws IOException {
         if (runtimeOwner == null) return reference;
         String intermediaryOwner = officialToIntermediaryClasses.get(runtimeOwner);
@@ -157,8 +181,7 @@ public final class IntermediaryMappings {
             String intermediaryName = reference.substring(0, methodStart);
             String intermediaryDescriptor = reference.substring(methodStart);
             String runtimeDescriptor = mapDescriptor(intermediaryDescriptor);
-            String runtimeName = intermediaryToOfficialMethods.get(
-                    intermediaryOwner + "#" + intermediaryName + intermediaryDescriptor);
+            String runtimeName = runtimeMethodName(intermediaryOwner, intermediaryName, intermediaryDescriptor);
             if (runtimeName == null) {
                 throw new IOException("No runtime method mapping for mixin target " + runtimeOwner + "#"
                         + intermediaryName + intermediaryDescriptor);
@@ -239,8 +262,7 @@ public final class IntermediaryMappings {
             String intermediaryName = tail.substring(0, methodStart);
             String intermediaryDescriptor = tail.substring(methodStart);
             String runtimeDescriptor = mapDescriptor(intermediaryDescriptor);
-            String runtimeName = intermediaryToOfficialMethods.get(
-                    intermediaryOwner + "#" + intermediaryName + intermediaryDescriptor);
+            String runtimeName = runtimeMethodName(intermediaryOwner, intermediaryName, intermediaryDescriptor);
             if (runtimeName == null) {
                 throw new IOException("No runtime method mapping for " + intermediaryOwner + "#" + intermediaryName
                         + intermediaryDescriptor);
@@ -271,8 +293,7 @@ public final class IntermediaryMappings {
             int end = descriptor.indexOf(';', i);
             if (end < 0) throw new IOException("Malformed intermediary descriptor: " + descriptor);
             String intermediaryName = descriptor.substring(i, end);
-            // A descriptor may contain an official-only Minecraft class that
-            // has no Intermediary alias. Keep it official for Mojang remapping.
+            // A descriptor may contain a runtime-only class with no Intermediary alias.
             String officialName = intermediaryToOfficialClasses.getOrDefault(intermediaryName, intermediaryName);
             result.append(officialName).append(';');
             i = end + 1;
