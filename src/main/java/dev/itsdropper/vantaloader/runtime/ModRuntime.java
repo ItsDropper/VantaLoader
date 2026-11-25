@@ -520,6 +520,14 @@ public final class ModRuntime implements AutoCloseable {
 
         @Override
         protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+            // Mixin APIs sometimes surface internal JVM names while ordinary
+            // ClassLoader callers use binary names. Normalize before lookup so
+            // the mod container is consulted instead of falling through to the app loader.
+            if (name.indexOf('/') >= 0) name = name.replace('/', '.');
+            if (name.contains("LivingEntityAccessor")) {
+                LOGGER.info("Loading LivingEntityAccessor through mod loader " + this
+                        + " parent=" + getParent() + " urls=" + java.util.Arrays.toString(getURLs()));
+            }
             synchronized (getClassLoadingLock(name)) {
                 Class<?> loaded = findLoadedClass(name);
                 if (loaded == null) {
