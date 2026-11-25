@@ -481,6 +481,7 @@ public final class ModRuntime implements AutoCloseable {
                         codeSource, null, this, null);
                 return defineClass(name, bytecode, 0, bytecode.length, protectionDomain);
             } catch (IOException exception) {
+                LOGGER.log(Level.SEVERE, "Cannot define mod class " + name + " from " + resource, exception);
                 throw new ClassNotFoundException("Cannot read mod class " + name + " from " + resource, exception);
             }
         }
