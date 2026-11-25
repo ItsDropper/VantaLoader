@@ -3,7 +3,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Proxy;
 import static org.junit.jupiter.api.Assertions.*;
 class VantaModApiTest {
- @Test void exposesIndependentSemanticApiVersion(){assertEquals("1.2.0",VantaModApi.VERSION);assertEquals(1,VantaModApi.VERSION_MAJOR);assertEquals(2,VantaModApi.VERSION_MINOR);}
+ @Test void exposesIndependentSemanticApiVersion(){assertEquals("1.3.0",VantaModApi.VERSION);assertEquals(1,VantaModApi.VERSION_MAJOR);assertEquals(2,VantaModApi.VERSION_MINOR);}
  @Test void validatesRequiredCapabilitiesBeforeGameSpecificCode(){
   ModContext context=(ModContext)Proxy.newProxyInstance(getClass().getClassLoader(),new Class<?>[]{ModContext.class},(proxy,method,args)->{
    if(method.getName().equals("minecraftCapabilities"))return MinecraftCapabilities.of(MinecraftCapability.CLIENT_LIFECYCLE_EVENTS,MinecraftCapability.OFFICIAL_MOJANG_MAPPINGS);

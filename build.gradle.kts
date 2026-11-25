@@ -132,6 +132,12 @@ val verifyAgentJar by tasks.registering {
             check(jar.getEntry("dev/itsdropper/vantaloader/api/KeyBindingRegistration.class") != null) {
                 "Standalone mod API JAR is missing KeyBindingRegistration"
             }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/HudRenderContext.class") != null) {
+                "Standalone mod API JAR is missing HudRenderContext"
+            }
+            check(jar.getEntry("dev/itsdropper/vantaloader/api/HudRenderEvent.class") != null) {
+                "Standalone mod API JAR is missing HudRenderEvent"
+            }
             check(jar.getEntry("dev/itsdropper/vantaloader/api/ClientGameTickEvent.class") != null) {
                 "Standalone mod API JAR is missing ClientGameTickEvent"
             }

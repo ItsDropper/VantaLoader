@@ -17,7 +17,12 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
     public static final String VERSION = "1.21.11";
     public static final String CLIENT_CLASS = "net.minecraft.client.Minecraft";
     public static final String KEYBOARD_HANDLER_CLASS = "net.minecraft.client.KeyboardHandler";
+    public static final String HUD_GUI_CLASS = "net.minecraft.client.gui.Gui";
     private static final String KEY_PRESS_METHOD = "keyPress";
+    private static final String HUD_RENDER_METHOD = "render";
+    private static final String HUD_RENDER_DESCRIPTOR =
+            "(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/DeltaTracker;)V";
+    private static final String HUD_RENDER_HOOK_DESCRIPTOR = "(Ljava/lang/Object;Ljava/lang/Object;)V";
     private static final String KEY_PRESS_DESCRIPTOR = "(JILnet/minecraft/client/input/KeyEvent;)V";
     private static final String KEY_INPUT_HOOK_DESCRIPTOR = "(Ljava/lang/Object;JILjava/lang/Object;)V";
     private static final String CLIENT_TICK_METHOD = "tick";
@@ -36,6 +41,8 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
         registry.register("minecraft-1.21.11-client-tick", CLIENT_CLASS, 0, this::transformClientTick);
         registry.register("minecraft-1.21.11-keyboard-input", KEYBOARD_HANDLER_CLASS,
                 0, this::transformKeyboardInput);
+        registry.register("minecraft-1.21.11-hud-render", HUD_GUI_CLASS,
+                0, this::transformHudRender);
         registry.register("minecraft-1.21.11-title-screen", "net.minecraft.client.gui.screens.TitleScreen",
                 0, (context, bytes) -> transformScreenInit(context, bytes, "title"));
         registry.register("minecraft-1.21.11-title-version-label", "net.minecraft.client.gui.GuiGraphics",
@@ -44,6 +51,42 @@ public final class Minecraft12111Adapter implements MinecraftAdapter {
                 0, (context, bytes) -> transformScreenInit(context, bytes, "pause"));
     }
 
+
+    private byte[] transformHudRender(ClassTransformContext context, byte[] originalClass) {
+        String owner = HUD_GUI_CLASS;
+        String runtimeName = context.mappings().runtimeMethodName(owner, HUD_RENDER_METHOD, HUD_RENDER_DESCRIPTOR);
+        String runtimeDescriptor = context.mappings().runtimeDescriptor(HUD_RENDER_DESCRIPTOR);
+        ClassReader reader = new ClassReader(originalClass);
+        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        int[] matches = {0};
+        ClassVisitor visitor = new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String descriptor,
+                                             String signature, String[] exceptions) {
+                MethodVisitor delegate = super.visitMethod(access, name, descriptor, signature, exceptions);
+                if (!runtimeName.equals(name) || !runtimeDescriptor.equals(descriptor)) return delegate;
+                matches[0]++;
+                return new MethodVisitor(Opcodes.ASM9, delegate) {
+                    @Override
+                    public void visitInsn(int opcode) {
+                        if (opcode == Opcodes.RETURN) {
+                            super.visitVarInsn(Opcodes.ALOAD, 0);
+                            super.visitVarInsn(Opcodes.ALOAD, 1);
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOK_OWNER,
+                                    "onHudRender", HUD_RENDER_HOOK_DESCRIPTOR, false);
+                        }
+                        super.visitInsn(opcode);
+                    }
+                };
+            }
+        };
+        reader.accept(visitor, 0);
+        if (matches[0] != 1) {
+            throw new IllegalStateException("Expected exactly one Gui.render(GuiGraphics,DeltaTracker) method, found "
+                    + matches[0] + " (" + runtimeName + runtimeDescriptor + ")");
+        }
+        return writer.toByteArray();
+    }
 
     /**
      * Replaces Minecraft's own footer text at the rendering boundary.

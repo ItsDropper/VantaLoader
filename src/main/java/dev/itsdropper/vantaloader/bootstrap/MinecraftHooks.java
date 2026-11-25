@@ -7,6 +7,8 @@ import dev.itsdropper.vantaloader.api.ClientTickEvent;
 import dev.itsdropper.vantaloader.api.ClientWorldSnapshot;
 import dev.itsdropper.vantaloader.api.EventBus;
 import dev.itsdropper.vantaloader.api.KeyInputEvent;
+import dev.itsdropper.vantaloader.api.HudRenderContext;
+import dev.itsdropper.vantaloader.api.HudRenderEvent;
 import dev.itsdropper.vantaloader.mapping.MinecraftMappings;
 
 import java.lang.reflect.Field;
@@ -30,6 +32,8 @@ public final class MinecraftHooks {
     private static final java.util.concurrent.atomic.AtomicBoolean GAME_STATE_FAILURE_LOGGED =
             new java.util.concurrent.atomic.AtomicBoolean();
     private static final java.util.concurrent.atomic.AtomicBoolean KEY_INPUT_FAILURE_LOGGED =
+            new java.util.concurrent.atomic.AtomicBoolean();
+    private static final java.util.concurrent.atomic.AtomicBoolean HUD_RENDER_FAILURE_LOGGED =
             new java.util.concurrent.atomic.AtomicBoolean();
 
     private MinecraftHooks() { }
@@ -95,6 +99,35 @@ public final class MinecraftHooks {
         } catch (Throwable failure) {
             rethrowFatal(failure);
             LOGGER.log(Level.SEVERE, "One or more VantaLoader keyboard input listeners failed", failure);
+        }
+    }
+
+    /** Called after vanilla HUD rendering; the context is valid only during listener dispatch. */
+    public static void onHudRender(Object gui, Object graphics) {
+        EventBus eventBus = EVENT_BUS.get();
+        if (eventBus == null) return;
+        try {
+            MinecraftMappings mappings = MAPPINGS.get();
+            if (mappings == null) throw new IllegalStateException("Official Minecraft mappings are not configured");
+            Object client = readField(gui, mappings, "net.minecraft.client.gui.Gui", "minecraft",
+                    "Lnet/minecraft/client/Minecraft;");
+            Object font = readField(client, mappings, "net.minecraft.client.Minecraft", "font",
+                    "Lnet/minecraft/client/gui/Font;");
+            int width = ((Number) invoke(graphics, mappings, "net.minecraft.client.gui.GuiGraphics",
+                    "guiWidth", "()I")).intValue();
+            int height = ((Number) invoke(graphics, mappings, "net.minecraft.client.gui.GuiGraphics",
+                    "guiHeight", "()I")).intValue();
+            MappedHudRenderContext context = new MappedHudRenderContext(graphics, font, mappings, width, height);
+            try {
+                eventBus.publish(new HudRenderEvent(context));
+            } finally {
+                context.expire();
+            }
+        } catch (Throwable failure) {
+            rethrowFatal(failure);
+            if (HUD_RENDER_FAILURE_LOGGED.compareAndSet(false, true)) {
+                LOGGER.log(Level.SEVERE, "VantaLoader could not dispatch the mapped HUD render event", failure);
+            }
         }
     }
 
@@ -196,20 +229,88 @@ public final class MinecraftHooks {
 
     private static Object invoke(Object target, MinecraftMappings mappings, String owner,
                                   String name, String descriptor) throws ReflectiveOperationException {
+        return invoke(target, mappings, owner, name, descriptor, new Object[0]);
+    }
+
+    private static Object invoke(Object target, MinecraftMappings mappings, String owner,
+                                  String name, String descriptor, Object... arguments)
+            throws ReflectiveOperationException {
         Objects.requireNonNull(target, "target");
         String runtimeName = mappings.runtimeMethodName(owner, name, descriptor);
+        String runtimeDescriptor = mappings.runtimeDescriptor(descriptor);
         Class<?> declaringType = Class.forName(mappings.runtimeClassName(owner), false,
                 target.getClass().getClassLoader());
         if (!declaringType.isAssignableFrom(target.getClass())) {
             throw new IllegalArgumentException("Mapped method owner " + declaringType.getName()
                     + " is not a supertype of " + target.getClass().getName());
         }
-        Method method = declaringType.getDeclaredMethod(runtimeName);
+        Method method = null;
+        for (Method candidate : declaringType.getDeclaredMethods()) {
+            if (candidate.getName().equals(runtimeName)
+                    && org.objectweb.asm.Type.getMethodDescriptor(candidate).equals(runtimeDescriptor)) {
+                method = candidate;
+                break;
+            }
+        }
+        if (method == null) {
+            throw new NoSuchMethodException("Mapped method not found: " + owner + "." + runtimeName + runtimeDescriptor);
+        }
         if (!method.trySetAccessible()) {
             throw new IllegalAccessException("Cannot access mapped method "
                     + declaringType.getName() + "." + runtimeName);
         }
-        return method.invoke(target);
+        return method.invoke(target, arguments);
+    }
+
+    private static final class MappedHudRenderContext implements HudRenderContext {
+        private final Object graphics;
+        private final Object font;
+        private final MinecraftMappings mappings;
+        private final int width;
+        private final int height;
+        private boolean active = true;
+
+        private MappedHudRenderContext(Object graphics, Object font, MinecraftMappings mappings,
+                                       int width, int height) {
+            this.graphics = graphics;
+            this.font = font;
+            this.mappings = mappings;
+            this.width = width;
+            this.height = height;
+        }
+
+        @Override public int width() { ensureActive(); return width; }
+        @Override public int height() { ensureActive(); return height; }
+
+        @Override
+        public void drawText(String text, int x, int y, int color) {
+            ensureActive();
+            Objects.requireNonNull(text, "text");
+            try {
+                invoke(graphics, mappings, "net.minecraft.client.gui.GuiGraphics", "drawString",
+                        "(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)V", font, text, x, y, color);
+            } catch (ReflectiveOperationException failure) {
+                throw new IllegalStateException("Cannot draw HUD text with the mapped Minecraft renderer", failure);
+            }
+        }
+
+        @Override
+        public void fillRect(int left, int top, int right, int bottom, int color) {
+            ensureActive();
+            if (right < left || bottom < top) throw new IllegalArgumentException("Rectangle bounds are inverted");
+            try {
+                invoke(graphics, mappings, "net.minecraft.client.gui.GuiGraphics", "fill",
+                        "(IIIII)V", left, top, right, bottom, color);
+            } catch (ReflectiveOperationException failure) {
+                throw new IllegalStateException("Cannot draw HUD rectangle with the mapped Minecraft renderer", failure);
+            }
+        }
+
+        private void ensureActive() {
+            if (!active) throw new IllegalStateException("HUD render context is only valid during its event callback");
+        }
+
+        private void expire() { active = false; }
     }
 
     private static void rethrowFatal(Throwable failure) {

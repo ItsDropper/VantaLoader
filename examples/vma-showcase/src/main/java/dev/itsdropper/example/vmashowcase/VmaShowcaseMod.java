@@ -10,6 +10,7 @@ public final class VmaShowcaseMod implements VantaMod {
     private static final ConfigKey<Boolean> ENABLED = ConfigKey.bool("enabled", true);
     private final AtomicBoolean tickObserved = new AtomicBoolean();
     private final AtomicBoolean gameStateObserved = new AtomicBoolean();
+    private final AtomicBoolean hudRenderObserved = new AtomicBoolean();
 
     public VmaShowcaseMod() { }
 
@@ -38,6 +39,17 @@ public final class VmaShowcaseMod implements VantaMod {
                 context.logger().info("VMA showcase: high-level client tick event delivered");
             }
         });
+
+        if (context.minecraftCapabilities().supports(MinecraftCapability.HUD_RENDERING)) {
+            context.events().subscribe(HudRenderEvent.class, EventPriority.NORMAL, event -> {
+                HudRenderContext hud = event.context();
+                hud.fillRect(4, 4, 104, 22, 0x99000000);
+                hud.drawText("Vanta VMA", 9, 9, 0xFFFFFFFF);
+                if (hudRenderObserved.compareAndSet(false, true)) {
+                    context.logger().info("VMA showcase: HUD render context delivered");
+                }
+            });
+        }
 
         if (context.minecraftCapabilities().supports(MinecraftCapability.CLIENT_GAME_STATE)) {
             context.events().subscribe(ClientGameTickEvent.class, EventPriority.NORMAL, event -> {
