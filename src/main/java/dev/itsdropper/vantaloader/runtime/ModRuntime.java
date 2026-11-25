@@ -100,7 +100,7 @@ public final class ModRuntime implements AutoCloseable {
                 ModEventBus.Scope eventScope = new ModEventBus.Scope(eventBus);
                 ModKeyBindingRegistry keyBindings = new ModKeyBindingRegistry(eventScope,
                         minecraftCapabilities.supports(MinecraftCapability.KEYBOARD_INPUT_EVENTS));
-                ModServiceRegistry.Scope serviceScope = serviceRegistry.createScope(id);
+                ModServiceRegistry.Scope serviceScope = serviceRegistry.createScope(artifact.descriptor().id());
                 LoadedMod mod;
                 try {
                     mod = instantiate(artifact, loader, eventScope, serviceScope, keyBindings);
