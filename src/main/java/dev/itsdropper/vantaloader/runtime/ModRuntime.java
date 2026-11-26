@@ -548,7 +548,14 @@ public final class ModRuntime implements AutoCloseable {
                                     // Continue through only explicitly declared dependencies.
                                 }
                             }
-                            if (loaded == null) loaded = getParent().loadClass(name);
+                            if (loaded == null) {
+                                // Mod-private namespaces must never be completed from the
+                                // application class path. Doing so can define half of a mod in
+                                // the app loader and then fail later when that class resolves
+                                // a sibling (for example Vanta Client's mixin accessors).
+                                if (!isParentFallbackAllowed(name)) throw ownMiss;
+                                loaded = getParent().loadClass(name);
+                            }
                         }
                     }
                 }
@@ -577,6 +584,10 @@ public final class ModRuntime implements AutoCloseable {
             }
             getParent().getResources(name).asIterator().forEachRemaining(resources::add);
             return java.util.Collections.enumeration(resources);
+        }
+
+        private static boolean isParentFallbackAllowed(String name) {
+            return !name.startsWith("name.vantaclient.");
         }
 
         private static boolean isParentFirst(String name) {
