@@ -21,6 +21,29 @@ import static org.junit.jupiter.api.Assertions.*;
 class ModRuntimeTest {
     @TempDir Path temporaryDirectory;
 
+    @Test
+    void doesNotCompleteVantaClientClassesFromTheApplicationClassLoader() throws Exception {
+        assertNotNull(name.vantaclient.mixin.LivingEntityAccessor.class,
+                "The parent-classpath collision fixture must be visible to the test application loader");
+        Path jar = temporaryDirectory.resolve("empty-mod.jar");
+        try (ZipOutputStream ignored = new ZipOutputStream(Files.newOutputStream(jar))) { }
+
+        Class<?> loaderType = Class.forName(ModRuntime.class.getName() + "$ModClassLoader");
+        var constructor = loaderType.getDeclaredConstructor(
+                java.net.URL.class, ClassLoader.class, List.class, MinecraftMappings.class);
+        constructor.setAccessible(true);
+        ClassLoader modLoader = (ClassLoader) constructor.newInstance(
+                jar.toUri().toURL(), getClass().getClassLoader(), List.of(), null);
+
+        try {
+            assertThrows(ClassNotFoundException.class,
+                    () -> modLoader.loadClass("name.vantaclient.mixin.LivingEntityAccessor"),
+                    "A Vanta Client class missing from its mod container must not leak in from the app loader");
+        } finally {
+            ((java.net.URLClassLoader) modLoader).close();
+        }
+    }
+
     @Test void exposesKeyBindingsAndClosesThemWithTheirOwningMod() throws Exception {
         RuntimeEvents.EVENTS.clear();
         RuntimeEvents.keyBindingRegistration = null;
